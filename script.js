@@ -9,14 +9,14 @@ document.getElementById('addPlayerButton').addEventListener('click', function() 
     if (playerName) {
         players.push({
             name: playerName,
-            scores: Array(maxHoles).fill(0), // Initialize scores with 0 for each hole
+            scores: Array(maxHoles).fill(null), // Initialize scores with null (not played yet)
         });
         renderPlayers();
         document.getElementById('nextHoleButton').disabled = false; // Enable "Next Hole" button after first player is added
     }
 });
 
-// Function to render player names and score fields
+// Function to render player names and score fields for the current hole
 function renderPlayers() {
     let playersDiv = document.getElementById('players');
     playersDiv.innerHTML = '';
@@ -31,17 +31,20 @@ function renderPlayers() {
 
         let holeScoresDiv = document.createElement('div');
         holeScoresDiv.classList.add('hole-scores');
-        player.scores.forEach((score, holeIndex) => {
+
+        // Display score input for the current hole only
+        if (player.scores[currentHole - 1] === null) { // Only show the input if no score yet
             let scoreDiv = document.createElement('div');
             scoreDiv.innerHTML = `
-                <span>Hole ${holeIndex + 1}: </span>
-                <button class="scoreButton" data-player-index="${index}" data-hole-index="${holeIndex}" onclick="adjustScore(${index}, ${holeIndex}, -1)">-</button>
-                <span id="score-${index}-${holeIndex}">${score}</span>
-                <button class="scoreButton" data-player-index="${index}" data-hole-index="${holeIndex}" onclick="adjustScore(${index}, ${holeIndex}, 1)">+</button>
-                <button class="scratchButton" data-player-index="${index}" data-hole-index="${holeIndex}" onclick="addScratch(${index}, ${holeIndex})">Scratch</button>
+                <span>Hole ${currentHole}: </span>
+                <button class="scoreButton" data-player-index="${index}" data-hole-index="${currentHole - 1}" onclick="adjustScore(${index}, ${currentHole - 1}, -1)">-</button>
+                <span id="score-${index}-${currentHole - 1}">${player.scores[currentHole - 1] === null ? 'N/A' : player.scores[currentHole - 1]}</span>
+                <button class="scoreButton" data-player-index="${index}" data-hole-index="${currentHole - 1}" onclick="adjustScore(${index}, ${currentHole - 1}, 1)">+</button>
+                <button class="scratchButton" data-player-index="${index}" data-hole-index="${currentHole - 1}" onclick="addScratch(${index}, ${currentHole - 1})">Scratch</button>
             `;
             holeScoresDiv.appendChild(scoreDiv);
-        });
+        }
+
         playerDiv.appendChild(holeScoresDiv);
         playersDiv.appendChild(playerDiv);
     });
@@ -50,7 +53,7 @@ function renderPlayers() {
 // Adjust the score for a specific hole
 function adjustScore(playerIndex, holeIndex, delta) {
     let player = players[playerIndex];
-    player.scores[holeIndex] += delta;
+    player.scores[holeIndex] = player.scores[holeIndex] === null ? delta : player.scores[holeIndex] + delta; // If score is null, initialize with delta value
     if (player.scores[holeIndex] < 0) player.scores[holeIndex] = 0; // Prevent negative scores
     renderPlayers();
 }
@@ -58,7 +61,7 @@ function adjustScore(playerIndex, holeIndex, delta) {
 // Add a Scratch (i.e. +3 to the score)
 function addScratch(playerIndex, holeIndex) {
     let player = players[playerIndex];
-    player.scores[holeIndex] += 3;
+    player.scores[holeIndex] = player.scores[holeIndex] === null ? 3 : player.scores[holeIndex] + 3;
     renderPlayers();
 }
 
@@ -66,8 +69,9 @@ function addScratch(playerIndex, holeIndex) {
 document.getElementById('nextHoleButton').addEventListener('click', function() {
     if (currentHole < maxHoles) {
         currentHole++;
+        renderPlayers();
+        renderBoxScore(); // Update box score with the new hole
         document.getElementById('nextHoleButton').disabled = currentHole >= maxHoles;
-        renderBoxScore();
     }
 });
 
@@ -88,7 +92,7 @@ function renderBoxScore() {
         let tableRow = document.createElement('tr');
         tableRow.innerHTML = `<td>${player.name}</td>`;
         for (let i = 0; i < currentHole; i++) {
-            tableRow.innerHTML += `<td>${player.scores[i]}</td>`;
+            tableRow.innerHTML += `<td>${player.scores[i] !== null ? player.scores[i] : 'N/A'}</td>`;
         }
         table.appendChild(tableRow);
     });
