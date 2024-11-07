@@ -100,16 +100,21 @@ function nextHole() {
     displayPlayers();
 }
 
-// Reset all player scores
+// Reset all player scores and clear local storage
 function resetScores() {
-    players.forEach(player => {
-        player.scores = Array(currentHole + 1).fill(0); // Reset all scores to 0 for the current hole
-    });
+    players = [];
+    currentHole = 0;
+    localStorage.removeItem("players"); // Clear saved game state
     displayPlayers();
 }
 
-// End the game and display the final scores in a box score format
+// End the game and display the final box score
 function endGame() {
+    const confirmed = confirm("Are you sure you want to end the game?");
+    if (!confirmed) {
+        return;
+    }
+
     const playersContainer = document.getElementById("players");
     playersContainer.innerHTML = "<h2>Game Over - Final Scores</h2>";
 
@@ -121,16 +126,17 @@ function endGame() {
         header.classList.add("player-header");
         header.innerHTML = `<strong>${player.name}</strong>`;
 
-        // Display all holes for the player
+        // Create a dynamic box score based on the current hole
         const holeScoresDiv = document.createElement("div");
         holeScoresDiv.classList.add("hole-scores");
 
-        player.scores.forEach((score, index) => {
+        // Only show scores for holes that have been played
+        for (let i = 0; i <= currentHole; i++) {
             const holeScoreDiv = document.createElement("div");
             holeScoreDiv.classList.add("hole-score");
-            holeScoreDiv.innerText = `Hole ${index + 1}: ${score}`;
+            holeScoreDiv.innerText = `Hole ${i + 1}: ${player.scores[i] || 0}`;
             holeScoresDiv.appendChild(holeScoreDiv);
-        });
+        }
 
         playerDiv.appendChild(header);
         playerDiv.appendChild(holeScoresDiv);
