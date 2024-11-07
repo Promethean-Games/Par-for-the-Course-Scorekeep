@@ -71,6 +71,18 @@ h1 {
     padding: 5px 10px;
     border-radius: 5px;
     color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hole-score input {
+    width: 40px;
+    text-align: center;
+    background-color: #555;
+    border: none;
+    color: #fff;
+    border-radius: 5px;
 }
 
 .button-group {
