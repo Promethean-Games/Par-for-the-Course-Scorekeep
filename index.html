@@ -4,37 +4,30 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Par for the Course - Scorekeep</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Logo Section -->
-    <div class="logo-container">
-        <img id="logo" src="CL-Logo-Transparent(tm).png" alt="Par for the Course Logo">
-    </div>
-    
-    <!-- App Title -->
-    <h1>Par for the Course - Scorekeep</h1>
+    <div class="container">
+        <header>
+            <img src="logo.png" alt="Par for the Course - Scorekeep" class="logo">
+            <h1>Par for the Course - Scorekeep</h1>
+        </header>
 
-    <!-- Scoreboard Section -->
-    <div id="scoreboard">
-        <div id="players"></div>
-    </div>
+        <section class="game-controls">
+            <button id="addPlayer">Add Player</button>
+            <button id="nextHole">Next Hole</button>
+            <button id="reset">Reset Game</button>
+            <button id="gameOver">End Game</button>
+        </section>
 
-    <!-- Controls Section -->
-    <div id="controls">
-        <button id="addPlayer">Add Player</button>
-        <button id="nextHole">Next Hole</button>
-        <button id="reset">Reset</button>
-        <button id="gameOver">Game Over</button>
-    </div>
-
-    <!-- Box Score Section (hidden initially) -->
-    <div id="boxScore" class="box-score" style="display: none;">
-        <div class="box-score-header">
+        <section id="players"></section>
+        
+        <!-- Box Score -->
+        <div id="boxScore" style="display:none;">
             <h2>Box Score</h2>
+            <div id="scoreDetails"></div>
             <button id="closeBoxScore">Close</button>
         </div>
-        <div id="scoreDetails"></div>
     </div>
 
     <script src="script.js"></script>
