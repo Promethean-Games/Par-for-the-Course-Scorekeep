@@ -1,174 +1,103 @@
-/* General Page Styling */
+/* General styles */
 body {
-    background-color: black;
-    color: #ffffff;
     font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    background-color: #f4f4f4;
     margin: 0;
     padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-/* Logo Styling */
-.logo-container {
+/* Header styles */
+header {
     text-align: center;
-    margin-top: 20px;
+    margin: 20px;
 }
 
-#logo {
-    width: 600px;  /* Set logo width to 600px */
-    height: auto;  /* Maintain aspect ratio */
+.logo {
+    width: 600px;
+    height: auto;
 }
 
-/* Title Styling */
 h1 {
-    color: #d11111;
-    font-size: 2.5em;
-    margin-top: 10px;
-    text-align: center;
+    font-size: 2rem;
+    color: #333;
 }
 
-/* Scoreboard Styling */
-#scoreboard {
-    margin-top: 20px;
-    width: 90%;
-    max-width: 600px;
-    background-color: #333;
-    padding: 20px;
-    border-radius: 10px;
+/* Game Controls Section */
+.game-controls {
+    margin-bottom: 20px;
 }
 
-#players {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-/* Player Styling */
-.player {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 8px;
-    color: #ffffff;
-}
-
-.player-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.hole-scores {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.hole-score {
-    background-color: #444;
-    padding: 5px 10px;
-    border-radius: 5px;
-    color: #ffffff;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.hole-score input {
-    width: 40px;
-    text-align: center;
-    background-color: #555;
-    border: none;
-    color: #fff;
-    border-radius: 5px;
-}
-
-.button-group {
-    display: flex;
-    gap: 5px;
-}
-
-/* Button Styling */
 button {
-    background-color: #d11111;
-    color: #ffffff;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 5px;
+    padding: 10px 20px;
+    margin: 5px;
     cursor: pointer;
+    background-color: #333;
+    color: white;
+    border: none;
     font-size: 1rem;
 }
 
 button:hover {
-    background-color: #b00d0d;
-}
-
-button:disabled {
     background-color: #555;
-    cursor: not-allowed;
 }
 
-/* Control Button Section */
-#controls {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-#controls button {
-    font-size: 1.2rem;
-}
-
-/* Box Score Section */
-.box-score {
-    background-color: #333;
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 20px;
-    width: 90%;
-    max-width: 600px;
-    color: white;
-}
-
-.box-score-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Player Display */
+#players {
+    width: 80%;
+    max-width: 800px;
     margin-bottom: 20px;
 }
 
-.box-score-header button {
-    background-color: #d11111;
-    font-size: 1.2rem;
+.player {
+    margin: 10px 0;
 }
 
-/* Mobile responsiveness */
-@media (max-width: 600px) {
-    #logo {
-        width: 100%; /* Logo scales on mobile */
-    }
+.player-header {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
 
-    h1 {
-        font-size: 2em;  /* Slightly smaller title for mobile */
-    }
+/* Box Score Table */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
 
-    #scoreboard {
-        width: 100%;
-    }
+table, th, td {
+    border: 1px solid #333;
+}
 
-    #controls {
-        flex-direction: column;
-        gap: 10px;
-    }
+th, td {
+    padding: 10px;
+    text-align: center;
+}
 
-    .player {
-        padding: 10px;
-    }
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
 
-    .hole-scores {
-        gap: 5px;
-    }
+#boxScore {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+#closeBoxScore {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #333;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+#closeBoxScore:hover {
+    background-color: #555;
 }
