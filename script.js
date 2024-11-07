@@ -10,7 +10,7 @@ function addPlayer() {
     if (playerName) {
         let player = {
             name: playerName,
-            scores: Array(18).fill(null), // Initialize scores for 18 holes with null (no score)
+            scores: Array(18).fill(0), // Initialize scores for 18 holes with 0 (zero score)
         };
         players.push(player);
         updatePlayers();
@@ -33,7 +33,7 @@ function updatePlayers() {
             <div class="hole-scores">
                 <div class="hole-score">
                     <button onclick="adjustScore(${index}, ${currentHole - 1}, -1)">-</button>
-                    <input type="number" id="score-${index}" value="${player.scores[currentHole - 1] !== null ? player.scores[currentHole - 1] : ''}" ${gameOver ? 'disabled' : ''}>
+                    <input type="number" id="score-${index}" value="${player.scores[currentHole - 1]}" ${gameOver ? 'disabled' : ''}>
                     <button onclick="adjustScore(${index}, ${currentHole - 1}, 1)">+</button>
                     <button onclick="scratch(${index}, ${currentHole - 1})">Scratch</button>
                 </div>
@@ -47,8 +47,7 @@ function updatePlayers() {
 function adjustScore(playerIndex, holeIndex, change) {
     if (gameOver) return;
 
-    let newScore = players[playerIndex].scores[holeIndex] !== null ? players[playerIndex].scores[holeIndex] + change : change;
-    players[playerIndex].scores[holeIndex] = newScore;
+    players[playerIndex].scores[holeIndex] += change;
     updatePlayers();
 }
 
@@ -56,7 +55,7 @@ function adjustScore(playerIndex, holeIndex, change) {
 function scratch(playerIndex, holeIndex) {
     if (gameOver) return;
 
-    players[playerIndex].scores[holeIndex] = players[playerIndex].scores[holeIndex] !== null ? players[playerIndex].scores[holeIndex] + 3 : 3;
+    players[playerIndex].scores[holeIndex] += 3;
     updatePlayers();
 }
 
@@ -86,19 +85,30 @@ function endGame() {
     const scoreDetails = document.getElementById("scoreDetails");
     scoreDetails.innerHTML = '';
     
+    // Create a table for the box score
+    let table = '<table><thead><tr><th>Player</th>';
+    
+    // Add headers for each hole
+    for (let i = 1; i <= currentHole; i++) {
+        table += `<th>Hole ${i}</th>`;
+    }
+    table += `<th>Total</th></tr></thead><tbody>`;
+
     players.forEach(player => {
-        let scoreRow = `<div><strong>${player.name}:</strong>`;
+        let totalScore = 0;
+        table += `<tr><td>${player.name}</td>`;
         
-        // Loop through only the holes that have been played (non-null scores)
-        for (let i = 0; i < 18; i++) {
-            if (player.scores[i] !== null) { // Only show holes with non-null scores
-                scoreRow += ` Hole ${i + 1}: ${player.scores[i]}`;
-            }
+        // Display scores for holes played up to and including the current hole
+        for (let i = 0; i < currentHole; i++) {
+            table += `<td>${player.scores[i]}</td>`;
+            totalScore += player.scores[i];
         }
-        
-        scoreRow += `</div>`;
-        scoreDetails.innerHTML += scoreRow;
+
+        table += `<td>${totalScore}</td></tr>`;
     });
+    
+    table += '</tbody></table>';
+    scoreDetails.innerHTML = table;
     
     document.getElementById("boxScore").style.display = 'block';
 }
