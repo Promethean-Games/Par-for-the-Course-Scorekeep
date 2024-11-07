@@ -4,25 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Par for the Course - Scorekeep</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Logo Section -->
     <div class="logo-container">
-        <img src="CL-Logo-Transparent(tm).png" alt="Par for the Course Logo" class="centered-logo">
+        <img id="logo" src="your-logo.png" alt="Game Logo">
     </div>
-    <h1>Par for the Course - Scorekeep</h1>
-    
-    <div id="scoreboard">
-        <div id="players"></div>
-     <div id="controls" class="button-group">
-    <button onclick="addPlayer()">Add Player</button>
-    <button onclick="endGame()">Game Over</button> <!-- Button to end the game -->
-    <button onclick="nextHole()">Next Hole</button> <!-- Button to move to next hole -->
-    <button onclick="resetScores()">Reset Scores</button> <!-- Button to reset scores -->
-</div>
 
+    <!-- Game Title -->
+    <h1>Par for the Course - Scorekeep</h1>
+
+    <!-- Scoreboard Section -->
+    <div id="scoreboard">
+        <div id="players">
+            <!-- Player 1 Example -->
+            <div class="player" id="player1">
+                <div class="player-header">
+                    <span id="player1-name">Player 1</span>
+                    <button onclick="removePlayer('player1')">Remove Player</button>
+                </div>
+                <div class="hole-scores" id="player1-scores"></div>
+            </div>
+
+            <!-- Player 2 Example -->
+            <div class="player" id="player2">
+                <div class="player-header">
+                    <span id="player2-name">Player 2</span>
+                    <button onclick="removePlayer('player2')">Remove Player</button>
+                </div>
+                <div class="hole-scores" id="player2-scores"></div>
+            </div>
+        </div>
     </div>
-    
+
+    <!-- Control Buttons Section -->
+    <div id="controls">
+        <button id="next-hole" onclick="nextHole()">Next Hole</button>
+        <button id="reset" onclick="resetGame()">Reset</button>
+        <button id="game-over" onclick="endGame()">Game Over</button>
+    </div>
+
+    <!-- Box Score Section (Visible after Game Over) -->
+    <div id="box-score" class="box-score" style="display: none;">
+        <div class="box-score-header">
+            <span>Box Score</span>
+            <button onclick="closeBoxScore()">Close</button>
+        </div>
+        <div id="box-score-content">
+            <!-- Box Score Content Will Be Dynamic -->
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
