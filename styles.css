@@ -1,102 +1,96 @@
-/* Base styling */
+/* General Page Styling */
 body {
+    background-color: black;
+    color: #ffffff;
     font-family: Arial, sans-serif;
-    background-color: #000000;
-    color: #333;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    height: 100vh;
     margin: 0;
+    padding: 0;
 }
 
-#app {
-    width: 90%;
-    max-width: 600px;
-    background-color: #fff;
-    border: 2px solid #333;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
-}
-
-/* Heading styling */
-h1 {
+/* Logo Styling */
+.logo-container {
     text-align: center;
-    color: #d11111;
-    margin: 0 0 20px;
-    font-size: 24px;
-}
-
-/* Controls styling */
-#controls {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 20px;
-}
-
-button {
-    padding: 10px 15px;
-    font-size: 14px;
-    color: #fff;
-    background-color: #d11111;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-button:hover {
-    background-color: #a00c0c;
-}
-
-/* Players and score sections */
-#players .player {
-    margin-bottom: 15px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-#players h2 {
-    margin: 0 0 10px;
-}
-
-.scores button {
-    background-color: #333;
-    color: #fff;
-    margin-right: 5px;
-    padding: 5px;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.scores button:hover {
-    background-color: #555;
-}
-
-#box-score {
     margin-top: 20px;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
+.centered-logo {
+    max-width: 100%;
+    height: auto;
 }
 
-th, td {
-    border: 1px solid #333;
-    padding: 8px;
+/* Title Styling */
+h1 {
+    color: #d11111;
+    font-size: 2.5em;
+    margin-top: 10px;
     text-align: center;
 }
 
-th {
-    background-color: #d11111;
-    color: white;
+/* Scoreboard Styling */
+#scoreboard {
+    margin-top: 20px;
+    width: 90%;
+    max-width: 600px;
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
 }
 
-td {
-    background-color: #f9f9f9;
+#players {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Player Scores */
+.player {
+    background-color: #222;
+    padding: 15px;
+    border-radius: 8px;
+    color: #ffffff;
+}
+
+.player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.hole-scores {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.hole-score {
+    background-color: #444;
+    padding: 5px 10px;
+    border-radius: 5px;
+    color: #ffffff;
+}
+
+.button-group {
+    display: flex;
+    gap: 5px;
+}
+
+button {
+    background-color: #d11111;
+    color: #ffffff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #b00d0d;
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
 }
