@@ -4,33 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Par for the Course - Scorekeep</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <img src="CL-Logo-Transparent(tm).png" alt="Logo" class="logo">
+        <img src="CL-Logo-Transparent(tm).png" alt="Logo" width="600">
         <h1>Par for the Course - Scorekeep</h1>
     </header>
 
     <main>
-        <!-- Add Player Section -->
-        <div id="addPlayerSection">
-            <input type="text" id="playerName" placeholder="Enter player name">
-            <button onclick="addPlayer(document.getElementById('playerName').value)">Add Player</button>
-            <button onclick="resetAll()">Reset All</button>
-            <button onclick="confirmGameOver()">Game Over</button>
-        </div>
-
-        <!-- Player Score Display -->
-        <div id="players"></div>
-
-        <!-- Hole Navigation Section -->
-        <div id="holeNavigation">
-            <button onclick="previousHole()">Previous Hole</button>
+        <div id="controls">
+            <button onclick="addPlayer()">Add Player</button>
             <button onclick="nextHole()">Next Hole</button>
+            <button onclick="previousHole()">Previous Hole</button>
+            <button onclick="gameOver()">Game Over</button>
+            <button onclick="resetAll()">Reset All</button>
         </div>
-
-        <!-- Box Score Display -->
+        <div id="playerList"></div>
         <div id="boxScore"></div>
     </main>
 
