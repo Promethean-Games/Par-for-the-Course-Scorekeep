@@ -1,13 +1,15 @@
 // Initialize variables
 let players = [];
-const totalHoles = 18;
+let currentHole = 0; // Track the current hole being scored
+const totalHoles = 18; // Total number of holes in the game
 
 // Load saved game state from local storage
 function loadGame() {
     const savedPlayers = localStorage.getItem("players");
     if (savedPlayers) {
         players = JSON.parse(savedPlayers);
-        displayPlayers();
+    }
+    displayPlayers();
 }
 
 // Save current game state to local storage
@@ -18,7 +20,7 @@ function saveGame() {
 // Display the list of players and their scores
 function displayPlayers() {
     const playersContainer = document.getElementById("players");
-    playersContainer.innerHTML = "";
+    playersContainer.innerHTML = ""; // Clear the existing display
 
     players.forEach((player, playerIndex) => {
         const playerDiv = document.createElement("div");
@@ -31,23 +33,21 @@ function displayPlayers() {
         const buttonGroup = document.createElement("div");
         buttonGroup.classList.add("button-group");
 
-        // Display hole scores with plus/minus buttons and scratch button
+        // Display only the current hole score for each player
         const holeScoresDiv = document.createElement("div");
         holeScoresDiv.classList.add("hole-scores");
 
-        for (let i = 0; i < totalHoles; i++) {
-            const holeScoreDiv = document.createElement("div");
-            holeScoreDiv.classList.add("hole-score");
+        const holeScoreDiv = document.createElement("div");
+        holeScoreDiv.classList.add("hole-score");
 
-            // Display current score for the hole
-            holeScoreDiv.innerHTML = `
-                <span>Hole ${i + 1}: ${player.scores[i]}</span>
-                <button onclick="changeScore(${playerIndex}, ${i}, 1)">+</button>
-                <button onclick="changeScore(${playerIndex}, ${i}, -1)">-</button>
-                <button onclick="scratch(${playerIndex}, ${i})">Scratch</button>
-            `;
-            holeScoresDiv.appendChild(holeScoreDiv);
-        }
+        // Display the current hole score for the player
+        holeScoreDiv.innerHTML = `
+            <span>Hole ${currentHole + 1}: ${player.scores[currentHole] || 0}</span>
+            <button onclick="changeScore(${playerIndex}, 1)">+</button>
+            <button onclick="changeScore(${playerIndex}, -1)">-</button>
+            <button onclick="scratch(${playerIndex})">Scratch</button>
+        `;
+        holeScoresDiv.appendChild(holeScoreDiv);
 
         playerDiv.appendChild(header);
         playerDiv.appendChild(holeScoresDiv);
@@ -63,35 +63,38 @@ function addPlayer() {
     if (playerName) {
         const newPlayer = {
             name: playerName,
-            scores: Array(totalHoles).fill(0) // Initialize scores for each hole
+            scores: Array(currentHole + 1).fill(0) // Initialize scores for current holes
         };
         players.push(newPlayer);
         displayPlayers();
 }
 
-// Change the score of a specific hole for a player
-function changeScore(playerIndex, holeIndex, delta) {
-    players[playerIndex].scores[holeIndex] += delta;
+// Change the score of the current hole for a player
+function changeScore(playerIndex, delta) {
+    players[playerIndex].scores[currentHole] = (players[playerIndex].scores[currentHole] || 0) + delta;
     displayPlayers();
 }
 
-// Add 3 strokes to a player's score for the specified hole as a "Scratch"
-function scratch(playerIndex, holeIndex) {
-    players[playerIndex].scores[holeIndex] += 3;
+// Add 3 strokes to a player's score for the current hole as a "Scratch"
+function scratch(playerIndex) {
+    players[playerIndex].scores[currentHole] = (players[playerIndex].scores[currentHole] || 0) + 3;
     displayPlayers();
 }
 
 // Move to the next hole
 function nextHole() {
-    // Check if we are already at the last hole
-    if (players[0].scores.length >= totalHoles) {
+    if (currentHole >= totalHoles - 1) {
         alert("The game is over!");
         return;
     }
 
-    // Reset the scores for the next hole (next round)
+    currentHole++; // Increment to the next hole
+
+    // Add new hole scores for all players (if needed)
     players.forEach(player => {
-        player.scores.push(0); // Add a new hole (score) with a value of 0
+        if (player.scores.length <= currentHole) {
+            player.scores.push(0); // Add the new hole with an initial score of 0
+        }
     });
 
     displayPlayers();
@@ -100,7 +103,7 @@ function nextHole() {
 // Reset all player scores
 function resetScores() {
     players.forEach(player => {
-        player.scores = Array(totalHoles).fill(0); // Reset all scores to 0
+        player.scores = Array(currentHole + 1).fill(0); // Reset all scores to 0 for the current hole
     });
     displayPlayers();
 }
@@ -118,17 +121,15 @@ function endGame() {
         header.classList.add("player-header");
         header.innerHTML = `<strong>${player.name}</strong>`;
 
-        // Display only completed holes
+        // Display all holes for the player
         const holeScoresDiv = document.createElement("div");
         holeScoresDiv.classList.add("hole-scores");
 
         player.scores.forEach((score, index) => {
-            if (score > 0 || index < players[0].scores.findIndex(score => score === 0)) { // Only show played holes
-                const holeScoreDiv = document.createElement("div");
-                holeScoreDiv.classList.add("hole-score");
-                holeScoreDiv.innerText = `Hole ${index + 1}: ${score}`;
-                holeScoresDiv.appendChild(holeScoreDiv);
-            }
+            const holeScoreDiv = document.createElement("div");
+            holeScoreDiv.classList.add("hole-score");
+            holeScoreDiv.innerText = `Hole ${index + 1}: ${score}`;
+            holeScoresDiv.appendChild(holeScoreDiv);
         });
 
         playerDiv.appendChild(header);
