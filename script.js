@@ -35,6 +35,7 @@ function updatePlayers() {
                     <button onclick="adjustScore(${index}, ${currentHole - 1}, -1)">-</button>
                     <input type="number" id="score-${index}" value="${player.scores[currentHole - 1]}" ${gameOver ? 'disabled' : ''}>
                     <button onclick="adjustScore(${index}, ${currentHole - 1}, 1)">+</button>
+                    <button onclick="scratch(${index}, ${currentHole - 1})">Scratch</button>
                 </div>
             </div>
         `;
@@ -47,10 +48,16 @@ function adjustScore(playerIndex, holeIndex, change) {
     if (gameOver) return;
 
     let newScore = players[playerIndex].scores[holeIndex] + change;
-    if (newScore >= 0) { // Prevent negative scores
-        players[playerIndex].scores[holeIndex] = newScore;
-        updatePlayers();
-    }
+    players[playerIndex].scores[holeIndex] = newScore;
+    updatePlayers();
+}
+
+// Function to add 3 points for Scratch
+function scratch(playerIndex, holeIndex) {
+    if (gameOver) return;
+
+    players[playerIndex].scores[holeIndex] += 3;
+    updatePlayers();
 }
 
 // Function to move to next hole
