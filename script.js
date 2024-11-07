@@ -1,151 +1,102 @@
-// Initialize variables
+let currentHole = 1;
 let players = [];
-let currentHole = 0; // Track the current hole being scored
-const totalHoles = 18; // Total number of holes in the game
+let gameOver = false;
 
-// Load saved game state from local storage
-function loadGame() {
-    const savedPlayers = localStorage.getItem("players");
-    if (savedPlayers) {
-        players = JSON.parse(savedPlayers);
-    }
-    displayPlayers();
-}
-
-// Save current game state to local storage
-function saveGame() {
-    localStorage.setItem("players", JSON.stringify(players));
-}
-
-// Display the list of players and their scores
-function displayPlayers() {
-    const playersContainer = document.getElementById("players");
-    playersContainer.innerHTML = ""; // Clear the existing display
-
-    players.forEach((player, playerIndex) => {
-        const playerDiv = document.createElement("div");
-        playerDiv.classList.add("player");
-
-        const header = document.createElement("div");
-        header.classList.add("player-header");
-        header.innerHTML = `<strong>${player.name}</strong>`;
-
-        const buttonGroup = document.createElement("div");
-        buttonGroup.classList.add("button-group");
-
-        // Display only the current hole score for each player
-        const holeScoresDiv = document.createElement("div");
-        holeScoresDiv.classList.add("hole-scores");
-
-        const holeScoreDiv = document.createElement("div");
-        holeScoreDiv.classList.add("hole-score");
-
-        // Display the current hole score for the player
-        holeScoreDiv.innerHTML = `
-            <span>Hole ${currentHole + 1}: ${player.scores[currentHole] || 0}</span>
-            <button onclick="changeScore(${playerIndex}, 1)">+</button>
-            <button onclick="changeScore(${playerIndex}, -1)">-</button>
-            <button onclick="scratch(${playerIndex})">Scratch</button>
-        `;
-        holeScoresDiv.appendChild(holeScoreDiv);
-
-        playerDiv.appendChild(header);
-        playerDiv.appendChild(holeScoresDiv);
-        playersContainer.appendChild(playerDiv);
-    });
-
-    saveGame();
-}
-
-// Add a new player
+// Function to add player
 function addPlayer() {
-    const playerName = prompt("Enter player's name:");
+    if (gameOver) return; // Prevent adding players if game is over
+    
+    let playerName = prompt("Enter player's name:");
     if (playerName) {
-        const newPlayer = {
+        let player = {
             name: playerName,
-            scores: Array(currentHole + 1).fill(0) // Initialize scores for current holes
+            scores: Array(18).fill(null), // Initialize scores for 18 holes
         };
-        players.push(newPlayer);
-        displayPlayers();
-}
-
-// Change the score of the current hole for a player
-function changeScore(playerIndex, delta) {
-    players[playerIndex].scores[currentHole] = (players[playerIndex].scores[currentHole] || 0) + delta;
-    displayPlayers();
-}
-
-// Add 3 strokes to a player's score for the current hole as a "Scratch"
-function scratch(playerIndex) {
-    players[playerIndex].scores[currentHole] = (players[playerIndex].scores[currentHole] || 0) + 3;
-    displayPlayers();
-}
-
-// Move to the next hole
-function nextHole() {
-    if (currentHole >= totalHoles - 1) {
-        alert("The game is over!");
-        return;
+        players.push(player);
+        updatePlayers();
     }
-
-    currentHole++; // Increment to the next hole
-
-    // Add new hole scores for all players (if needed)
-    players.forEach(player => {
-        if (player.scores.length <= currentHole) {
-            player.scores.push(0); // Add the new hole with an initial score of 0
-        }
-    });
-
-    displayPlayers();
 }
 
-// Reset all player scores and clear local storage
-function resetScores() {
-    players = [];
-    currentHole = 0;
-    localStorage.removeItem("players"); // Clear saved game state
-    displayPlayers();
-}
-
-// End the game and display the final box score
-function endGame() {
-    const confirmed = confirm("Are you sure you want to end the game?");
-    if (!confirmed) {
-        return;
-    }
-
+// Function to update the players' display
+function updatePlayers() {
     const playersContainer = document.getElementById("players");
-    playersContainer.innerHTML = "<h2>Game Over - Final Scores</h2>";
+    playersContainer.innerHTML = '';
 
-    players.forEach(player => {
+    players.forEach((player, index) => {
         const playerDiv = document.createElement("div");
         playerDiv.classList.add("player");
-
-        const header = document.createElement("div");
-        header.classList.add("player-header");
-        header.innerHTML = `<strong>${player.name}</strong>`;
-
-        // Create a dynamic box score based on the current hole
-        const holeScoresDiv = document.createElement("div");
-        holeScoresDiv.classList.add("hole-scores");
-
-        // Only show scores for holes that have been played
-        for (let i = 0; i <= currentHole; i++) {
-            const holeScoreDiv = document.createElement("div");
-            holeScoreDiv.classList.add("hole-score");
-            holeScoreDiv.innerText = `Hole ${i + 1}: ${player.scores[i] || 0}`;
-            holeScoresDiv.appendChild(holeScoreDiv);
-        }
-
-        playerDiv.appendChild(header);
-        playerDiv.appendChild(holeScoresDiv);
+        playerDiv.innerHTML = `
+            <div class="player-header">
+                <span>${player.name}</span>
+                <span>Hole ${currentHole}</span>
+            </div>
+            <div class="hole-scores">
+                <div class="hole-score">
+                    Score: <input type="number" id="score-${index}" ${gameOver ? 'disabled' : ''}>
+                    <button onclick="submitScore(${index})" ${gameOver ? 'disabled' : ''}>Submit</button>
+                </div>
+            </div>
+        `;
         playersContainer.appendChild(playerDiv);
     });
-
-    // Clear the saved game state after game over
-    localStorage.removeItem("players");
 }
 
-// Load game state on page load
-window.onload = loadGame;
+// Function to submit score
+function submitScore(playerIndex) {
+    const scoreInput = document.getElementById(`score-${playerIndex}`);
+    const score = parseInt(scoreInput.value);
+    
+    if (!isNaN(score)) {
+        players[playerIndex].scores[currentHole - 1] = score;
+        moveToNextHole();
+    }
+}
+
+// Function to move to next hole
+function moveToNextHole() {
+    if (currentHole < 18) {
+        currentHole++;
+        updatePlayers();
+    }
+}
+
+// Function to reset game
+function resetGame() {
+    players = [];
+    currentHole = 1;
+    gameOver = false;
+    updatePlayers();
+    document.getElementById("boxScore").style.display = 'none';
+}
+
+// Function to show box score and handle game over
+function endGame() {
+    if (!confirm("Are you sure you want to end the game?")) return;
+    gameOver = true;
+    updatePlayers();
+    
+    const scoreDetails = document.getElementById("scoreDetails");
+    scoreDetails.innerHTML = '';
+    
+    players.forEach(player => {
+        let scoreRow = `<div><strong>${player.name}:</strong>`;
+        player.scores.forEach((score, index) => {
+            if (score !== null) {
+                scoreRow += ` Hole ${index + 1}: ${score}`;
+            }
+        });
+        scoreRow += `</div>`;
+        scoreDetails.innerHTML += scoreRow;
+    });
+    
+    document.getElementById("boxScore").style.display = 'block';
+}
+
+// Event listeners
+document.getElementById("addPlayer").addEventListener("click", addPlayer);
+document.getElementById("nextHole").addEventListener("click", moveToNextHole);
+document.getElementById("reset").addEventListener("click", resetGame);
+document.getElementById("gameOver").addEventListener("click", endGame);
+document.getElementById("closeBoxScore").addEventListener("click", () => {
+    document.getElementById("boxScore").style.display = 'none';
+});
