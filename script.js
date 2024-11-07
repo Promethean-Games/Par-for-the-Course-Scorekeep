@@ -3,21 +3,16 @@ let currentHole = 1;
 let players = [];
 let maxHoles = 18;
 
-// Start Game - Prompt user for player names
-document.getElementById('startButton').addEventListener('click', function() {
-    let playerCount = prompt("How many players?");
-    if (playerCount && !isNaN(playerCount) && playerCount > 0) {
-        players = [];
-        for (let i = 0; i < playerCount; i++) {
-            let playerName = prompt(`Enter name for player ${i + 1}:`);
-            players.push({
-                name: playerName,
-                scores: Array(maxHoles).fill(0), // Initialize scores with 0 for each hole
-            });
-        }
-        document.getElementById('startButton').disabled = true;
-        document.getElementById('nextHoleButton').disabled = false;
+// Add Player - Prompt user for player's name
+document.getElementById('addPlayerButton').addEventListener('click', function() {
+    let playerName = prompt("Enter player name:");
+    if (playerName) {
+        players.push({
+            name: playerName,
+            scores: Array(maxHoles).fill(0), // Initialize scores with 0 for each hole
+        });
         renderPlayers();
+        document.getElementById('nextHoleButton').disabled = false; // Enable "Next Hole" button after first player is added
     }
 });
 
