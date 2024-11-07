@@ -1,155 +1,141 @@
-/* General layout and styling */
-
-/* Logo styling */
-#logo {
-    width: 600px;
-    height: auto;
-}
-
+/* General Page Styling */
 body {
+    background-color: black;
+    color: #ffffff;
     font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin: 0;
-    padding: 20px;
-    background-color: #f7f7f7;
+    padding: 0;
 }
 
-#players {
+/* Logo Styling */
+.logo-container {
+    text-align: center;
     margin-top: 20px;
 }
 
-.button-group {
-    margin-bottom: 20px;
+#logo {
+    width: 600px; /* Resize logo to 600px width */
+    height: auto; /* Maintain aspect ratio */
 }
 
-button {
-    background-color: #4CAF50; /* Green background for buttons */
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    margin: 5px;
-    transition: background-color 0.3s ease;
+/* Title Styling */
+h1 {
+    color: #d11111;
+    font-size: 2.5em;
+    margin-top: 10px;
+    text-align: center;
 }
 
-button:hover {
-    background-color: #45a049; /* Darker green on hover */
+/* Scoreboard Styling */
+#scoreboard {
+    margin-top: 20px;
+    width: 90%;
+    max-width: 600px;
+    background-color: #333;
+    padding: 20px;
+    border-radius: 10px;
 }
 
-/* Style for player display section */
+#players {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Player Scores */
 .player {
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin-bottom: 10px;
-    border-radius: 5px;
+    background-color: #222;
+    padding: 15px;
+    border-radius: 8px;
+    color: #ffffff;
 }
 
 .player-header {
-    font-size: 1.4em;
-    margin-bottom: 10px;
-    font-weight: bold;
-}
-
-.hole-scores {
-    margin-top: 10px;
-}
-
-.hole-score {
-    margin-bottom: 5px;
-    padding: 5px;
-    background-color: #f2f2f2;
-    border-radius: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.hole-score span {
-    font-size: 1.2em;
+.hole-scores {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
 }
 
-.hole-score button {
+.hole-score {
+    background-color: #444;
     padding: 5px 10px;
-    font-size: 14px;
+    border-radius: 5px;
+    color: #ffffff;
 }
 
-button:focus {
-    outline: none;
+.button-group {
+    display: flex;
+    gap: 5px;
 }
 
+button {
+    background-color: #d11111;
+    color: #ffffff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+button:hover {
+    background-color: #b00d0d;
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Game Over and Reset Button Styling */
 #controls {
     display: flex;
     justify-content: center;
-    gap: 20px;
+    gap: 10px;
+    margin-top: 20px;
 }
 
-#controls button {
-    width: 150px;
+button {
+    background-color: #d11111;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
 }
 
-/* Box score display at game over */
-#game-over {
-    margin-top: 30px;
+button:hover {
+    background-color: #b00d0d;
+}
+
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Box Score Styling */
+.box-score {
+    margin-top: 20px;
+    background-color: #444;
     padding: 20px;
-    background-color: #ffffff;
-    border: 1px solid #ddd;
-    border-radius: 10px;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 1.2em;
 }
 
-#game-over h2 {
-    text-align: center;
-    font-size: 2em;
-    margin-bottom: 20px;
-}
-
-.player-box-score {
-    background-color: #f9f9f9;
-    margin-bottom: 10px;
-    padding: 10px;
-    border-radius: 5px;
-}
-
-.player-box-score strong {
-    font-size: 1.4em;
-}
-
-.player-box-score .hole-scores {
+.box-score-header {
     display: flex;
-    flex-wrap: wrap;
-}
-
-.player-box-score .hole-scores div {
-    margin-right: 20px;
-    font-size: 1.1em;
-    padding: 5px;
-    background-color: #f2f2f2;
-    border-radius: 5px;
-    min-width: 70px;
-    text-align: center;
-}
-
-.player-box-score .hole-scores div span {
-    font-weight: bold;
-}
-
-/* Responsive design for smaller screens */
-@media (max-width: 768px) {
-    #controls {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .hole-score {
-        font-size: 1em;
-    }
-
-    .hole-score button {
-        font-size: 12px;
-    }
-
-    .player-box-score .hole-scores div {
-        min-width: 50px;
-    }
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.5em;
+    margin-bottom: 15px;
 }
