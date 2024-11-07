@@ -4,8 +4,6 @@ let gameOver = false;
 
 // Function to add player
 function addPlayer() {
-    if (gameOver) return; // Prevent adding players if game is over
-    
     let playerName = prompt("Enter player's name:");
     if (playerName) {
         let player = {
