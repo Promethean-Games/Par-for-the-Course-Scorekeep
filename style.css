@@ -1,4 +1,11 @@
 /* General layout and styling */
+
+/* Logo styling */
+#logo {
+    width: 600px;
+    height: auto;
+}
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
