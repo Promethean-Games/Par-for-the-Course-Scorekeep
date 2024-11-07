@@ -10,7 +10,7 @@ function addPlayer() {
     if (playerName) {
         let player = {
             name: playerName,
-            scores: Array(18).fill(null), // Initialize scores for 18 holes
+            scores: Array(18).fill(0), // Initialize scores for 18 holes with 0
         };
         players.push(player);
         updatePlayers();
@@ -32,8 +32,9 @@ function updatePlayers() {
             </div>
             <div class="hole-scores">
                 <div class="hole-score">
-                    Score: <input type="number" id="score-${index}" ${gameOver ? 'disabled' : ''}>
-                    <button onclick="submitScore(${index})" ${gameOver ? 'disabled' : ''}>Submit</button>
+                    <button onclick="adjustScore(${index}, ${currentHole - 1}, -1)">-</button>
+                    <input type="number" id="score-${index}" value="${player.scores[currentHole - 1]}" ${gameOver ? 'disabled' : ''}>
+                    <button onclick="adjustScore(${index}, ${currentHole - 1}, 1)">+</button>
                 </div>
             </div>
         `;
@@ -41,14 +42,14 @@ function updatePlayers() {
     });
 }
 
-// Function to submit score
-function submitScore(playerIndex) {
-    const scoreInput = document.getElementById(`score-${playerIndex}`);
-    const score = parseInt(scoreInput.value);
-    
-    if (!isNaN(score)) {
-        players[playerIndex].scores[currentHole - 1] = score;
-        moveToNextHole();
+// Function to adjust score
+function adjustScore(playerIndex, holeIndex, change) {
+    if (gameOver) return;
+
+    let newScore = players[playerIndex].scores[holeIndex] + change;
+    if (newScore >= 0) { // Prevent negative scores
+        players[playerIndex].scores[holeIndex] = newScore;
+        updatePlayers();
     }
 }
 
@@ -81,7 +82,7 @@ function endGame() {
     players.forEach(player => {
         let scoreRow = `<div><strong>${player.name}:</strong>`;
         player.scores.forEach((score, index) => {
-            if (score !== null) {
+            if (score !== 0) {
                 scoreRow += ` Hole ${index + 1}: ${score}`;
             }
         });
