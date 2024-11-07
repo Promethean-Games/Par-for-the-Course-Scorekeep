@@ -1,96 +1,148 @@
-/* General Page Styling */
+/* General layout and styling */
 body {
-    background-color: black;
-    color: #ffffff;
     font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     margin: 0;
-    padding: 0;
-}
-
-/* Logo Styling */
-.logo-container {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.centered-logo {
-    max-width: 100%;
-    height: auto;
-}
-
-/* Title Styling */
-h1 {
-    color: #d11111;
-    font-size: 2.5em;
-    margin-top: 10px;
-    text-align: center;
-}
-
-/* Scoreboard Styling */
-#scoreboard {
-    margin-top: 20px;
-    width: 90%;
-    max-width: 600px;
-    background-color: #333;
     padding: 20px;
-    border-radius: 10px;
+    background-color: #f7f7f7;
 }
 
 #players {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+    margin-top: 20px;
 }
 
-/* Player Scores */
+.button-group {
+    margin-bottom: 20px;
+}
+
+button {
+    background-color: #4CAF50; /* Green background for buttons */
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin: 5px;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049; /* Darker green on hover */
+}
+
+/* Style for player display section */
 .player {
-    background-color: #222;
-    padding: 15px;
-    border-radius: 8px;
-    color: #ffffff;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
 }
 
 .player-header {
+    font-size: 1.4em;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.hole-scores {
+    margin-top: 10px;
+}
+
+.hole-score {
+    margin-bottom: 5px;
+    padding: 5px;
+    background-color: #f2f2f2;
+    border-radius: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.hole-scores {
-    display: flex;
-    gap: 10px;
-    margin-top: 10px;
+.hole-score span {
+    font-size: 1.2em;
 }
 
-.hole-score {
-    background-color: #444;
+.hole-score button {
     padding: 5px 10px;
-    border-radius: 5px;
-    color: #ffffff;
+    font-size: 14px;
 }
 
-.button-group {
+button:focus {
+    outline: none;
+}
+
+#controls {
     display: flex;
-    gap: 5px;
+    justify-content: center;
+    gap: 20px;
 }
 
-button {
-    background-color: #d11111;
-    color: #ffffff;
-    border: none;
-    padding: 5px 10px;
+#controls button {
+    width: 150px;
+}
+
+/* Box score display at game over */
+#game-over {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+#game-over h2 {
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 20px;
+}
+
+.player-box-score {
+    background-color: #f9f9f9;
+    margin-bottom: 10px;
+    padding: 10px;
     border-radius: 5px;
-    cursor: pointer;
 }
 
-button:hover {
-    background-color: #b00d0d;
+.player-box-score strong {
+    font-size: 1.4em;
 }
 
-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
+.player-box-score .hole-scores {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.player-box-score .hole-scores div {
+    margin-right: 20px;
+    font-size: 1.1em;
+    padding: 5px;
+    background-color: #f2f2f2;
+    border-radius: 5px;
+    min-width: 70px;
+    text-align: center;
+}
+
+.player-box-score .hole-scores div span {
+    font-weight: bold;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+    #controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .hole-score {
+        font-size: 1em;
+    }
+
+    .hole-score button {
+        font-size: 12px;
+    }
+
+    .player-box-score .hole-scores div {
+        min-width: 50px;
+    }
 }
