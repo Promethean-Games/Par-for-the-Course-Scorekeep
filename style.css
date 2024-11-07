@@ -1,7 +1,7 @@
 /* General styles */
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
+    background-color: #000000;
     margin: 0;
     padding: 0;
     display: flex;
@@ -22,7 +22,7 @@ header {
 
 h1 {
     font-size: 2rem;
-    color: #333;
+    color: #ffffff;
 }
 
 /* Game Controls Section */
@@ -34,14 +34,14 @@ button {
     padding: 10px 20px;
     margin: 5px;
     cursor: pointer;
-    background-color: #333;
-    color: white;
+    background-color: #d11111;
+    color: #ffffff;
     border: none;
     font-size: 1rem;
 }
 
 button:hover {
-    background-color: #555;
+    background-color: white;
 }
 
 /* Player Display */
