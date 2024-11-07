@@ -3,22 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Golf Scorekeeping App</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Par for the Course - Scorekeep</title>
+    <!-- Link to the CSS file to ensure styling loads correctly -->
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="app-container">
-        <h1>Golf Scorekeeping App</h1>
-        <div class="scoreboard">
-            <div id="players"></div>
+    <div id="app">
+        <h1>Par for the Course - Scorekeep</h1>
+        
+        <div id="controls">
+            <button id="add-player">Add Player</button>
+            <button id="next-hole">Next Hole</button>
+            <button id="game-over">Game Over</button>
+            <button id="reset-game">Reset Game</button>
         </div>
-        <button id="add-player">Add Player</button>
-        <button id="next-hole">Next Hole</button>
-        <button id="reset-game">Reset Game</button>
+        
+        <div id="players"></div>
+        <div id="box-score" style="display: none;"></div>
     </div>
-
+    
+    <!-- Ensure the JavaScript file is loaded at the end -->
     <script src="script.js"></script>
 </body>
 </html>
-
-
