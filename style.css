@@ -1,8 +1,8 @@
-/* General styles */
+/* General Page Styles */
 body {
+    background-color: black;
+    color: white;
     font-family: Arial, sans-serif;
-    background-color: black; /* Set background color to black */
-    color: white; /* Ensure text is white for contrast */
     margin: 0;
     padding: 0;
     display: flex;
@@ -10,92 +10,122 @@ body {
     align-items: center;
     justify-content: center;
     min-height: 100vh;
-}
-
-/* Header styles */
-header {
     text-align: center;
-    margin: 20px;
-}
-
-.logo {
-    width: 100%;
-    max-width: 600px;
-    height: auto;
-}
-
-/* Update logo source */
-.logo img {
-    content: url('CL-Logo-Transparent(tm).png'); /* Set logo source */
 }
 
 h1 {
     font-size: 2rem;
+    margin-top: 20px;
     color: white;
-    margin-top: 10px;
 }
 
-/* Game Controls Section */
-.game-controls {
+/* Header */
+header {
+    width: 100%;
+    padding: 20px;
+    background-color: #111;
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    margin-bottom: 20px;
+    flex-direction: column;
+}
+
+/* Logo */
+.logo img {
+    width: 600px;
+    height: auto;
+}
+
+/* Buttons and Game Controls */
+.game-controls {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
 }
 
 button {
     padding: 10px 20px;
-    margin: 5px;
-    cursor: pointer;
-    background-color: #d11111; /* Button color set to #d11111 */
-    color: white; /* Text color for buttons */
+    background-color: #d11111;
+    color: white;
     border: none;
+    cursor: pointer;
     font-size: 1rem;
-    width: 100%;
-    max-width: 250px;
-    border-radius: 5px; /* Added border-radius for rounded corners */
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
-    background-color: #a10000; /* Darker shade of red when hovering */
+    background-color: #a80e0e;
 }
 
-/* Player Display */
+button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Player & Score Display */
 #players {
-    width: 90%;
-    max-width: 800px;
-    margin-bottom: 20px;
-    text-align: center;
-}
-
-.player {
-    margin: 10px 0;
+    margin-top: 30px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 15px;
+}
+
+.player {
+    background-color: #222;
+    padding: 20px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 600px;
 }
 
 .player-header {
     font-size: 1.2rem;
     margin-bottom: 10px;
+    font-weight: bold;
 }
 
 .hole-scores {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 10px;
+}
+
+.hole-scores div {
+    font-size: 1rem;
+}
+
+.scoreButton, .scratchButton {
+    background-color: #d11111;
+    color: white;
+    padding: 5px 10px;
+    font-size: 1rem;
+    cursor: pointer;
+    border: none;
+    margin: 5px;
+    border-radius: 5px;
+}
+
+.scoreButton:hover, .scratchButton:hover {
+    background-color: #a80e0e;
 }
 
 /* Box Score Table */
+#boxScore {
+    margin-top: 30px;
+    width: 90%;
+    max-width: 800px;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
-    font-size: 0.9rem;
 }
 
 table, th, td {
-    border: 1px solid #333;
+    border: 1px solid #fff;
 }
 
 th, td {
@@ -104,72 +134,39 @@ th, td {
 }
 
 th {
-    background-color: #f2f2f2;
-    font-weight: bold;
-}
-
-/* Box Score Section */
-#boxScore {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    text-align: center;
-    width: 90%;
-    max-width: 1000px;
-}
-
-/* Close Button */
-#closeBoxScore {
-    margin-top: 10px;
-    padding: 10px;
-    background-color: #d11111; /* Close button matches score button color */
+    background-color: #111;
     color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 5px; /* Rounded corners for close button */
 }
 
-#closeBoxScore:hover {
-    background-color: #a10000; /* Darker shade of red on hover */
+td {
+    background-color: #333;
+    color: white;
 }
 
-/* Mobile-specific adjustments */
-@media (max-width: 600px) {
-    /* Header adjustments */
+/* Responsive Design */
+@media (max-width: 768px) {
     h1 {
         font-size: 1.5rem;
     }
 
-    /* Game controls layout */
+    .logo img {
+        width: 90%;
+        height: auto;
+    }
+
     .game-controls {
         flex-direction: column;
-        align-items: center;
     }
 
-    /* Adjust buttons for smaller screens */
-    button {
-        width: 80%;
-        font-size: 1rem;
-        margin: 5px;
-    }
-
-    /* Player scores layout */
-    .hole-scores {
-        flex-direction: column;
-    }
-
-    /* Box Score Table */
-    table {
-        font-size: 0.8rem;
-    }
-
-    th, td {
-        padding: 8px;
-    }
-
-    /* Player and box score display */
     .player {
-        margin: 8px 0;
+        width: 90%;
+    }
+
+    .hole-scores div {
+        font-size: 0.9rem;
+    }
+
+    table, th, td {
+        font-size: 0.9rem;
     }
 }
