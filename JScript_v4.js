@@ -118,19 +118,3 @@ function displayBoxScore() {
     // Only show columns for holes played (up to currentHole)
     const headers = `<tr><th>Player</th>${Array.from({ length: currentHole }, (_, i) => `<th>Hole ${i + 1}</th>`).join('')}<th>Total</th></tr>`;
     table.innerHTML = headers;
-    
-    players.forEach(player => {
-        const row = document.createElement("tr");
-        // Only display scores for completed holes
-        const scoreCells = player.scores.slice(0, currentHole).map(score => `<td>${score}</td>`).join('');
-        row.innerHTML = `<td>${player.name}</td>${scoreCells}<td>${calculateTotalScore(player)}</td>`;
-        table.appendChild(row);
-    });
-    
-    boxScoreDiv.appendChild(table);
-    boxScoreDiv.style.display = "block"; // Show the box score
-    document.getElementById("players").style.display = "none"; // Hide the main player UI
-}
-
-// Load the initial state
-renderPlayers();
