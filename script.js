@@ -1,119 +1,122 @@
-let players = JSON.parse(localStorage.getItem("players")) || [];
-let currentHole = localStorage.getItem("currentHole") ? parseInt(localStorage.getItem("currentHole")) : 1;
-let gameEnded = localStorage.getItem("gameEnded") === "true";
+// Initialize variables
+let players = [];
+const totalHoles = 18;
 
-function Player(name) {
-    this.name = name;
-    this.scores = Array(18).fill(0);
-}
-
-function saveGameState() {
-    localStorage.setItem("players", JSON.stringify(players));
-    localStorage.setItem("currentHole", currentHole);
-    localStorage.setItem("gameEnded", gameEnded);
-}
-
-function renderPlayers() {
-    if (gameEnded) {
-        displayBoxScore();
-        return;
+// Load saved game state from local storage
+function loadGame() {
+    const savedPlayers = localStorage.getItem("players");
+    if (savedPlayers) {
+        players = JSON.parse(savedPlayers);
+        displayPlayers();
     }
+}
 
-    const playersDiv = document.getElementById("players");
-    playersDiv.innerHTML = "";
+// Save current game state to local storage
+function saveGame() {
+    localStorage.setItem("players", JSON.stringify(players));
+}
 
-    players.forEach((player, index) => {
+// Display the list of players and their scores
+function displayPlayers() {
+    const playersContainer = document.getElementById("players");
+    playersContainer.innerHTML = "";
+
+    players.forEach((player, playerIndex) => {
         const playerDiv = document.createElement("div");
         playerDiv.classList.add("player");
 
-        playerDiv.innerHTML = `
-            <h2>${player.name}</h2>
-            <div>Hole ${currentHole} Score: ${player.scores[currentHole - 1]}</div>
-            <div class="scores">
-                <button onclick="updateScore(${index}, -1)">-</button>
-                <button onclick="updateScore(${index}, 1)">+</button>
-                <button onclick="scratch(${index})">Scratch (+3)</button>
-            </div>
-            <div>Total Score: ${calculateTotalScore(player)}</div>
-        `;
+        const header = document.createElement("div");
+        header.classList.add("player-header");
+        header.innerHTML = `<strong>${player.name}</strong>`;
 
-        playersDiv.appendChild(playerDiv);
+        const buttonGroup = document.createElement("div");
+        buttonGroup.classList.add("button-group");
+
+        // Display holes scores with plus/minus buttons and scratch button
+        const holeScoresDiv = document.createElement("div");
+        holeScoresDiv.classList.add("hole-scores");
+
+        for (let i = 0; i < totalHoles; i++) {
+            const holeScoreDiv = document.createElement("div");
+            holeScoreDiv.classList.add("hole-score");
+
+            // Display current score for the hole
+            holeScoreDiv.innerHTML = `
+                <span>Hole ${i + 1}: ${player.scores[i]}</span>
+                <button onclick="changeScore(${playerIndex}, ${i}, 1)">+</button>
+                <button onclick="changeScore(${playerIndex}, ${i}, -1)">-</button>
+                <button onclick="scratch(${playerIndex}, ${i})">Scratch</button>
+            `;
+            holeScoresDiv.appendChild(holeScoreDiv);
+        }
+
+        playerDiv.appendChild(header);
+        playerDiv.appendChild(holeScoresDiv);
+        playersContainer.appendChild(playerDiv);
     });
 
-    saveGameState();
+    saveGame();
 }
 
-document.getElementById("add-player").addEventListener("click", () => {
+// Add a new player
+function addPlayer() {
     const playerName = prompt("Enter player's name:");
-    if (playerName && !gameEnded) {
-        players.push(new Player(playerName));
-        renderPlayers();
-    }
-});
-
-function updateScore(playerIndex, change) {
-    if (!gameEnded) {
-        players[playerIndex].scores[currentHole - 1] += change;
-        renderPlayers();
+    if (playerName) {
+        const newPlayer = {
+            name: playerName,
+            scores: Array(totalHoles).fill(0) // Initialize scores for each hole
+        };
+        players.push(newPlayer);
+        displayPlayers();
     }
 }
 
-function scratch(playerIndex) {
-    if (!gameEnded) {
-        players[playerIndex].scores[currentHole - 1] += 3;
-        renderPlayers();
-    }
+// Change the score of a specific hole for a player
+function changeScore(playerIndex, holeIndex, delta) {
+    players[playerIndex].scores[holeIndex] += delta;
+    displayPlayers();
 }
 
-function calculateTotalScore(player) {
-    return player.scores.slice(0, currentHole).reduce((total, score) => total + score, 0);
+// Add 3 strokes to a player's score for the specified hole as a "Scratch"
+function scratch(playerIndex, holeIndex) {
+    players[playerIndex].scores[holeIndex] += 3;
+    displayPlayers();
 }
 
-document.getElementById("next-hole").addEventListener("click", () => {
-    if (currentHole < 18 && !gameEnded) {
-        currentHole++;
-        renderPlayers();
-    } else if (currentHole === 18) {
-        alert("You've reached the last hole. Consider ending the game.");
-    }
-});
+// End the game and display the final scores in a box score format
+function endGame() {
+    const playersContainer = document.getElementById("players");
+    playersContainer.innerHTML = "<h2>Game Over - Final Scores</h2>";
 
-document.getElementById("reset-game").addEventListener("click", () => {
-    if (confirm("Are you sure you want to reset the game?")) {
-        players = [];
-        currentHole = 1;
-        gameEnded = false;
-        localStorage.clear();
-        renderPlayers();
-    }
-});
-
-document.getElementById("game-over").addEventListener("click", () => {
-    if (!gameEnded && confirm("Are you sure you want to end the game? This will lock scores.")) {
-        gameEnded = true;
-        saveGameState();
-        displayBoxScore();
-    }
-});
-
-function displayBoxScore() {
-    const boxScoreDiv = document.getElementById("box-score");
-    boxScoreDiv.innerHTML = "<h2>Game Over - Box Score</h2>";
-    
-    const table = document.createElement("table");
-    const headers = `<tr><th>Player</th>${Array.from({ length: currentHole }, (_, i) => `<th>Hole ${i + 1}</th>`).join('')}<th>Total</th></tr>`;
-    table.innerHTML = headers;
-    
     players.forEach(player => {
-        const row = document.createElement("tr");
-        const scoreCells = player.scores.slice(0, currentHole).map(score => `<td>${score}</td>`).join('');
-        row.innerHTML = `<td>${player.name}</td>${scoreCells}<td>${calculateTotalScore(player)}</td>`;
-        table.appendChild(row);
+        const playerDiv = document.createElement("div");
+        playerDiv.classList.add("player");
+
+        const header = document.createElement("div");
+        header.classList.add("player-header");
+        header.innerHTML = `<strong>${player.name}</strong>`;
+
+        // Display only completed holes
+        const holeScoresDiv = document.createElement("div");
+        holeScoresDiv.classList.add("hole-scores");
+
+        player.scores.forEach((score, index) => {
+            if (score > 0 || index < players[0].scores.findIndex(score => score === 0)) { // Only show played holes
+                const holeScoreDiv = document.createElement("div");
+                holeScoreDiv.classList.add("hole-score");
+                holeScoreDiv.innerText = `Hole ${index + 1}: ${score}`;
+                holeScoresDiv.appendChild(holeScoreDiv);
+            }
+        });
+
+        playerDiv.appendChild(header);
+        playerDiv.appendChild(holeScoresDiv);
+        playersContainer.appendChild(playerDiv);
     });
-    
-    boxScoreDiv.appendChild(table);
-    boxScoreDiv.style.display = "block";
-    document.getElementById("players").style.display = "none";
+
+    // Clear the saved game state after game over
+    localStorage.removeItem("players");
 }
 
-renderPlayers();
+// Load game state on page load
+window.onload = loadGame;
