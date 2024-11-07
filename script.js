@@ -114,10 +114,4 @@ function endGame() {
 }
 
 // Event listeners
-document.getElementById("addPlayer").addEventListener("click", addPlayer);
-document.getElementById("nextHole").addEventListener("click", moveToNextHole);
-document.getElementById("reset").addEventListener("click", resetGame);
-document.getElementById("gameOver").addEventListener("click", endGame);
-document.getElementById("closeBoxScore").addEventListener("click", () => {
-    document.getElementById("boxScore").style.display = 'none';
-});
+document.getElementById("addPlayer").addEventListener
