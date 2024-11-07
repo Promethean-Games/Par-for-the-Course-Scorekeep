@@ -8,7 +8,6 @@ function loadGame() {
     if (savedPlayers) {
         players = JSON.parse(savedPlayers);
         displayPlayers();
-    }
 }
 
 // Save current game state to local storage
@@ -32,7 +31,7 @@ function displayPlayers() {
         const buttonGroup = document.createElement("div");
         buttonGroup.classList.add("button-group");
 
-        // Display holes scores with plus/minus buttons and scratch button
+        // Display hole scores with plus/minus buttons and scratch button
         const holeScoresDiv = document.createElement("div");
         holeScoresDiv.classList.add("hole-scores");
 
@@ -68,7 +67,6 @@ function addPlayer() {
         };
         players.push(newPlayer);
         displayPlayers();
-    }
 }
 
 // Change the score of a specific hole for a player
@@ -80,6 +78,30 @@ function changeScore(playerIndex, holeIndex, delta) {
 // Add 3 strokes to a player's score for the specified hole as a "Scratch"
 function scratch(playerIndex, holeIndex) {
     players[playerIndex].scores[holeIndex] += 3;
+    displayPlayers();
+}
+
+// Move to the next hole
+function nextHole() {
+    // Check if we are already at the last hole
+    if (players[0].scores.length >= totalHoles) {
+        alert("The game is over!");
+        return;
+    }
+
+    // Reset the scores for the next hole (next round)
+    players.forEach(player => {
+        player.scores.push(0); // Add a new hole (score) with a value of 0
+    });
+
+    displayPlayers();
+}
+
+// Reset all player scores
+function resetScores() {
+    players.forEach(player => {
+        player.scores = Array(totalHoles).fill(0); // Reset all scores to 0
+    });
     displayPlayers();
 }
 
