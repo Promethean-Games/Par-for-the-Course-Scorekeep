@@ -4,31 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Par for the Course - Scorekeep</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <img src="CL-Logo-Transparent(tm).png" alt="Par for the Course - Scorekeep" class="logo">
-            <h1>Par for the Course - Scorekeep</h1>
-        </header>
 
-        <section class="game-controls">
-            <button id="addPlayer">Add Player</button>
-            <button id="nextHole">Next Hole</button>
-            <button id="gameOver">End Game</button>
-            <button id="reset">Reset Game</button>
-        </section>
-
-        <section id="players"></section>
-        
-        <!-- Box Score -->
-        <div id="boxScore" style="display:none;">
-            <h2>Box Score</h2>
-            <div id="scoreDetails"></div>
-            <button id="closeBoxScore">Close</button>
+    <header>
+        <div class="logo">
+            <img src="CL-Logo-Transparent(tm).png" alt="Logo">
         </div>
+        <h1>Par for the Course - Scorekeep</h1>
+    </header>
+
+    <div class="game-controls">
+        <button id="startButton">Start Game</button>
+        <button id="nextHoleButton" disabled>Next Hole</button>
+        <button id="resetButton">Reset Game</button>
+        <button id="gameOverButton">Game Over</button>
     </div>
+
+    <div id="players"></div>
+    
+    <div id="boxScore"></div>
 
     <script src="script.js"></script>
 </body>
