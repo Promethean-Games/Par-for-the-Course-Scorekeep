@@ -1,29 +1,1240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Par for the Course - Scorekeep</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Par for the Course</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#000; --fg:#fff; --panel-bg:#111; --menu-bg:#1a1a1a; --accent:#d11111; --muted:#8a8a8a; --disabled:#555;
+      --nav-h:60px; --mercy-gray:#999999; --danger:#660000;
+    }
+    .light-theme{
+      --bg:#fff; --fg:#000; --panel-bg:#e8e8e8; --menu-bg:#eee; --accent:#d11111; --muted:#666; --disabled:#aaa;
+      --mercy-gray:#999999; --danger:#660000;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;background:var(--bg);color:var(--fg);
+      font-family:Montserrat, system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif
+    }
+    .screen{display:none;flex-direction:column;min-height:100vh;padding:16px;padding-bottom:calc(var(--nav-h) + 16px)}
+    .active{display:flex}
+
+    button{border:none;border-radius:0;background:var(--accent);color:#fff;min-height:44px;font-size:18px;margin:8px 0;cursor:pointer;width:100%}
+    button:disabled{background:var(--disabled);cursor:not-allowed}
+
+    #menuBar{display:none;position:fixed;left:0;right:0;bottom:0;height:var(--nav-h);background:var(--menu-bg);border-top:1px solid #333;z-index:100}
+    #menuBar button{flex:1;background:none;color:var(--fg);font-size:18px;margin:0}
+
+    .panel{position:fixed;inset:0;background:var(--panel-bg);transform:translateY(100%);transition:transform .28s ease;z-index:200;overflow-y:auto;padding:16px}
+    .panel.open{transform:translateY(0)}
+    .close-btn{position:absolute;top:12px;right:12px;background:none;color:var(--fg);font-size:24px;width:auto}
+    .section{background:rgba(255,255,255,.03);padding:12px;margin:8px 0}
+    .light-theme .section{background:#f7f7f7}
+    .version{margin-top:8px;font-size:12px;color:var(--muted);text-align:center}
+    .small{font-size:12px}
+
+    /* splash */
+    #splash .logo{margin-top:8vh;text-align:center}
+    #splash .logo img{max-width:420px;width:60%;height:auto}
+    #splash .stack{display:flex;flex-direction:column;align-items:center;gap:12px;max-width:420px;width:100%;align-self:center;margin-top:24px}
+
+    /* setup */
+    #setup h5{margin:8px 0 0 0;text-align:center}
+    #playerCounter{margin:6px 0 0 0;text-align:center;color:var(--muted)}
+    ul#playerList{list-style:none;margin:12px 0 0 0;padding:0}
+    .playerRow{
+      display:flex;align-items:center;gap:8px;flex-wrap:nowrap;
+      background:#1f1f1f;padding:8px;margin-bottom:8px;min-width:0
+    }
+    .light-theme .playerRow{background:#eaeaea}
+    .color-chip{width:28px;height:28px;border-radius:50%;border:2px solid var(--fg);cursor:pointer;flex:0 0 28px}
+    .playerName{
+      flex:1;padding:8px;font-size:18px;border:1px solid #333;background:#2a2a2a;color:var(--fg);min-width:0
+    }
+    .light-theme .playerName{background:#fff;border-color:#ccc}
+    .order-controls{display:flex;gap:4px;flex:0 0 auto;align-self:stretch}
+    .order-controls button{width:36px;height:36px;margin:0;font-size:16px;align-self:center}
+
+    .top-spacer{height:75px;width:100%}
+
+    .inline-par{
+      display:flex;align-items:center;gap:8px;margin:10px 0;justify-content:flex-end
+    }
+    .left-handed .inline-par{justify-content:flex-start}
+    select{background:var(--panel-bg);color:var(--fg);border:1px solid #d11111;padding:8px;font-size:18px;width:120px}
+    .light-theme select{background:#fff}
+
+    .stats-row{display:flex;justify-content:space-around;margin:6px 0 4px 0}
+    .stat-center{display:flex;flex-direction:column;align-items:center}
+    .stat-center h6{margin:0;font-size:12px;text-transform:uppercase;color:var(--muted)}
+    .score-value{font-size:24px}
+
+    /* dynamic divider under stats */
+    #playerColorDivider{height:2px;width:100%;background:#333;margin:8px 0 6px 0}
+
+    .row-flex{display:flex;gap:12px;align-items:center}
+    .score-box{flex:1;text-align:center}
+    #scoreVal{font-size:clamp(72px, 22vw, 180px);font-weight:800;line-height:1;padding:6px 0;overflow:hidden}
+    .score-controls{width:50%;display:flex;flex-direction:column;gap:12px}
+    .score-btn{width:100%;height:72px;font-size:28px}
+    .left-handed .row-flex{flex-direction:row-reverse}
+
+    #mercyBtn{border:none;background:var(--mercy-gray);color:#000;display:none;margin-top:8px}
+
+    .sp-row{display:flex;gap:8px;margin-top:8px;align-items:center}
+    .btn-scratch,.btn-penalty{flex:1;background:var(--danger)}
+    .left-handed .sp-row{flex-direction:row-reverse}
+
+    .action-row{display:flex;gap:8px;margin-top:8px;align-items:center;justify-content:center}
+    .left-handed .action-row{flex-direction:row-reverse}
+    #undoBtn{flex:0 0 50%;background:var(--danger)}
+    #nextCardBtn{flex:0 0 50%}
+
+    .hole-batter-row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+    #holeLabel{text-align:left;font-weight:700}
+    #batterInfo{text-align:right;color:var(--muted);font-size:14px;min-height:20px}
+
+    .footer-player-nav{display:flex;align-items:center;gap:8px;margin-top:10px}
+    .footer-player-nav .nav-btn{width:96px;height:44px;font-size:24px}
+    #playerNameLabel{flex:1;text-align:center;font-size:28px;font-weight:800;padding:4px 8px}
+
+    .save-icon{position:fixed;top:10px;right:10px;font-size:22px;color:var(--accent);opacity:0;transition:opacity .4s}
+
+    .panel h3{margin-top:8px}
+    .boxscore-title{font-weight:700;margin:6px 0 4px}
+    .note-rotate{font-size:12px;color:var(--muted);margin-bottom:6px}
+
+    table.boxscore{width:100%;border-collapse:collapse;margin-top:8px;text-align:center;table-layout:fixed}
+    .boxscore th,.boxscore td{border:1px solid #444;padding:6px 4px;font-size:12px;word-break:break-word}
+    .boxscore th{background:#121212;color:var(--accent)}
+    .light-theme .boxscore th{background:#f5f5f5}
+    .boxscore tr:nth-child(even) td{background:#151515}
+    .light-theme .boxscore tr:nth-child(even) td{background:#fafafa}
+    .leader{border:2px solid #27c34a !important;font-weight:800 !important}
+
+    .collapsed-header{
+      display:grid;grid-template-columns:1.5fr repeat(4,1fr);gap:6px;padding:8px;font-weight:700;border:1px solid #444;
+      background:#121212;color:var(--fg)
+    }
+    .light-theme .collapsed-header{background:#f5f5f5;color:#000;border-color:#cfcfcf}
+    .collapsed-row{
+      display:grid;grid-template-columns:1.5fr repeat(4,1fr);gap:6px;align-items:center;
+      padding:8px;border:1px solid #333;margin-bottom:6px;background:#0f0f0f
+    }
+    .light-theme .collapsed-row{background:#ffffff;border-color:#cfcfcf}
+    .collapsed-row.leader{border-color:#27c34a}
+
+    .toggle-container{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0}
+    .toggle-container label{flex:1;min-width:0}
+    .toggle-btn{flex:0 0 60%;height:44px;background:var(--disabled);position:relative}
+    .toggle-btn.active{background:#4caf50}
+    .toggle-btn .knob{position:absolute;top:7px;left:7px;width:30px;height:30px;background:#fff;border-radius:50%;transition:left .25s}
+    .toggle-btn.active .knob{left:calc(100% - 37px)}
+    .mirror-toggles .toggle-container{flex-direction:row-reverse}
+    .mirror-toggles .toggle-container label{text-align:right}
+    #insertBeforeSelect{width:100%}
+
+    #summary h2{margin:8px 0 0 0;text-align:center}
+    #summary .muted{text-align:center;margin-bottom:8px}
+    .summary-col{display:grid;grid-template-columns:1fr;gap:6px;font-size:14px}
+    .summary-item{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed #444;padding:4px 0}
+    .light-theme .summary-item{border-color:#bbb}
+  </style>
 </head>
 <body>
-    <header>
-        <img src="CL-Logo-Transparent(tm).png" alt="Logo" width="600">
-        <h1>Par for the Course - Scorekeep</h1>
-    </header>
+  <!-- Splash -->
+  <div id="splash" class="screen active">
+    <div class="logo">
+      <img src="https://prometheangamescom.wordpress.com/wp-content/uploads/2025/05/pftc-logo-edited-1.png" alt="Par for the Course"/>
+    </div>
+    <div class="stack">
+      <button id="splashNewBtn">New Game</button>
+      <button id="splashLoadBtn" disabled>Load Game</button>
+    </div>
+  </div>
 
-    <main>
-        <div id="controls">
-            <button onclick="addPlayer()">Add Player</button>
-            <button onclick="nextHole()">Next Hole</button>
-            <button onclick="previousHole()">Previous Hole</button>
-            <button onclick="gameOver()">Game Over</button>
-            <button onclick="resetAll()">Reset All</button>
-        </div>
-        <div id="playerList"></div>
-        <div id="boxScore"></div>
-    </main>
+  <!-- Setup -->
+  <div id="setup" class="screen">
+    <center>
+      <img width="25%" height="auto" src="https://prometheangamescom.wordpress.com/wp-content/uploads/2025/05/pftc-logo-edited-1.png" alt="PftC logo"/>
+      <h5>ENTER PLAYER NAMES FROM TALLEST TO SHORTEST HEIGHT</h5>
+      <div id="playerCounter" class="small muted">Players: 0 (named 0)</div>
+    </center>
+    <ul id="playerList"></ul>
+    <button id="addPlayerBtn">ADD PLAYER</button>
+    <button id="startGameBtn" disabled>START</button>
+  </div>
 
-    <script src="script.js"></script>
+  <!-- Game -->
+  <div id="game" class="screen">
+    <div class="top-spacer"></div>
+
+    <!-- Player nav + name -->
+    <div class="footer-player-nav" style="margin-top:0">
+      <button id="prevPlayerBtn" class="nav-btn" aria-label="Previous player">◀</button>
+      <span id="playerNameLabel"></span>
+      <button id="nextPlayerBtn" class="nav-btn" aria-label="Next player">▶</button>
+    </div>
+
+    <!-- Stats (Scratches | Total Strokes | Penalties) -->
+    <div class="stats-row">
+      <div class="stat-center"><h6>Scratches</h6><div id="statScratch" class="score-value">0</div></div>
+      <div class="stat-center"><h6>Total Strokes</h6><div id="statScore" class="score-value">0</div></div>
+      <div class="stat-center"><h6>Penalties</h6><div id="statPenalty" class="score-value">0</div></div>
+    </div>
+    <div id="playerColorDivider"></div>
+
+    <!-- Hole / Batter row -->
+    <div class="hole-batter-row">
+      <div id="holeLabel">Hole 1</div>
+      <div id="batterInfo"></div>
+    </div>
+
+    <!-- Par selector -->
+    <div class="inline-par">
+      <label for="parSelect">Select Par:</label>
+      <select id="parSelect"><option value="">--</option></select>
+    </div>
+
+    <!-- Mercy -->
+    <button id="mercyBtn" title="Set to Par+5 then advance">Mercy (+5)</button>
+
+    <!-- Scratch / Penalty -->
+    <div class="sp-row">
+      <button class="minor-btn btn-scratch" data-action="scratch+">Scratch (+2)</button>
+      <button class="minor-btn btn-penalty" data-action="penalty+">Penalty (+1)</button>
+    </div>
+
+    <!-- Score + +/- -->
+    <div class="row-flex">
+      <div class="score-box">
+        <div id="scoreVal">0</div>
+        <div id="scoreCallout" class="small" style="min-height:18px;text-align:center;font-weight:700"></div>
+      </div>
+      <div class="score-controls">
+        <button class="score-btn" data-action="score+">▲</button>
+        <button class="score-btn" data-action="score-">▼</button>
+      </div>
+    </div>
+
+    <!-- Undo / Next -->
+    <div class="action-row">
+      <button id="undoBtn"><span aria-hidden="true">↶</span> Undo</button>
+      <button id="nextCardBtn" disabled>Next Card</button>
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div id="summary" class="screen">
+    <h2>Session Summary</h2>
+    <div id="summaryMeta" class="muted"></div>
+
+    <!-- Summary info column -->
+    <div class="section">
+      <div class="summary-col" id="summaryInfo"></div>
+    </div>
+
+    <!-- Collapsed by default + hint -->
+    <div class="section">
+      <div class="note-rotate">Rotate device to view expanded box score.</div>
+      <div class="collapsed-header">
+        <div>Player</div><div>Sub</div><div>±Par</div><div>Scr</div><div>Pen</div>
+      </div>
+      <div id="summaryCollapsedBody"></div>
+    </div>
+
+    <!-- Expanded tables (landscape only) -->
+    <div class="section" id="summaryFrontWrap" style="display:none">
+      <div class="boxscore-title">Front 9</div>
+      <div id="summaryFront"></div>
+    </div>
+    <div class="section" id="summaryBackWrap" style="display:none">
+      <div class="boxscore-title">Back 9</div>
+      <div id="summaryBack"></div>
+    </div>
+
+    <button id="summaryNewGameBtn" style="margin-top:auto">Start New Game</button>
+  </div>
+
+  <!-- Save pulse -->
+  <div id="saveIcon" class="save-icon" aria-hidden="true">💾</div>
+
+  <!-- Settings Panel -->
+  <div id="settingsPanel" class="panel" aria-label="Settings panel">
+    <button id="closeSettingsBtn" class="close-btn">✖</button>
+    <h3>Settings</h3>
+
+    <!-- In-game Add Player -->
+    <div class="section">
+      <label style="display:block;margin-bottom:6px">Add New Player</label>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <div id="newPlayerColor" class="color-chip" title="Tap to change color"></div>
+        <input id="newPlayerName" type="text" maxlength="20" placeholder="New player name" class="playerName"/>
+      </div>
+      <label style="display:block;margin-bottom:6px">Insert Before</label>
+      <select id="insertBeforeSelect"></select>
+      <button id="addPlayerInSettingsBtn">Add Player</button>
+    </div>
+
+    <div class="section togglesWrap">
+      <div class="toggle-container">
+        <label>Light Theme</label>
+        <div id="themeToggle" class="toggle-btn"><div class="knob"></div></div>
+      </div>
+      <div class="toggle-container">
+        <label>Left-Handed</label>
+        <div id="handedToggle" class="toggle-btn"><div class="knob"></div></div>
+      </div>
+      <div class="toggle-container">
+        <label>Auto Save</label>
+        <div id="autosaveToggle" class="toggle-btn active"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <!-- Spacer above mini logo -->
+    <div style="height:100px"></div>
+
+    <!-- Mini logo above version -->
+    <div style="display:flex;justify-content:center;margin-top:8px">
+      <img src="https://prometheangamescom.wordpress.com/wp-content/uploads/2025/08/mini-logo-1.png" alt="mini logo" style="width:72px;height:auto;opacity:.9"/>
+    </div>
+    <div class="version">v 1.3.1.26</div>
+  </div>
+
+  <!-- Scores Panel -->
+  <div id="scoresPanel" class="panel" aria-label="Scores panel">
+    <button id="closeScoresBtn" class="close-btn">✖</button>
+    <h3>Scores</h3>
+
+    <div id="collapsedNote" class="note-rotate">Rotate device to view expanded box score.</div>
+
+    <!-- Collapsed portrait -->
+    <div class="section" id="collapsedView">
+      <div class="collapsed-header">
+        <div>Player</div><div>Sub</div><div>±Par</div><div>Scr</div><div>Pen</div>
+      </div>
+      <div id="collapsedBody"></div>
+    </div>
+
+    <!-- Expanded landscape -->
+    <div class="section" id="frontSection" style="display:none">
+      <div class="boxscore-title">Front 9</div>
+      <div id="boxscoreFront"></div>
+    </div>
+    <div class="section" id="backSection" style="display:none">
+      <div class="boxscore-title">Back 9</div>
+      <div id="boxscoreBack"></div>
+    </div>
+
+    <div class="section">
+      <button id="autosaveBtn">Autosave — Never</button>
+    </div>
+    <div class="section">
+      <button id="saveScoresSoonBtn" disabled>Save Scores (coming soon)</button>
+      <button id="endGameBtn">End Game</button>
+    </div>
+  </div>
+
+  <!-- Social Panel (was Shop) -->
+  <div id="shopPanel" class="panel" aria-label="Social panel">
+    <button id="closeShopBtn" class="close-btn">✖</button>
+    <h3>Social</h3>
+    <div class="section">
+      <button id="instaBtn">@ParfortheCourse_TheGame</button>
+      <button id="merchBtn">Merch</button>
+      <button id="shopLinkBtn">Shop the Series</button>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation -->
+  <div id="menuBar">
+    <button id="btnSettings">Settings</button>
+    <button id="btnScores">Scores</button>
+    <button id="btnShop">Social</button>
+  </div>
+
+  <script>
+  (function(){
+    'use strict';
+    const MAX_HOLES = 18;
+    const COLOR_PALETTE = ['#d11111','#007aff','#34c759','#ff9500','#af52de','#32ade6','#ff2d55','#ffd60a','#a8e063','#ff6b81','#20c997','#8e5a3c','#1e40af','#d4af37','#7f1d1d','#4b0082'];
+    const AS_KEY = 'autosave_physical';
+
+    // Global color cursor to ensure rolling distinct assignments
+    let colorCursor = 0;
+    const nextAutoColor = () => {
+      const col = COLOR_PALETTE[colorCursor % COLOR_PALETTE.length];
+      colorCursor++;
+      return col;
+    };
+
+    /* DOM */
+    const splash = document.getElementById('splash');
+    const splashNewBtn = document.getElementById('splashNewBtn');
+    const splashLoadBtn = document.getElementById('splashLoadBtn');
+
+    const setup = document.getElementById('setup');
+    const playerCounter = document.getElementById('playerCounter');
+    const playerList = document.getElementById('playerList');
+    const addPlayerBtn = document.getElementById('addPlayerBtn');
+    const startGameBtn = document.getElementById('startGameBtn');
+
+    const game = document.getElementById('game');
+    const menuBar = document.getElementById('menuBar');
+    const prevPlayerBtn = document.getElementById('prevPlayerBtn');
+    const nextPlayerBtn = document.getElementById('nextPlayerBtn');
+    const playerNameLabel = document.getElementById('playerNameLabel');
+    const holeLabel = document.getElementById('holeLabel');
+    const batterInfo = document.getElementById('batterInfo');
+
+    const parSelect = document.getElementById('parSelect');
+    const scoreVal = document.getElementById('scoreVal');
+    const scoreCallout = document.getElementById('scoreCallout');
+    const statScore = document.getElementById('statScore');
+    const statScratch = document.getElementById('statScratch');
+    const statPenalty = document.getElementById('statPenalty');
+    const playerColorDivider = document.getElementById('playerColorDivider');
+
+    const undoBtn = document.getElementById('undoBtn');
+    const nextCardBtn = document.getElementById('nextCardBtn');
+    const mercyBtn = document.getElementById('mercyBtn');
+
+    const saveIcon = document.getElementById('saveIcon');
+
+    const settingsPanel = document.getElementById('settingsPanel');
+    const scoresPanel = document.getElementById('scoresPanel');
+    const shopPanel = document.getElementById('shopPanel');
+
+    const btnSettings = document.getElementById('btnSettings');
+    const btnScores = document.getElementById('btnScores');
+    const btnShop = document.getElementById('btnShop');
+
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const closeScoresBtn = document.getElementById('closeScoresBtn');
+    const closeShopBtn = document.getElementById('closeShopBtn');
+
+    const themeToggle = document.getElementById('themeToggle');
+    const autosaveToggle = document.getElementById('autosaveToggle');
+    const handedToggle = document.getElementById('handedToggle');
+
+    const togglesWrap = document.querySelector('#settingsPanel .togglesWrap');
+
+    const boxscoreFront = document.getElementById('boxscoreFront');
+    const boxscoreBack = document.getElementById('boxscoreBack');
+    const collapsedBody = document.getElementById('collapsedBody');
+    const frontSection = document.getElementById('frontSection');
+    const backSection = document.getElementById('backSection');
+    const collapsedView = document.getElementById('collapsedView');
+    const collapsedNote = document.getElementById('collapsedNote');
+
+    const autosaveBtn = document.getElementById('autosaveBtn');
+    const endGameBtn = document.getElementById('endGameBtn');
+
+    const shopLinkBtn = document.getElementById('shopLinkBtn');
+    const instaBtn = document.getElementById('instaBtn');
+    const merchBtn = document.getElementById('merchBtn');
+
+    const newPlayerNameInput = document.getElementById('newPlayerName');
+    const newPlayerColorChip = document.getElementById('newPlayerColor');
+    const insertBeforeSelect = document.getElementById('insertBeforeSelect');
+
+    // Summary
+    const summary = document.getElementById('summary');
+    const summaryMeta = document.getElementById('summaryMeta');
+    const summaryInfo = document.getElementById('summaryInfo');
+    const summaryCollapsedBody = document.getElementById('summaryCollapsedBody');
+    const summaryFrontWrap = document.getElementById('summaryFrontWrap');
+    const summaryBackWrap = document.getElementById('summaryBackWrap');
+    const summaryFront = document.getElementById('summaryFront');
+    const summaryBack = document.getElementById('summaryBack');
+    const summaryNewGameBtn = document.getElementById('summaryNewGameBtn');
+
+    /* State */
+    let players = []; // [{name,color}]
+    let initialOrder = [];
+    let holeOrder = []; // [ [playerIdx...] per hole ]
+    let currentHole = 1;
+    let currentPosition = 0;
+    let par = null; const parByHole = Array.from({length:MAX_HOLES}, ()=> null);
+
+    // Working turn state
+    let score=0, scratches=0, penalties=0;
+
+    // scoresMatrix[holeIdx][playerIdx] = {score, scratches, penalties} | null
+    let scoresMatrix = [];
+
+    // visited flags for gating
+    let visitedByHole = []; // visitedByHole[holeIdx] = Array<boolean>
+
+    // preferences
+    const toggles = { autosave:true, theme:false, leftHanded:false };
+
+    // session times
+    let startTime = null;
+    let endTime = null;
+
+    // global undo stack (snapshots)
+    const undoStack = [];
+    function pushUndo(){
+      if (undoStack.length > 30) undoStack.shift();
+      undoStack.push(stateSnapshot());
+    }
+
+    /* Helpers */
+    const show=(el)=>{ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); el.classList.add('active'); };
+    const pulseSave=()=>{ saveIcon.style.opacity=1; setTimeout(()=>saveIcon.style.opacity=0,400); };
+    const now=()=> new Date().toLocaleString();
+    const hasAutosave = () => !!localStorage.getItem(AS_KEY);
+    const isLandscape = () => window.matchMedia && window.matchMedia('(orientation: landscape)').matches;
+
+    function updatePlayerCounter(){
+      const total = playerList.children.length;
+      const named = [...playerList.querySelectorAll('.playerName')].filter(i=>i.value.trim().length>0).length;
+      playerCounter.textContent = `Players: ${total} (named ${named})`;
+    }
+
+    function rgbToHex(rgb){
+      if (!rgb) return null;
+      if (/^#/.test(rgb)) return rgb.toLowerCase();
+      const m = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/i);
+      if (!m) return null;
+      const toHex = n => ('0'+(+n).toString(16)).slice(-2);
+      return ('#'+toHex(m[1])+toHex(m[2])+toHex(m[3])).toLowerCase();
+    }
+
+    function stateSnapshot(){
+      return { timestamp: now(), players: JSON.parse(JSON.stringify(players)), initialOrder:[...initialOrder], holeOrder: JSON.parse(JSON.stringify(holeOrder)),
+        currentHole, currentPosition, par, parByHole:[...parByHole],
+        score, scratches, penalties,
+        scoresMatrix: JSON.parse(JSON.stringify(scoresMatrix)),
+        visitedByHole: JSON.parse(JSON.stringify(visitedByHole)),
+        toggles: {...toggles},
+        startTime, endTime
+      };
+    }
+    function restore(snapshot){
+      players = snapshot.players||([]);
+      initialOrder = snapshot.initialOrder||players.map((_,i)=>i);
+      holeOrder = snapshot.holeOrder||[players.map((_,i)=>i)];
+      currentHole = snapshot.currentHole||1;
+      currentPosition = snapshot.currentPosition||0;
+      par = (snapshot.par ?? null);
+      (snapshot.parByHole||[]).forEach((v,i)=> parByHole[i]=v);
+      score = +snapshot.score||0; scratches=+snapshot.scratches||0; penalties=+snapshot.penalties||0;
+      scoresMatrix = snapshot.scoresMatrix||Array.from({length:MAX_HOLES},()=>Array(players.length).fill(null));
+      visitedByHole = snapshot.visitedByHole || Array.from({length:MAX_HOLES},()=> Array(players.length).fill(false));
+      Object.assign(toggles, snapshot.toggles||{});
+      startTime = snapshot.startTime || startTime;
+      endTime = snapshot.endTime || null;
+      applyPrefs();
+    }
+    function autosave(){
+      if (!toggles.autosave) return;
+      try{ localStorage.setItem(AS_KEY, JSON.stringify(stateSnapshot())); }catch{}
+      refreshAutosaveLabel(); pulseSave();
+    }
+    function refreshAutosaveLabel(){
+      const raw = localStorage.getItem(AS_KEY);
+      if (!raw){ autosaveBtn.textContent = 'Autosave — Never'; return; }
+      try{
+        const s = JSON.parse(raw);
+        const n = (s.players||[]).length;
+        autosaveBtn.textContent = `Autosave — ${s.timestamp} • ${n} players`;
+      }catch{ autosaveBtn.textContent = 'Autosave — Never'; }
+    }
+    function applyPrefs(){
+      document.body.classList.toggle('light-theme', !!toggles.theme);
+      document.body.classList.toggle('left-handed', !!toggles.leftHanded);
+      themeToggle.classList.toggle('active', !!toggles.theme);
+      autosaveToggle.classList.toggle('active', !!toggles.autosave);
+      handedToggle.classList.toggle('active', !!toggles.leftHanded);
+      if (toggles.leftHanded) togglesWrap.classList.add('mirror-toggles'); else togglesWrap.classList.remove('mirror-toggles');
+    }
+
+    function ensureOrder(){
+      if(!holeOrder[currentHole-1] || !holeOrder[currentHole-1].length){ holeOrder[currentHole-1] = players.map((_,i)=>i); }
+      if(!visitedByHole[currentHole-1] || visitedByHole[currentHole-1].length !== players.length){
+        visitedByHole[currentHole-1] = Array(players.length).fill(false);
+      }
+    }
+    function markVisited(){
+      ensureOrder();
+      const idx = holeOrder[currentHole-1][currentPosition];
+      if (visitedByHole[currentHole-1]) visitedByHole[currentHole-1][idx] = true;
+    }
+    function allPlayersVisitedThisHole(){
+      const v = visitedByHole[currentHole-1] || [];
+      return v.length === players.length && v.every(Boolean);
+    }
+    function updateNextCardGate(){
+      nextCardBtn.disabled = !(par!=null && allPlayersVisitedThisHole());
+    }
+
+    /* Setup rendering */
+    function addPlayerRowAt(index, name='', color){
+      const col = color || nextAutoColor();
+      const li = document.createElement('li'); li.className='playerRow';
+      li.innerHTML = `
+        <div class="color-chip" style="background:${col}" data-color-index="${COLOR_PALETTE.indexOf(col)}"></div>
+        <input class="playerName" maxlength="20" placeholder="Player name" value="${name}"/>
+        <div class="order-controls">
+          <button class="moveUp">↑</button>
+          <button class="moveDown">↓</button>
+          <button class="remove">✖</button>
+        </div>`;
+      const rows = [...playerList.children];
+      if (index>=0 && index<rows.length) playerList.insertBefore(li, rows[index]); else playerList.appendChild(li);
+      const input = li.querySelector('.playerName');
+      setTimeout(()=> input.focus(), 0);
+      input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addPlayerBtn.click(); }});
+      input.addEventListener('input', ()=>{ updateStartBtn(); updatePlayerCounter(); });
+
+      // Simple palette cycle on tap
+      li.querySelector('.color-chip').addEventListener('click', (e)=>{
+        const el = e.target;
+        const cur = +el.getAttribute('data-color-index') || 0;
+        const next = (cur + 1) % COLOR_PALETTE.length;
+        el.setAttribute('data-color-index', String(next));
+        el.style.backgroundColor = COLOR_PALETTE[next];
+      });
+
+      updateStartBtn(); updatePlayerCounter(); refreshInsertSelect_DuringSetup();
+    }
+
+    function refreshInsertSelect_DuringSetup(){
+      // During setup, the settings panel isn't open, but we keep this for parity if needed.
+      // No action required here besides keeping the API parity with earlier builds.
+    }
+
+    function updateStartBtn(){
+      const filled = [...playerList.children].map(r=>r.querySelector('.playerName').value.trim()).filter(Boolean).length;
+      startGameBtn.disabled = filled < 1;
+    }
+
+    /* Game flow / par options */
+    function populateParOnce(){
+      parSelect.innerHTML='<option value="">--</option>';
+      for(let i=1;i<=15;i++){ const o=document.createElement('option'); o.value=i; o.textContent=i; parSelect.appendChild(o); }
+    }
+
+    function getBatterInfo(){
+      const row = scoresMatrix[currentHole-1] || [];
+      let zeros = 0;
+      const plen = players.length;
+      for(let i=0;i<plen;i++){
+        const cell = row[i];
+        const v = cell ? Number(cell.score||0) : 0;
+        if (!v) zeros++;
+      }
+      if (zeros===0) return '';
+      const order = holeOrder[currentHole-1];
+      for (let step=1; step<=order.length; step++){
+        const j = (currentPosition + step) % order.length;
+        const idx = order[j];
+        const cell = row[idx];
+        const v = cell ? Number(cell.score||0) : 0;
+        if (!v) return `Next: ${players[idx].name}; (${zeros})`;
+      }
+      return `(${zeros})`;
+    }
+
+    function refreshHeader(){
+      ensureOrder();
+      const idx = holeOrder[currentHole-1][currentPosition];
+      const p = players[idx] || {name:''};
+      playerNameLabel.textContent = p.name;
+      holeLabel.textContent = `Hole ${currentHole}`;
+      batterInfo.textContent = getBatterInfo();
+
+      // Update dynamic color divider + nav btns
+      const col = (players[idx] && players[idx].color) || '#444';
+      playerColorDivider.style.backgroundColor = col;
+      colorizeNav();
+
+      // load par for this hole
+      const pv = parByHole[currentHole-1];
+      par = pv!=null ? Number(pv) : null;
+      parSelect.value = (par!=null) ? String(par) : '';
+
+      markVisited();
+      updateNextCardGate();
+      loadWorkingFromMatrix();
+    }
+
+    function colorizeNav(){
+      ensureOrder();
+      const idx = holeOrder[currentHole-1][currentPosition];
+      const col = (players[idx] && players[idx].color) || '#444';
+      const fg = getContrast(col);
+      prevPlayerBtn.style.backgroundColor = col; prevPlayerBtn.style.color = fg;
+      nextPlayerBtn.style.backgroundColor = col; nextPlayerBtn.style.color = fg;
+    }
+    function getContrast(rgbOrHex){
+      let r,g,b;
+      if(/^#/.test(rgbOrHex)){
+        const h = rgbOrHex.replace('#','');
+        const hx = h.length===3? h.split('').map(x=>x+x).join(''):h;
+        r=parseInt(hx.slice(0,2),16); g=parseInt(hx.slice(2,4),16); b=parseInt(hx.slice(4,6),16);
+      }else{
+        const m = (rgbOrHex||'').match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/i);
+        r=m?+m[1]:209; g=m?+m[2]:17; b=m?+m[3]:17;
+      }
+      const L = 0.2126*(r/255)+0.7152*(g/255)+0.0722*(b/255);
+      return L>0.55? '#000':'#fff';
+    }
+
+    function loadWorkingFromMatrix(){
+      ensureOrder();
+      const idx = holeOrder[currentHole-1][currentPosition];
+      const cell = scoresMatrix[currentHole-1]?.[idx] || null;
+      if (cell){ score = +cell.score||0; scratches = +cell.scratches||0; penalties = +cell.penalties||0; }
+      else { score=0; scratches=0; penalties=0; }
+      updateCallout();
+      updateUI();
+    }
+    function updateCallout(){
+      const pv = parByHole[currentHole-1];
+      let text = '';
+      if (pv!=null && score>0){
+        const diff = score - Number(pv);
+        if (score===1) text = 'Ace!';
+        else if (diff===0) text = 'Par!';
+        else if (diff===1) text = 'Bogey';
+        else if (diff===-1) text = 'Birdie!';
+        else if (diff===-2) text = 'Eagle!';
+        else if (diff===-3) text = 'Double Eagle!!';
+      }
+      scoreCallout.textContent = text;
+    }
+
+    // Instant (live) totals
+    function totalsForPlayerInstant(i){
+      let tScore=0, tPen=0, tScr=0;
+      for(let h=1; h<=MAX_HOLES; h++){
+        const cell = scoresMatrix[h-1]?.[i];
+        if (cell && (+cell.score>0)){
+          tScore += (+cell.score||0);
+          tPen   += (+cell.penalties||0);
+          tScr   += (+cell.scratches||0);
+        }
+      }
+      return { tScore, tPen, tScr };
+    }
+
+    function updateUI(){
+      scoreVal.textContent = score;
+      updateCallout();
+
+      ensureOrder();
+      const idx = holeOrder[currentHole-1][currentPosition];
+      const totals = totalsForPlayerInstant(idx);
+      statScore.textContent = totals.tScore || 0;
+      statPenalty.textContent = totals.tPen || 0;
+      statScratch.textContent = totals.tScr || 0;
+
+      // Mercy visibility
+      if (par!=null && score >= (Number(par)+5)) {
+        mercyBtn.style.display = 'inline-block';
+      } else {
+        mercyBtn.style.display = 'none';
+      }
+
+      batterInfo.textContent = getBatterInfo();
+      updateNextCardGate();
+      renderScoresPanel();
+    }
+
+    function commitCell(){
+      ensureOrder();
+      const idx = holeOrder[currentHole-1][currentPosition];
+      if (!Array.isArray(scoresMatrix[currentHole-1])) scoresMatrix[currentHole-1] = [];
+      scoresMatrix[currentHole-1][idx] = { score, scratches, penalties };
+    }
+
+    function nextPlayer(dir){
+      pushUndo();
+      commitCell(); autosave();
+      const order = holeOrder[currentHole-1];
+      if (dir===-1) currentPosition = (currentPosition - 1 + order.length) % order.length;
+      else currentPosition = (currentPosition + 1) % order.length;
+      refreshHeader();
+    }
+
+    function computeNextOrder(){
+      const pi = currentHole-1;
+      const order = holeOrder[pi];
+      const sorted = order.map(i=>{
+        const cell = scoresMatrix[pi]?.[i]; const sc = cell ? +cell.score : Infinity;
+        return {i, sc, setupIndex: initialOrder.indexOf(i)};
+      }).sort((a,b)=> a.sc - b.sc || a.setupIndex - b.setupIndex).map(o=>o.i);
+      holeOrder[currentHole] = sorted;
+    }
+
+    function advanceHole(){
+      if (par==null || !allPlayersVisitedThisHole()) { updateNextCardGate(); return; }
+      pushUndo();
+      commitCell();
+      parByHole[currentHole-1] = par;
+      autosave();
+      computeNextOrder();
+      currentHole += 1;
+      if (currentHole > MAX_HOLES){ return endGame(true); }
+      currentPosition = 0;
+      visitedByHole[currentHole-1] = Array(players.length).fill(false);
+      refreshHeader();
+    }
+
+    /* Completed holes mask — for box scores & summary */
+    function completedHolesMask(){
+      const mask = Array(MAX_HOLES).fill(false);
+      for (let h=0; h<MAX_HOLES; h++){
+        let ok = true;
+        for (let i=0; i<players.length; i++){
+          const c = scoresMatrix[h]?.[i];
+          const v = c ? Number(c.score||0) : 0;
+          if (v<=0){ ok=false; break; }
+        }
+        mask[h] = ok;
+      }
+      return mask;
+    }
+
+    function totalsForPlayerFiltered(i, startHole=1, endHole=MAX_HOLES){
+      const mask = completedHolesMask();
+      let tScore=0, tPen=0, tScr=0;
+      for(let h=startHole; h<=endHole; h++){
+        if (!mask[h-1]) continue;
+        const cell = scoresMatrix[h-1]?.[i];
+        if (cell){ tScore += (+cell.score||0); tPen += (+cell.penalties||0); tScr += (+cell.scratches||0); }
+      }
+      return { tScore, tPen, tScr };
+    }
+    function totalsForPlayerRangeFiltered(i, startHole, endHole){
+      const mask = completedHolesMask();
+      let tScore=0, tPen=0, tScr=0, any=false;
+      for(let h=startHole; h<=endHole; h++){
+        if (!mask[h-1]) continue;
+        const cell = scoresMatrix[h-1]?.[i];
+        if (cell){ any=true; tScore += (+cell.score||0); tPen += (+cell.penalties||0); tScr += (+cell.scratches||0); }
+      }
+      return { any, tScore, tPen, tScr };
+    }
+    function parSubtotalFiltered(startHole=1, endHole=MAX_HOLES){
+      const mask = completedHolesMask();
+      let sum = 0, any=false;
+      for(let h=startHole; h<=endHole; h++){
+        if (!mask[h-1]) continue;
+        const pv = parByHole[h-1];
+        if (pv!=null){ any=true; sum += (+pv||0); }
+      }
+      return any ? sum : 0;
+    }
+
+    function buildSectionTable(startHole, endHole){
+      if (!players.length){
+        return '<p>Start a game to see the box score.</p>';
+      }
+      let html = '<table class="boxscore"><thead><tr><th></th>';
+      for(let h=startHole; h<=endHole; h++) html += `<th>H${h}</th>`;
+      html += '<th>Tot</th><th>±Par</th><th>Pen</th><th>Scr</th></tr>';
+
+      // par row
+      html += '<tr><th>Par</th>';
+      let pTotal = 0;
+      const mask = completedHolesMask();
+      for(let h=startHole; h<=endHole; h++){
+        const pv = parByHole[h-1];
+        html += `<th>${pv!=null ? pv : '-'}</th>`;
+        if (mask[h-1] && pv!=null) pTotal += Number(pv)||0;
+      }
+      html += `<th>${pTotal||'-'}</th><th class="muted">–</th><th class="muted">–</th><th class="muted">–</th>`;
+      html += '</tr></thead><tbody>';
+
+      // leader (range)
+      let leaderIdx = -1, leaderScore = Infinity;
+      const totalsRange = players.map((p,i)=> totalsForPlayerRangeFiltered(i, startHole, endHole));
+      totalsRange.forEach((t,i)=>{ if (t.any && t.tScore < leaderScore){ leaderScore=t.tScore; leaderIdx=i; } });
+
+      players.forEach((p,i)=>{
+        const { any, tScore, tPen, tScr } = totalsRange[i];
+        const leaderClass = (i===leaderIdx) ? ' leader' : '';
+        const rel = pTotal ? (tScore - pTotal) : 0;
+        const relText = pTotal ? (rel>0?`+${rel}`:String(rel)) : '-';
+        html += `<tr class="${leaderClass}"><th>${p.name}</th>`;
+        for(let h=startHole; h<=endHole; h++){
+          const cell = scoresMatrix[h-1]?.[i];
+          const v = cell ? Number(cell.score||0) : 0;
+          html += `<td data-hole="${h}" data-player="${i}" class="bs-cell">${cell && v>0 ? v : '-'}</td>`;
+        }
+        html += `<td>${any ? tScore : '-'}</td><td>${pTotal?relText:'-'}</td><td>${any ? tPen : 0}</td><td>${any ? tScr : 0}</td></tr>`;
+      });
+
+      html += '</tbody></table>';
+      return html;
+    }
+
+    function buildCollapsed(){
+      let leaderIdx = -1, leaderScore = Infinity;
+      players.forEach((_,i)=>{
+        const { tScore } = totalsForPlayerFiltered(i, 1, MAX_HOLES);
+        if (tScore < leaderScore){ leaderScore = tScore; leaderIdx = i; }
+      });
+      const totalPar = parSubtotalFiltered(1, MAX_HOLES) || 0;
+
+      const rows = players.map((p,i)=>{
+        const { tScore, tPen, tScr } = totalsForPlayerFiltered(i,1,MAX_HOLES);
+        const rel = tScore - totalPar;
+        const relText = totalPar ? ((rel>0?`+${rel}`:String(rel))) : '-';
+        const leaderClass = (i===leaderIdx) ? ' leader' : '';
+        return `
+          <div class="collapsed-row${leaderClass}">
+            <div>${p.name}</div>
+            <div>${tScore || '-'}</div>
+            <div>${totalPar ? relText : '-'}</div>
+            <div>${tScr || 0}</div>
+            <div>${tPen || 0}</div>
+          </div>`;
+      });
+
+      return rows.join('');
+    }
+
+    function renderScoresPanel(){
+      // Collapsed always populated
+      collapsedBody.innerHTML = buildCollapsed();
+
+      // Expanded toggled by orientation
+      const landscape = isLandscape();
+      frontSection.style.display = landscape ? 'block' : 'none';
+      backSection.style.display  = landscape ? 'block' : 'none';
+      collapsedView.style.display = landscape ? 'none' : 'block';
+      collapsedNote.style.display = landscape ? 'none' : 'block';
+
+      if (landscape){
+        boxscoreFront.innerHTML = buildSectionTable(1,9);
+        boxscoreBack.innerHTML  = buildSectionTable(10,18);
+      }
+    }
+
+    /* Summary screen */
+    function renderSummary(){
+      // meta
+      const dur = (() => {
+        if (!startTime || !endTime) return '';
+        const t1 = new Date(startTime), t2 = new Date(endTime);
+        const mins = Math.max(1, Math.round((t2 - t1)/60000));
+        return `${mins} min`;
+      })();
+      summaryMeta.textContent = `${players.length} players • ${new Date(startTime||Date.now()).toLocaleString()} → ${new Date(endTime||Date.now()).toLocaleString()} • ${dur}`;
+
+      // info list
+      const mask = completedHolesMask();
+      const completedCount = mask.filter(Boolean).length;
+      const totalPar = parSubtotalFiltered(1,18);
+      const totals = players.map((p,i)=>({
+        i, name:p.name, ...totalsForPlayerFiltered(i,1,18)
+      }));
+      const best = totals
+        .filter(t => t.tScore>0)
+        .sort((a,b)=> a.tScore - b.tScore)[0];
+
+      const info = [];
+      info.push(`<div class="summary-item"><span>Completed Holes</span><span>${completedCount}/18</span></div>`);
+      info.push(`<div class="summary-item"><span>Par Subtotal (counted)</span><span>${totalPar||'-'}</span></div>`);
+      if (best){
+        const rel = totalPar ? (best.tScore - totalPar) : 0;
+        const relText = totalPar ? (rel>0?`+${rel}`:String(rel)) : '-';
+        info.push(`<div class="summary-item"><span>Winner (lowest)</span><span>${best.name} — ${best.tScore} (${relText})</span></div>`);
+      }
+      summaryInfo.innerHTML = info.join('');
+
+      // collapsed body (same as Scores panel)
+      summaryCollapsedBody.innerHTML = buildCollapsed();
+
+      // expanded (landscape only)
+      const landscape = isLandscape();
+      summaryFrontWrap.style.display = landscape ? 'block' : 'none';
+      summaryBackWrap.style.display  = landscape ? 'block' : 'none';
+      if (landscape){
+        summaryFront.innerHTML = buildSectionTable(1,9);
+        summaryBack.innerHTML  = buildSectionTable(10,18);
+      }
+    }
+
+    /* === Controls === */
+    function setPar(valueStr){
+      const v = valueStr ? Number(valueStr) : null;
+      par = (Number.isFinite(v) ? v : null);
+      if (par!=null) parByHole[currentHole-1] = par;
+      updateUI(); autosave();
+    }
+
+    function inc(kind, delta){
+      if (kind==='score'){ score = Math.max(0, score + delta); }
+      if (kind==='penalty'){ penalties = Math.max(0, penalties + delta); }
+      if (kind==='scratch'){ scratches = Math.max(0, scratches + delta); }
+      commitCell(); updateUI(); autosave();
+    }
+
+    function doMercy(){
+      if (par==null) return;
+      score = Math.max(score, Number(par) + 5);
+      commitCell(); updateUI(); autosave();
+      nextPlayer(1);
+    }
+
+    function endGame(autoFrom18){
+      endTime = new Date().toISOString();
+      autosave();
+      show(summary); menuBar.style.display = 'none';
+      renderSummary();
+      try{ localStorage.removeItem(AS_KEY); }catch{}
+    }
+
+    /* === Setup → Game init with confirmation & empty-row pruning === */
+    function startNewGameFromSetup(){
+      // Gather current rows and count empties
+      const rows = [...playerList.children];
+      const empties = rows.filter(r => !r.querySelector('.playerName').value.trim());
+
+      if (empties.length){
+        const ok = confirm(`Remove ${empties.length} empty player ${empties.length===1?'row':'rows'} before starting?`);
+        if (!ok) return; // let user fill them
+        // Remove empty rows from DOM
+        empties.forEach(r => r.remove());
+      }
+
+      // Harvest players (post-prune)
+      players = [];
+      [...playerList.children].forEach(row=>{
+        const name = row.querySelector('.playerName').value.trim();
+        if (!name) return;
+        const chip = row.querySelector('.color-chip');
+        const idx = +chip.getAttribute('data-color-index') || 0;
+        const color = rgbToHex(chip.style.backgroundColor) || COLOR_PALETTE[idx] || COLOR_PALETTE[0];
+        players.push({ name, color });
+      });
+      if (!players.length) return;
+
+      // Initialize orders/matrices
+      initialOrder = players.map((_,i)=>i);
+      holeOrder = [ [...initialOrder] ];
+      currentHole = 1; currentPosition = 0;
+      for (let h=0; h<MAX_HOLES; h++){
+        scoresMatrix[h] = Array(players.length).fill(null);
+        visitedByHole[h] = Array(players.length).fill(false);
+      }
+      for (let h=0; h<MAX_HOLES; h++) parByHole[h] = null;
+
+      startTime = new Date().toISOString();
+      endTime = null;
+      score = 0; scratches = 0; penalties = 0;
+
+      populateParOnce();
+      show(game);
+      menuBar.style.display = 'flex';
+      refreshHeader();
+      autosave();
+      // Prepare Settings panel "Insert Before" with actual roster only (no empties)
+      refreshInsertBeforeOptionsInGame();
+    }
+
+    /* In-game: Add player in Settings (uses rolling palette) */
+    function addPlayerInGame(name, color, insertBeforeIdx){
+      const newIdx = players.length;
+      const col = color || nextAutoColor();
+      players.splice(newIdx, 0, { name, color: col });
+
+      // Expand matrices
+      for (let h=0; h<MAX_HOLES; h++){
+        if (!Array.isArray(scoresMatrix[h])) scoresMatrix[h] = [];
+        scoresMatrix[h].splice(newIdx, 0, null);
+        if (!Array.isArray(visitedByHole[h])) visitedByHole[h] = [];
+        visitedByHole[h].splice(newIdx, 0, false);
+
+        if (!Array.isArray(holeOrder[h])) holeOrder[h] = [];
+        holeOrder[h].push(newIdx);
+      }
+      initialOrder.push(newIdx);
+
+      // Insert before…
+      const ib = Math.max(0, Math.min(insertBeforeIdx, players.length-1));
+      for (let h=currentHole-1; h<MAX_HOLES; h++){
+        const arr = holeOrder[h] || [];
+        const curPos = arr.indexOf(newIdx);
+        if (curPos>-1) arr.splice(curPos,1);
+        const ibPos = arr.indexOf(ib);
+        arr.splice(ibPos>=0?ibPos:arr.length, 0, newIdx);
+        holeOrder[h]=arr;
+      }
+
+      refreshHeader();
+      renderScoresPanel();
+      autosave();
+      refreshInsertBeforeOptionsInGame();
+    }
+
+    /* UI wiring */
+    // Splash
+    splashNewBtn.addEventListener('click', ()=>{
+      show(setup); menuBar.style.display = 'none';
+      playerList.innerHTML='';
+      // Always preload with one player row
+      addPlayerRowAt(playerList.children.length, '', nextAutoColor());
+      updatePlayerCounter(); updateStartBtn();
+    });
+    splashLoadBtn.addEventListener('click', ()=>{
+      try{
+        const raw = localStorage.getItem(AS_KEY);
+        if (!raw) return;
+        const snap = JSON.parse(raw);
+        restore(snap);
+        populateParOnce();
+        show(game); menuBar.style.display='flex';
+        refreshHeader(); renderScoresPanel();
+      }catch{}
+    });
+
+    // Setup interactions
+    addPlayerBtn.addEventListener('click', ()=> addPlayerRowAt(playerList.children.length));
+    playerList.addEventListener('click', (e)=>{
+      const row = e.target.closest('.playerRow'); if (!row) return;
+      const rows = [...playerList.children];
+      const idx = rows.indexOf(row);
+      if (e.target.classList.contains('moveUp') && idx>0){
+        playerList.insertBefore(row, rows[idx-1]);
+      }
+      if (e.target.classList.contains('moveDown') && idx<rows.length-1){
+        playerList.insertBefore(row, rows[idx+1].nextSibling);
+      }
+      if (e.target.classList.contains('remove')){
+        row.remove();
+      }
+      updatePlayerCounter(); updateStartBtn();
+    });
+    startGameBtn.addEventListener('click', startNewGameFromSetup);
+
+    // Game controls
+    prevPlayerBtn.addEventListener('click', ()=> nextPlayer(-1));
+    nextPlayerBtn.addEventListener('click', ()=> nextPlayer(1));
+
+    document.querySelectorAll('.score-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if (btn.dataset.action==='score+') inc('score', +1);
+        if (btn.dataset.action==='score-') inc('score', -1);
+      });
+    });
+    document.querySelectorAll('.minor-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const act = btn.dataset.action;
+        if (act==='penalty+') inc('penalty', +1);
+        if (act==='scratch+') inc('scratch', +1);
+      });
+    });
+    mercyBtn.addEventListener('click', doMercy);
+    parSelect.addEventListener('change', e=> setPar(e.target.value));
+
+    undoBtn.addEventListener('click', ()=>{
+      const snap = undoStack.pop();
+      if (!snap) return;
+      restore(snap); refreshHeader(); renderScoresPanel();
+    });
+    nextCardBtn.addEventListener('click', advanceHole);
+
+    // Panels
+    btnSettings.addEventListener('click', ()=>{ settingsPanel.classList.add('open'); refreshInsertBeforeOptionsInGame(); });
+    btnScores  .addEventListener('click', ()=>{ scoresPanel.classList.add('open'); renderScoresPanel(); });
+    btnShop    .addEventListener('click', ()=>{ shopPanel.classList.add('open'); });
+
+    closeSettingsBtn.addEventListener('click', ()=> settingsPanel.classList.remove('open'));
+    closeScoresBtn  .addEventListener('click', ()=> scoresPanel.classList.remove('open'));
+    closeShopBtn    .addEventListener('click', ()=> shopPanel.classList.remove('open'));
+
+    // Toggles
+    themeToggle.addEventListener('click', ()=>{ toggles.theme = !toggles.theme; applyPrefs(); autosave(); });
+    handedToggle.addEventListener('click', ()=>{ toggles.leftHanded = !toggles.leftHanded; applyPrefs(); autosave(); });
+    autosaveToggle.addEventListener('click', ()=>{
+      toggles.autosave = !toggles.autosave; applyPrefs();
+      if (toggles.autosave) autosave(); else refreshAutosaveLabel();
+    });
+
+    // Autosave label & End game (with confirmation)
+    autosaveBtn.addEventListener('click', refreshAutosaveLabel);
+    endGameBtn.addEventListener('click', ()=>{
+      if (confirm('End the game and view the score summary?')) endGame(false);
+    });
+
+    // Social/Shop links
+    instaBtn.addEventListener('click', ()=> window.open('https://www.instagram.com/parforthecourse_thegame', '_blank'));
+    merchBtn.addEventListener('click', ()=> window.open('https://prometheangamescom.wordpress.com/2024/02/11/introducing-promethean-games-swag-and-apparel-shop/', '_blank'));
+    shopLinkBtn.addEventListener('click', ()=> window.open('https://www.thegamecrafter.com/sale/QRIR-RM5H-GECO-ZBB3', '_blank'));
+
+    // Settings: add player mid-game
+    function refreshInsertBeforeOptionsInGame(){
+      insertBeforeSelect.innerHTML='';
+      players.forEach((p,i)=>{
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `Before: ${p.name}`;
+        insertBeforeSelect.appendChild(opt);
+      });
+      const end = document.createElement('option'); end.value = String(players.length); end.textContent = 'Add to End';
+      insertBeforeSelect.appendChild(end);
+      insertBeforeSelect.value = String(players.length);
+    }
+
+    function cycleChipColor(el){
+      const cur = +el.getAttribute('data-color-index') || 0;
+      const next = (cur + 1) % COLOR_PALETTE.length;
+      el.setAttribute('data-color-index', String(next));
+      el.style.backgroundColor = COLOR_PALETTE[next];
+    }
+    newPlayerColorChip.setAttribute('data-color-index','0');
+    newPlayerColorChip.style.backgroundColor = COLOR_PALETTE[0];
+    newPlayerColorChip.addEventListener('click', ()=> cycleChipColor(newPlayerColorChip));
+
+    document.getElementById('addPlayerInSettingsBtn').addEventListener('click', ()=>{
+      const name = newPlayerNameInput.value.trim();
+      if (!name) { newPlayerNameInput.focus(); return; }
+      const idx = +newPlayerColorChip.getAttribute('data-color-index') || 0;
+      const color = COLOR_PALETTE[idx];
+      const before = Number(insertBeforeSelect.value);
+      addPlayerInGame(name, color, isNaN(before)?players.length:before);
+      newPlayerNameInput.value='';
+      // Advance the settings color chip to the next palette color for convenience
+      const nextIdx = (idx + 1) % COLOR_PALETTE.length;
+      newPlayerColorChip.setAttribute('data-color-index', String(nextIdx));
+      newPlayerColorChip.style.backgroundColor = COLOR_PALETTE[nextIdx];
+    });
+
+    // Orientation/resize → re-render
+    function onViewportChange(){
+      renderScoresPanel();
+      if (summary.classList.contains('active')) renderSummary();
+    }
+    window.addEventListener('resize', onViewportChange);
+    window.addEventListener('orientationchange', onViewportChange);
+
+    // Summary → New game
+    summaryNewGameBtn.addEventListener('click', ()=>{
+      show(splash);
+      menuBar.style.display='none';
+      players = []; initialOrder=[]; holeOrder=[]; currentHole=1; currentPosition=0;
+      scoresMatrix=[]; visitedByHole=[]; for(let h=0; h<MAX_HOLES; h++) parByHole[h]=null;
+      startTime=null; endTime=null; undoStack.length=0;
+      try{ localStorage.removeItem(AS_KEY); }catch{}
+      refreshAutosaveLabel();
+      splashLoadBtn.disabled = !hasAutosave();
+    });
+
+    // Initial UI
+    applyPrefs();
+    refreshAutosaveLabel();
+    splashLoadBtn.disabled = !hasAutosave();
+  })();
+  </script>
 </body>
 </html>
