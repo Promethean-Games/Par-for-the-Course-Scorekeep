@@ -1,0 +1,28 @@
+# Render Blueprint - One-click deployment
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: par-for-the-course
+    runtime: node
+    buildCommand: npm ci --include=dev && npm run build && npm run db:push
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: par-for-the-course-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+
+databases:
+  - name: par-for-the-course-db
+    plan: free
+    databaseName: minigolf
+    user: minigolf_user

@@ -1,0 +1,2224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Par for the Course — Tournament Groups + Scoring</title>
+
+  <style>
+    :root{
+      --bg:#0b1020;
+      --text:#eaf0ff;
+      --muted:#a8b3d6;
+      --line:rgba(255,255,255,.10);
+      --accent:#4cd3ff;
+      --good:#3ee37b;
+      --warn:#ffcf5a;
+      --bad:#ff5f6d;
+      --shadow: 0 12px 28px rgba(0,0,0,.35);
+      --radius:16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 15% 10%, rgba(76,211,255,.12), transparent 60%),
+                  radial-gradient(1000px 700px at 90% 0%, rgba(62,227,123,.10), transparent 55%),
+                  radial-gradient(900px 700px at 80% 90%, rgba(255,95,109,.10), transparent 55%),
+                  var(--bg);
+    }
+    header{
+      position:sticky; top:0; z-index:50;
+      background: linear-gradient(to bottom, rgba(11,16,32,.95), rgba(11,16,32,.70));
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
+    }
+    .wrap{
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 14px 18px;
+    }
+    .topbar{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+    }
+    .brand{ display:flex; flex-direction:column; gap:2px; }
+    .brand h1{ margin:0; font-size:18px; letter-spacing:.2px; }
+    .brand .sub{ color:var(--muted); font-size:12px; }
+
+    .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    button{
+      appearance:none; border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 12px;
+      cursor:pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,.18);
+      transition: transform .06s ease, border-color .2s ease, background .2s ease;
+      font-weight:600;
+    }
+    button:hover{ border-color: rgba(76,211,255,.35); }
+    button:active{ transform: translateY(1px); }
+    button.primary{
+      border-color: rgba(76,211,255,.45);
+      background: linear-gradient(180deg, rgba(76,211,255,.18), rgba(76,211,255,.06));
+    }
+    button.danger{
+      border-color: rgba(255,95,109,.45);
+      background: linear-gradient(180deg, rgba(255,95,109,.18), rgba(255,95,109,.06));
+    }
+    button.ghost{ background: transparent; box-shadow:none; }
+    button.small{ padding:8px 10px; border-radius:10px; font-size:12px; }
+
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      border-radius:999px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    main{ padding: 18px 0 40px; }
+    .grid{
+      display:grid;
+      grid-template-columns: 420px 1fr;
+      gap: 16px;
+      align-items:start;
+    }
+    .card{
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+    }
+    .card .hd h2{ margin:0; font-size:14px; letter-spacing:.2px; }
+    .card .hd p{ margin:4px 0 0; color:var(--muted); font-size:12px; line-height:1.35; }
+    .card .bd{ padding:14px; }
+
+    textarea{
+      width:100%;
+      min-height: 220px;
+      resize: vertical;
+      border-radius: 14px;
+      padding: 12px 12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.25);
+      color: var(--text);
+      outline:none;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    textarea:focus{ border-color: rgba(76,211,255,.5); }
+
+    .row{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+    .hint{ font-size:12px; color:var(--muted); line-height:1.4; margin-top:8px; }
+
+    .tabs{ display:flex; gap:10px; padding: 10px 14px 0; }
+    .tab{
+      padding: 10px 12px;
+      border-radius: 12px 12px 0 0;
+      border: 1px solid var(--line);
+      border-bottom: none;
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      cursor:pointer;
+      user-select:none;
+      font-weight:700;
+      font-size: 12px;
+    }
+    .tab.active{
+      background: linear-gradient(180deg, rgba(76,211,255,.14), rgba(255,255,255,.02));
+      color: var(--text);
+      border-color: rgba(76,211,255,.35);
+    }
+
+    /* Progress board */
+    .progressBoard{
+      margin-bottom: 14px;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(255,255,255,.02));
+      box-shadow: 0 10px 22px rgba(0,0,0,.20);
+      overflow:hidden;
+    }
+    .progressBoard .ph{
+      padding: 12px 12px 10px;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .progressBoard .ph .t{ font-weight:900; font-size:13px; }
+    .progressBoard .ph .s{ color:var(--muted); font-size:12px; }
+    .progressBoard .pb{ padding:0; }
+    table{ width:100%; border-collapse: collapse; font-size: 13px; }
+    th, td{ padding: 10px 10px; border-bottom:1px solid rgba(255,255,255,.06); text-align:left; }
+    th{ color: var(--muted); font-size: 12px; font-weight: 800; letter-spacing:.2px; }
+    td.r{ text-align:right; font-family: var(--mono); font-weight:800; }
+
+    /* Group blocks */
+    .groupGrid{ display:grid; grid-template-columns: 1fr; gap: 14px; }
+    .group{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(255,255,255,.02));
+      overflow:hidden;
+      box-shadow: 0 10px 22px rgba(0,0,0,.25);
+      position: relative;
+    }
+    .group.flash{
+      outline: 2px solid rgba(76,211,255,.55);
+      box-shadow: 0 0 0 6px rgba(76,211,255,.10), 0 10px 22px rgba(0,0,0,.25);
+    }
+    .groupHead{
+      padding: 12px 12px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap:10px;
+    }
+    .gmeta{ display:flex; flex-direction:column; gap:2px; }
+    .gmeta .title{ font-weight: 900; font-size: 13px; letter-spacing:.2px; }
+    .gmeta .sub{ font-size: 12px; color: var(--muted); }
+    .inline{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+    .badge{
+      display:inline-flex; align-items:center;
+      padding: 4px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight:800;
+      margin-left: 8px;
+    }
+
+    /* Group hole control */
+    .holeCtl{
+      display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+      padding: 10px 12px;
+      border-bottom:1px solid rgba(255,255,255,.06);
+      background: rgba(255,255,255,.02);
+    }
+    .holeBig{
+      font-weight: 900;
+      font-family: var(--mono);
+      letter-spacing:.2px;
+    }
+    select{
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      padding: 8px 10px;
+      outline:none;
+      font-weight: 800;
+    }
+    select:focus{ border-color: rgba(76,211,255,.5); }
+
+    .entryRow{
+      display:grid;
+      grid-template-columns: 220px 1fr 90px;
+      gap: 10px;
+      padding: 10px 12px;
+      border-top:1px solid rgba(255,255,255,.06);
+      align-items:center;
+    }
+    .entryRow:first-child{ border-top:none; }
+    .pname{
+      font-weight: 800;
+      overflow:hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .scoreInput{
+      width:100%;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      outline:none;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+    .scoreInput:focus{ border-color: rgba(76,211,255,.5); }
+    .ptotal{ text-align:right; font-family: var(--mono); font-weight: 900; }
+
+    .note{ margin-top: 10px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    .footerMini{
+      margin-top: 10px;
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Modal */
+    .modalBack{
+      position: fixed;
+      inset:0;
+      background: rgba(0,0,0,.55);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      z-index: 1000;
+      padding: 18px;
+    }
+    .modal{
+      width: min(820px, 100%);
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(16,26,51,.96), rgba(8,12,24,.96));
+      border-radius: 18px;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+    .modal .mh{
+      padding: 14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .modal .mh h3{ margin:0; font-size: 14px; }
+    .modal .mh p{ margin:4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .modal .mb{ padding: 14px; }
+    .sdRow{
+      display:grid;
+      grid-template-columns: 1fr 160px;
+      gap: 10px;
+      align-items:center;
+      padding: 10px 0;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .sdRow:last-child{ border-bottom:none; }
+
+    .bkRow{
+      display:grid;
+      grid-template-columns: 1fr auto;
+      gap:10px;
+      align-items:center;
+      padding: 10px 0;
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .bkRow:last-child{ border-bottom:none; }
+    .bkMeta{ display:flex; flex-direction:column; gap:2px; }
+    .bkMeta .t{ font-weight:900; font-size: 13px; }
+    .bkMeta .s{ color:var(--muted); font-size: 12px; }
+    .bkMeta .k{ display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+    .bkChip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    @media (max-width: 1080px){
+      .grid{ grid-template-columns: 1fr; }
+      .entryRow{ grid-template-columns: 1fr 1fr 90px; }
+    }
+  </style>
+</head>
+
+<body>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <h1>Par for the Course — Tournament Scoring</h1>
+        <div class="sub">18 holes • Lowest strokes wins • Random groups • Per-group holes • Autosave + Manual Backups</div>
+      </div>
+      <div class="actions">
+        <span class="pill" id="statusPill">Ready</span>
+        <button class="primary small" id="btnBackupNow">Backup Now</button>
+        <button class="ghost small" id="btnRestoreBackup">Restore…</button>
+        <button class="ghost small" id="btnDownloadBackup">Download Backup</button>
+        <button class="ghost small" id="btnImport">Import Backup</button>
+        <button class="danger small" id="btnReset">Reset</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="grid">
+    <!-- Left: Setup -->
+    <section class="card">
+      <div class="hd">
+        <div>
+          <h2>Roster + Grouping</h2>
+          <p>Enter up to 24 players (one per line). Format: “FirstName L” (e.g., “Ace R”).</p>
+        </div>
+        <div class="inline">
+          <span class="pill" id="playerCountPill">0 players</span>
+        </div>
+      </div>
+      <div class="bd">
+        <textarea id="namesInput" placeholder="Example:
+Ace R
+Sammy G
+Teddy R
+..."></textarea>
+
+        <div class="row">
+          <button class="primary" id="btnBuild">Shuffle + Create Groups</button>
+          <button id="btnReshuffle">Re-shuffle</button>
+          <button class="ghost" id="btnClearNames">Clear Names</button>
+        </div>
+
+        <div class="hint">
+          Grouping rule: <b>16–24 → groups of 4</b>. <b>&lt;16 → groups of 2</b>.
+          If it doesn’t divide cleanly, the app creates <b>one 3-person group</b> (no BYEs).
+        </div>
+
+        <div class="note">
+          <b>Key nuance supported:</b> groups can be on different holes at the same time.
+          Each group card has its own <b>Current Hole</b> control.
+        </div>
+
+        <div class="note">
+          <b>Data safety:</b> Autosave protects refresh/crash. Use <b>Backup Now</b> for restore points.
+          Use <b>Download Backup</b> if you want a copy off-device.
+        </div>
+      </div>
+    </section>
+
+    <!-- Right: Tournament -->
+    <section>
+      <div class="tabs">
+        <div class="tab active" data-tab="scoring">Scoring</div>
+        <div class="tab" data-tab="leaderboard">Leaderboard</div>
+        <div class="tab" data-tab="players">Players</div>
+        <div class="tab" data-tab="handicaps">Handicaps</div>
+      </div>
+
+      <div class="card" style="border-top-left-radius:0;">
+        <div class="bd">
+
+          <!-- Progress board -->
+          <div class="progressBoard" id="progressBoard" style="display:none;">
+            <div class="ph">
+              <div>
+                <div class="t">Progress Board</div>
+                <div class="s">Quick at-a-glance: where each group is, and data completeness.</div>
+              </div>
+              <div class="pill">Autosave: <span id="saveState">off</span> • Backups: <span id="backupCount">0</span></div>
+            </div>
+            <div class="pb">
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width:90px;">Group</th>
+                    <th style="width:150px;">Current Hole</th>
+                    <th class="r" style="width:170px;">Max holes entered</th>
+                    <th class="r" style="width:170px;">Players complete</th>
+                    <th>Players</th>
+                  </tr>
+                </thead>
+                <tbody id="pbBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Scoring view -->
+          <div id="viewScoring">
+            <div class="groupGrid" id="groups"></div>
+            <div class="note" id="groupingNote" style="display:none;"></div>
+          </div>
+
+          <!-- Leaderboard view -->
+          <div id="viewLeaderboard" style="display:none;">
+            <div class="inline" style="justify-content:space-between; margin-bottom:10px;">
+              <div class="pill" id="lbMeta">No data yet</div>
+              <div class="inline">
+                <button class="small" id="btnSortTotal">Sort by Total</button>
+                <button class="small" id="btnSortProgress">Sort by Holes Played</button>
+                <button class="small" id="btnToggleHcp">Leaderboard: Gross</button>
+                <button class="small" id="btnFinalize">Finalize Tournament</button>
+                <button class="small" id="btnShowTies">Resolve Ties (Sudden Death)</button>
+              </div>
+            </div>
+
+            <div class="card" style="box-shadow:none; background: rgba(0,0,0,.12);">
+              <div class="bd" style="padding:0;">
+                <table>
+                  <thead id="lbHead">
+                    <tr>
+                      <th style="width:60px;">Rank</th>
+                      <th>Player</th>
+                      <th style="width:110px;">Group</th>
+                      <th class="r" style="width:120px;">Holes</th>
+                      <th class="r" style="width:140px;">Total</th>
+                      <th style="width:160px;">Tie Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="lbBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="note">
+              <b>Sudden death tiebreak:</b> If totals tie, enter one extra hole score for tied players.
+              Lowest sudden-death score ranks above others with the same total.
+            </div>
+          </div>
+
+          <!-- Players view -->
+          <div id="viewPlayers" style="display:none;">
+            <div class="inline" style="justify-content:space-between; margin-bottom:10px;">
+              <div class="pill" id="playersMeta">No players yet</div>
+              <div class="inline">
+                <button class="small" id="btnExportPlayers">Export Players (CSV)</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="bd" style="padding:0;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:220px;">Player</th>
+                      <th style="width:120px;">ID</th>
+                      <th class="r" style="width:120px;">Handicap</th>
+                      <th class="r" style="width:120px;">Avg Δ</th>
+                      <th class="r" style="width:110px;">n</th>
+                      <th>Confidence</th>
+                    </tr>
+                  </thead>
+                  <tbody id="playersBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="note" style="margin-top:10px;">
+              <b>Auto-match rule:</b> roster names are matched by exact text first. If a name is new, a new Player ID is created.
+            </div>
+          </div>
+
+          <!-- Handicaps view -->
+          <div id="viewHandicaps" style="display:none;">
+            <div class="inline" style="justify-content:space-between; margin-bottom:10px;">
+              <div class="pill" id="hcpMeta">No handicap data yet</div>
+              <div class="inline">
+                <button class="small" id="btnExportHandicaps">Export Handicap Report (CSV)</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="bd" style="padding:0;">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:220px;">Player</th>
+                      <th style="width:120px;">ID</th>
+                      <th class="r" style="width:120px;">Handicap</th>
+                      <th class="r" style="width:120px;">Net (Par 49)</th>
+                      <th>Last up to 5 Δ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="hcpBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="note" style="margin-top:10px;">
+              <b>Net (Par 49):</b> Net is shown for reference as <code>49 + handicap</code>. It is not a tournament score.
+              Handicap is computed from the last up to 5 completed tournaments.
+            </div>
+          </div>
+
+
+          <div class="footerMini">
+            <div>Tip: set each group’s hole manually at the start, then just ride the ◀ ▶ buttons as they advance.</div>
+            <div style="text-align:right;">Local-only app. Use Download Backup for an off-device copy.</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Modal (reused for: Sudden Death, Scorecard, Backups) -->
+<div class="modalBack" id="modalBack">
+  <div class="modal">
+    <div class="mh">
+      <div>
+        <h3 id="modalTitle">Modal</h3>
+        <p id="modalDesc">Description</p>
+      </div>
+      <button class="ghost small" id="btnCloseModal">Close</button>
+    </div>
+    <div class="mb">
+      <div id="modalBody"></div>
+      <div class="row" style="justify-content:flex-end; margin-top:12px;">
+        <button class="primary" id="btnModalPrimary">Done</button>
+      </div>
+      <div class="note" id="modalNote" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const STORAGE_KEY = "pftc_tourney_v2";
+  const BACKUP_KEY  = "pftc_tourney_v2_backups";
+  const MAX_BACKUPS = 20;
+
+  const state = {
+    namesRaw: "",
+    players: [], // [{id, name, groupIndex}]  // NOTE: id is a stable player_id (P-000001)
+    groups: [],  // [[playerId,...], ...]
+    scores: {},  // scores[playerId][holeIndex]=number|null
+    suddenDeath: {}, // suddenDeath[playerId]=number|null
+    leaderboardSort: "total", // "total" | "progress"
+    showHandicapOnLeaderboard: false,
+    _groupingNote: "",
+    groupHoles: {}, // groupHoles[groupIndex]=0..17 (manual per-group)
+
+    // Handicapping system (local-first "central DB")
+    parTotal: 49,
+    eventSeq: 1,
+    currentEventId: null,
+    // Player registry
+    registry: {
+      nextNum: 1,         // used to generate P-000001 style ids
+      players: {},        // players[player_id] = {id, displayName, aliases:[...], createdAt}
+      aliasToId: {}       // aliasToId["Ace T"] = "P-000001"
+    },
+    // Append-only results ledger
+    ledger: [],            // [{eventId,eventDate,playerId,playerName,scoreTotal,delta,status,createdAt}]
+    // Cached snapshots (computed after imports/finalize)
+    handicapCache: {}      // handicapCache[playerId] = {handicap, avgDelta, nUsed, confidence, asOfEventId, asOfDate}
+  };
+
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+  const els = {
+    namesInput: $("#namesInput"),
+    playerCountPill: $("#playerCountPill"),
+    statusPill: $("#statusPill"),
+
+    btnBuild: $("#btnBuild"),
+    btnReshuffle: $("#btnReshuffle"),
+    btnClearNames: $("#btnClearNames"),
+
+    progressBoard: $("#progressBoard"),
+    pbBody: $("#pbBody"),
+    groupingNote: $("#groupingNote"),
+
+    groups: $("#groups"),
+
+    tabs: $$(".tab"),
+
+    // Views
+    viewScoring: $("#viewScoring"),
+    viewLeaderboard: $("#viewLeaderboard"),
+    viewPlayers: $("#viewPlayers"),
+    viewHandicaps: $("#viewHandicaps"),
+
+    // Leaderboard extras
+    btnToggleHcp: $("#btnToggleHcp"),
+    btnFinalize: $("#btnFinalize"),
+
+    // Players / Handicaps views
+    playersMeta: $("#playersMeta"),
+    playersBody: $("#playersBody"),
+    btnExportPlayers: $("#btnExportPlayers"),
+    hcpMeta: $("#hcpMeta"),
+    hcpBody: $("#hcpBody"),
+    btnExportHandicaps: $("#btnExportHandicaps"),
+    viewScoring: $("#viewScoring"),
+    viewLeaderboard: $("#viewLeaderboard"),
+    lbHead: $("#lbHead"),
+    lbBody: $("#lbBody"),
+    lbMeta: $("#lbMeta"),
+    btnSortTotal: $("#btnSortTotal"),
+    btnSortProgress: $("#btnSortProgress"),
+    btnShowTies: $("#btnShowTies"),
+
+    // Modal
+    modalBack: $("#modalBack"),
+    btnCloseModal: $("#btnCloseModal"),
+    modalTitle: $("#modalTitle"),
+    modalDesc: $("#modalDesc"),
+    modalBody: $("#modalBody"),
+    btnModalPrimary: $("#btnModalPrimary"),
+    modalNote: $("#modalNote"),
+
+    // Safety
+    saveState: $("#saveState"),
+    backupCount: $("#backupCount"),
+    btnBackupNow: $("#btnBackupNow"),
+    btnRestoreBackup: $("#btnRestoreBackup"),
+    btnDownloadBackup: $("#btnDownloadBackup"),
+    btnImport: $("#btnImport"),
+    btnReset: $("#btnReset")
+  };
+
+  // ---------- utilities ----------
+  function setStatus(text, tone="ready"){
+    els.statusPill.textContent = text;
+    const map = {
+      ready: "rgba(255,255,255,.03)",
+      saving: "rgba(255,207,90,.10)",
+      ok: "rgba(62,227,123,.10)",
+      warn: "rgba(255,207,90,.10)",
+      bad: "rgba(255,95,109,.10)"
+    };
+    els.statusPill.style.background = map[tone] || map.ready;
+    els.statusPill.style.borderColor = tone==="ok" ? "rgba(62,227,123,.35)" :
+                                      tone==="warn" ? "rgba(255,207,90,.35)" :
+                                      tone==="bad" ? "rgba(255,95,109,.35)" :
+                                      "rgba(255,255,255,.10)";
+    els.statusPill.style.color = "var(--muted)";
+  }
+
+  function clampInt(v, min, max){
+    v = Number(v);
+    if(!Number.isFinite(v)) return min;
+    return Math.max(min, Math.min(max, Math.floor(v)));
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function nowStamp(){
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function deepClone(obj){
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  
+  // -----------------------------
+  // Handicapping + Player Registry
+  // -----------------------------
+  function pad6(n){ return String(n).padStart(6,"0"); }
+
+  function roundHalfAwayFromZero(x){
+    // Avoid banker’s rounding surprises
+    if(!Number.isFinite(x)) return 0;
+    return (x >= 0) ? Math.floor(x + 0.5) : -Math.floor(Math.abs(x) + 0.5);
+  }
+
+  function ensureRegistry(){
+    state.registry ||= { nextNum: 1, players: {}, aliasToId: {} };
+    state.registry.players ||= {};
+    state.registry.aliasToId ||= {};
+    state.registry.nextNum ||= 1;
+
+    state.ledger ||= [];
+    state.handicapCache ||= {};
+    state.parTotal ||= 49;
+    state.eventSeq ||= 1;
+  }
+
+  function newPlayerId(){
+    const id = `P-${pad6(state.registry.nextNum)}`;
+    state.registry.nextNum += 1;
+    return id;
+  }
+
+  function getOrCreatePlayerIdByExactAlias(name){
+    ensureRegistry();
+    const alias = String(name || "").trim();
+    if(!alias) return null;
+
+    // Exact match first
+    const existing = state.registry.aliasToId[alias];
+    if(existing && state.registry.players[existing]) return existing;
+
+    // Create new
+    const pid = newPlayerId();
+    state.registry.players[pid] = {
+      id: pid,
+      displayName: alias,
+      aliases: [alias],
+      createdAt: Date.now()
+    };
+    state.registry.aliasToId[alias] = pid;
+    return pid;
+  }
+
+  function computeHandicap(playerId){
+    ensureRegistry();
+    const rows = state.ledger
+      .filter(r => r.playerId === playerId && r.status === "complete")
+      .sort((a,b) => (b.eventDate || "").localeCompare(a.eventDate || "") || (b.createdAt - a.createdAt))
+      .slice(0, 5);
+
+    const deltas = rows.map(r => r.delta).filter(Number.isFinite);
+    const n = deltas.length;
+    const avg = n ? (deltas.reduce((s,v)=>s+v,0) / n) : 0;
+    const handicap = roundHalfAwayFromZero(avg);
+
+    let confidence = "Established";
+    if(n < 3) confidence = "Provisional";
+    else if(n < 5) confidence = "Developing";
+
+    return { handicap, avgDelta: avg, nUsed: n, confidence, lastDeltas: deltas, asOfEventId: rows[0]?.eventId || null, asOfDate: rows[0]?.eventDate || null };
+  }
+
+  function refreshHandicapCache(playerIds){
+    ensureRegistry();
+    const ids = Array.isArray(playerIds) ? playerIds : Object.keys(state.registry.players);
+    ids.forEach(pid => {
+      state.handicapCache[pid] = computeHandicap(pid);
+    });
+  }
+
+  function makeEventId(){
+    ensureRegistry();
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const day = String(d.getDate()).padStart(2,"0");
+    const seq = String(state.eventSeq).padStart(3,"0");
+    state.eventSeq += 1;
+    return `T-${y}${m}${day}-${seq}`;
+  }
+
+function parseNames(raw){
+    return raw
+      .split("\n")
+      .map(s => s.trim())
+      .filter(Boolean)
+      .slice(0, 24);
+  }
+
+  // ---------- autosave ----------
+  function save(){
+    setStatus("Saving…", "saving");
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (els.saveState) els.saveState.textContent = "on";
+      setStatus("Saved", "ok");
+      setTimeout(() => setStatus("Ready", "ready"), 650);
+    }catch(e){
+      if (els.saveState) els.saveState.textContent = "off";
+      setStatus("Save failed", "bad");
+      console.error(e);
+    }
+    renderBackupCount();
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return false;
+      const loaded = JSON.parse(raw);
+      Object.assign(state, loaded);
+
+      state.players ||= [];
+      state.groups ||= [];
+      state.scores ||= {};
+      state.suddenDeath ||= {};
+      state.leaderboardSort ||= "total";
+      state._groupingNote ||= "";
+      state.groupHoles ||= {};
+
+      return true;
+    }catch(e){
+      console.error(e);
+      return false;
+    }
+  }
+
+  // ---------- backups ----------
+  function getBackups(){
+    try{
+      const raw = localStorage.getItem(BACKUP_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    }catch{
+      return [];
+    }
+  }
+  function setBackups(arr){
+    localStorage.setItem(BACKUP_KEY, JSON.stringify(arr));
+  }
+  function renderBackupCount(){
+    const bks = getBackups();
+    if (els.backupCount) els.backupCount.textContent = String(bks.length);
+  }
+
+  function summarizeStateForBackup(st){
+    const players = st.players?.length || 0;
+    const groups = st.groups?.length || 0;
+    let holesMax = 0;
+    let completed = 0;
+    for(const p of st.players || []){
+      const arr = st.scores?.[p.id] || [];
+      const played = arr.reduce((c,v)=> c + (Number.isFinite(v) ? 1 : 0), 0);
+      holesMax = Math.max(holesMax, played);
+      if(played === 18) completed++;
+    }
+    return { players, groups, holesMax, completed };
+  }
+
+  function backupNow(){
+    const bks = getBackups();
+    const snapshot = {
+      id: `bk_${Date.now()}_${Math.random().toString(16).slice(2,8)}`,
+      createdAt: nowStamp(),
+      meta: summarizeStateForBackup(state),
+      payload: deepClone(state)
+    };
+    bks.unshift(snapshot);
+    if(bks.length > MAX_BACKUPS) bks.length = MAX_BACKUPS;
+    setBackups(bks);
+    renderBackupCount();
+    setStatus("Backup saved", "ok");
+  }
+
+  function openBackupsModal(){
+    const bks = getBackups();
+    els.modalTitle.textContent = "Restore from a backup";
+    els.modalDesc.textContent = "Backups are local snapshots saved by clicking “Backup Now”. Choose one to restore.";
+    els.modalBody.innerHTML = "";
+    els.modalNote.style.display = "block";
+    els.modalNote.textContent = "If you want true catastrophe-proofing (device dies), use “Download Backup” and store the file off-device.";
+
+    if(bks.length === 0){
+      els.modalBody.innerHTML = `<div class="note">No backups yet. Click <b>Backup Now</b> during the tournament to create restore points.</div>`;
+      els.btnModalPrimary.textContent = "Done";
+      els.btnModalPrimary.onclick = () => closeModal();
+      openModal();
+      return;
+    }
+
+    const list = document.createElement("div");
+    for(const bk of bks){
+      const meta = bk.meta || {};
+      const row = document.createElement("div");
+      row.className = "bkRow";
+      row.innerHTML = `
+        <div class="bkMeta">
+          <div class="t">${escapeHtml(bk.createdAt || "Unknown time")}</div>
+          <div class="s">Snapshot of your tournament state</div>
+          <div class="k">
+            <span class="bkChip">Players: ${meta.players ?? "—"}</span>
+            <span class="bkChip">Groups: ${meta.groups ?? "—"}</span>
+            <span class="bkChip">Max holes entered: ${meta.holesMax ?? "—"}/18</span>
+            <span class="bkChip">Completed: ${meta.completed ?? "—"}</span>
+          </div>
+        </div>
+        <div class="inline">
+          <button class="primary small" data-restore="${bk.id}">Restore</button>
+        </div>
+      `;
+      row.querySelector("button[data-restore]").addEventListener("click", () => restoreBackupById(bk.id));
+      list.appendChild(row);
+    }
+
+    els.modalBody.appendChild(list);
+    els.btnModalPrimary.textContent = "Close";
+    els.btnModalPrimary.onclick = () => closeModal();
+    openModal();
+  }
+
+  function restoreBackupById(id){
+    const bks = getBackups();
+    const bk = bks.find(x => x.id === id);
+    if(!bk) return;
+
+    if(!confirm("Restore this backup? This overwrites your current tournament state.")) return;
+
+    const restored = bk.payload;
+    Object.assign(state, restored);
+
+    state.players ||= [];
+    state.groups ||= [];
+    state.scores ||= {};
+    state.suddenDeath ||= {};
+    state.leaderboardSort ||= "total";
+    state._groupingNote ||= "";
+    state.groupHoles ||= {};
+
+    els.namesInput.value = state.namesRaw || state.players.map(p=>p.name).join("\n");
+    save();
+    renderAll();
+    closeModal();
+    setStatus("Backup restored", "ok");
+  }
+
+  // ---------- shuffle/group logic ----------
+  function mulberry32(seed){
+    return function(){
+      let t = seed += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffleArray(arr, seed){
+    const rand = mulberry32(seed);
+    const a = arr.slice();
+    for(let i = a.length - 1; i > 0; i--){
+      const j = Math.floor(rand() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function makeGroups(shuffledIds, baseSize){
+    const n = shuffledIds.length;
+    const groups = [];
+    let note = "";
+
+    if(n === 0) return {groups, note};
+
+    if(baseSize === 2){
+      let i = 0;
+      while(i < n){
+        const remaining = n - i;
+        if(remaining === 3){
+          groups.push(shuffledIds.slice(i, i+3));
+          i += 3;
+          note = "Note: odd count detected → created one 3-person group (no BYEs).";
+        }else{
+          groups.push(shuffledIds.slice(i, i+2));
+          i += 2;
+        }
+      }
+      return {groups, note};
+    }
+
+    const rem = n % 4;
+    if(rem === 0){
+      for(let i=0;i<n;i+=4) groups.push(shuffledIds.slice(i,i+4));
+      return {groups, note};
+    }
+    if(rem === 3){
+      const cutoff = n - 3;
+      for(let i=0;i<cutoff;i+=4) groups.push(shuffledIds.slice(i,i+4));
+      groups.push(shuffledIds.slice(cutoff));
+      note = "Note: remainder detected → created one 3-person group (no BYEs).";
+      return {groups, note};
+    }
+    if(rem === 2){
+      const cutoff = n - 2;
+      for(let i=0;i<cutoff;i+=4) groups.push(shuffledIds.slice(i,i+4));
+      groups.push(shuffledIds.slice(cutoff));
+      note = "Note: remainder detected → created one 2-person group (no BYEs).";
+      return {groups, note};
+    }
+
+    // rem === 1 → split last 5 into 3 + 2
+    if(n < 5){
+      groups.push(shuffledIds.slice());
+      note = "Note: small field → created one group (no BYEs).";
+      return {groups, note};
+    }
+    const cutoff = n - 5;
+    for(let i=0;i<cutoff;i+=4) groups.push(shuffledIds.slice(i,i+4));
+    const last5 = shuffledIds.slice(cutoff);
+    groups.push(last5.slice(0,3));
+    groups.push(last5.slice(3,5));
+    note = "Note: remainder 1 detected → created one 3-person group + one 2-person group (no BYEs).";
+    return {groups, note};
+  }
+
+  function buildTournamentFromNames(names){
+    ensureRegistry();
+
+    // Block duplicate exact names (would collide under exact-match rule)
+    const seen = new Set();
+    const dups = new Set();
+    names.forEach(n => {
+      const k = String(n).trim();
+      if(seen.has(k)) dups.add(k);
+      seen.add(k);
+    });
+    if(dups.size){
+      openModal(
+        "Duplicate names detected",
+        "This app auto-matches players by exact roster text. If the same name appears twice, it would merge two people into one Player ID.",
+        `<div class="note"><b>Please differentiate these names</b> (e.g., add a middle initial):<br><br>${[...dups].map(x=>`• ${escapeHtml(x)}`).join("<br>")}</div>`,
+        { primaryText: "Got it", onPrimary: closeModal }
+      );
+      return;
+    }
+
+    // New tournament event id
+    state.currentEventId = makeEventId();
+
+    // Players -> stable player_id from registry
+    state.players = names.map((name, idx) => {
+      const pid = getOrCreatePlayerIdByExactAlias(name);
+      return { id: pid, name: String(name).trim(), groupIndex: -1 };
+    });
+
+    // Reset tournament-only fields
+    state.groups = [];
+    state.scores = {};
+    state.suddenDeath = {};
+    state.groupHoles = {};
+
+    state.players.forEach(p => {
+      state.scores[p.id] = Array(18).fill(null);
+      state.suddenDeath[p.id] = null;
+    });
+
+    // grouping
+    makeGroups();
+    renderAll();
+    save();
+  }
+
+  function reshuffleGroupsOnly(){
+    if(state.players.length === 0) return;
+    const ids = state.players.map(p=>p.id);
+    const seed = (Date.now() ^ (Math.random()*1e9)) >>> 0;
+    const shuffled = shuffleArray(ids, seed);
+
+    const n = shuffled.length;
+    const baseSize = (n < 16) ? 2 : 4;
+    const {groups, note} = makeGroups(shuffled, baseSize);
+    state.groups = groups;
+    state._groupingNote = note || "";
+
+    // Reassign group indices
+    state.groups.forEach((g, gi) => g.forEach(pid => {
+      const player = state.players.find(pp => pp.id === pid);
+      if(player) player.groupIndex = gi;
+    }));
+
+    // Reset per-group holes to 1 (manual)
+    state.groupHoles = {};
+    state.groups.forEach((_, gi) => state.groupHoles[String(gi)] = 0);
+
+    save();
+  }
+
+  // ---------- scoring helpers ----------
+  function totalFor(playerId){
+    const arr = state.scores[playerId] || [];
+    let sum = 0;
+    for(const v of arr){
+      if(Number.isFinite(v)) sum += v;
+    }
+    return sum;
+  }
+
+  function holesPlayedFor(playerId){
+    const arr = state.scores[playerId] || [];
+    return arr.reduce((c,v)=> c + (Number.isFinite(v) ? 1 : 0), 0);
+  }
+
+  function getTiesByTotal(){
+    const map = new Map(); // total -> [playerId]
+    for(const p of state.players){
+      const played = holesPlayedFor(p.id);
+      if(played === 0) continue;
+      const t = totalFor(p.id);
+      if(!map.has(t)) map.set(t, []);
+      map.get(t).push(p.id);
+    }
+    const ties = [];
+    for(const [tot, ids] of map.entries()){
+      if(ids.length > 1) ties.push({total: tot, ids});
+    }
+    ties.sort((a,b)=> a.total - b.total);
+    return ties;
+  }
+
+  function comparePlayers(aId, bId){
+    const at = totalFor(aId);
+    const bt = totalFor(bId);
+    if(at !== bt) return at - bt;
+
+    const asd = state.suddenDeath[aId];
+    const bsd = state.suddenDeath[bId];
+    const aHas = Number.isFinite(asd);
+    const bHas = Number.isFinite(bsd);
+
+    if(aHas && bHas && asd !== bsd) return asd - bsd;
+
+    const an = (state.players.find(p=>p.id===aId)?.name || "");
+    const bn = (state.players.find(p=>p.id===bId)?.name || "");
+    return an.localeCompare(bn);
+  }
+
+  // ---------- UI: modal ----------
+  function openModal(){ els.modalBack.style.display = "flex"; }
+  function closeModal(){
+    els.modalBack.style.display = "none";
+    els.modalNote.style.display = "none";
+    els.modalNote.textContent = "";
+  }
+
+  // ---------- UI: roster count ----------
+  function renderRosterCount(){
+    const names = parseNames(els.namesInput.value);
+    els.playerCountPill.textContent = `${names.length} player${names.length===1 ? "" : "s"}`;
+  }
+
+  // ---------- UI: progress board ----------
+  function groupMaxHolesEntered(groupIndex){
+    const g = state.groups[groupIndex] || [];
+    let max = 0;
+    for(const pid of g){
+      max = Math.max(max, holesPlayedFor(pid));
+    }
+    return max;
+  }
+
+  function groupPlayersComplete(groupIndex){
+    const g = state.groups[groupIndex] || [];
+    let c = 0;
+    for(const pid of g){
+      if(holesPlayedFor(pid) === 18) c++;
+    }
+    return c;
+  }
+
+  function renderProgressBoard(){
+    if(state.groups.length === 0){
+      els.progressBoard.style.display = "none";
+      return;
+    }
+    els.progressBoard.style.display = "block";
+    els.pbBody.innerHTML = "";
+
+    state.groups.forEach((g, gi) => {
+      const currentHole = clampInt(state.groupHoles[String(gi)] ?? 0, 0, 17);
+      const maxEntered = groupMaxHolesEntered(gi);
+      const completeCount = groupPlayersComplete(gi);
+      const playersLabel = g.map(pid => state.players.find(p=>p.id===pid)?.name || "Unknown").join(", ");
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>G${gi+1}</b></td>
+        <td>Hole <b>${currentHole+1}</b></td>
+        <td class="r">${maxEntered}/18</td>
+        <td class="r">${completeCount}/${g.length}</td>
+        <td style="color:var(--muted); font-size:12px;">${escapeHtml(playersLabel)}</td>
+      `;
+      els.pbBody.appendChild(tr);
+    });
+  }
+
+  // ---------- UI: groups ----------
+  function flashGroupCard(groupEl){
+    groupEl.classList.add("flash");
+    setTimeout(() => groupEl.classList.remove("flash"), 450);
+  }
+
+  function renderGroups(){
+    els.groups.innerHTML = "";
+    if(state.groups.length === 0){
+      els.groups.innerHTML = `<div class="note">No groups yet. Enter names and click <b>Shuffle + Create Groups</b>.</div>`;
+      els.groupingNote.style.display = "none";
+      return;
+    }
+
+    if(state._groupingNote){
+      els.groupingNote.style.display = "block";
+      els.groupingNote.textContent = state._groupingNote;
+    }else{
+      els.groupingNote.style.display = "none";
+    }
+
+    state.groups.forEach((g, gi) => {
+      const groupEl = document.createElement("div");
+      groupEl.className = "group";
+      groupEl.dataset.gi = String(gi);
+
+      const sizeLabel = g.length === 4 ? "4-player group" : (g.length === 3 ? "3-player group" : "2-player group");
+
+      const head = document.createElement("div");
+      head.className = "groupHead";
+      head.innerHTML = `
+        <div class="gmeta">
+          <div class="title">Group ${gi+1} <span class="badge">${sizeLabel}</span></div>
+          <div class="sub">Manual hole control • Enter strokes for the group’s current hole</div>
+        </div>
+        <div class="inline">
+          <button class="small ghost" data-action="scorecard">Full scorecard</button>
+        </div>
+      `;
+
+      const holeCtl = document.createElement("div");
+      holeCtl.className = "holeCtl";
+
+      const holeIdx = clampInt(state.groupHoles[String(gi)] ?? 0, 0, 17);
+
+      // Hole dropdown
+      const sel = document.createElement("select");
+      for(let h=0; h<18; h++){
+        const opt = document.createElement("option");
+        opt.value = String(h);
+        opt.textContent = `Hole ${h+1}`;
+        if(h === holeIdx) opt.selected = true;
+        sel.appendChild(opt);
+      }
+
+      const prev = document.createElement("button");
+      prev.className = "small";
+      prev.textContent = "◀";
+
+      const next = document.createElement("button");
+      next.className = "small";
+      next.textContent = "▶";
+
+      const label = document.createElement("div");
+      label.className = "holeBig";
+      label.textContent = `Entering Hole ${holeIdx+1}`;
+
+      prev.addEventListener("click", () => {
+        const cur = clampInt(state.groupHoles[String(gi)] ?? 0, 0, 17);
+        const nv = (cur + 17) % 18;
+        state.groupHoles[String(gi)] = nv;
+        save();
+        renderAll();
+        flashGroupCard(groupEl);
+      });
+      next.addEventListener("click", () => {
+        const cur = clampInt(state.groupHoles[String(gi)] ?? 0, 0, 17);
+        const nv = (cur + 1) % 18;
+        state.groupHoles[String(gi)] = nv;
+        save();
+        renderAll();
+        flashGroupCard(groupEl);
+      });
+
+      sel.addEventListener("change", () => {
+        const nv = clampInt(sel.value, 0, 17);
+        state.groupHoles[String(gi)] = nv;
+        save();
+        renderAll();
+        flashGroupCard(groupEl);
+      });
+
+      holeCtl.appendChild(label);
+      holeCtl.appendChild(prev);
+      holeCtl.appendChild(sel);
+      holeCtl.appendChild(next);
+
+      const body = document.createElement("div");
+      const activeHole = holeIdx;
+
+      for(const pid of g){
+        const p = state.players.find(pp => pp.id === pid);
+        const row = document.createElement("div");
+        row.className = "entryRow";
+
+        const current = state.scores[pid]?.[activeHole];
+        const tot = totalFor(pid);
+
+        row.innerHTML = `
+          <div class="pname" title="${escapeHtml(p?.name || "")}">${escapeHtml(p?.name || "")}</div>
+          <input class="scoreInput" inputmode="numeric" placeholder="Strokes for hole ${activeHole+1}" value="${current ?? ""}" />
+          <div class="ptotal">${tot || 0}</div>
+        `;
+
+        const input = row.querySelector("input");
+        input.addEventListener("input", (e) => {
+          const raw = e.target.value.trim();
+          if(raw === ""){
+            state.scores[pid][activeHole] = null;
+          }else{
+            const n = Number(raw);
+            if(Number.isFinite(n) && n >= 0 && n <= 99){
+              state.scores[pid][activeHole] = Math.floor(n);
+            }else{
+              return;
+            }
+          }
+          save();
+          // update local total without full rerender
+          row.querySelector(".ptotal").textContent = String(totalFor(pid) || 0);
+          renderProgressBoard();
+          renderLeaderboard();
+        });
+
+        input.addEventListener("keydown", (e) => {
+          if(e.key === "Enter"){
+            e.preventDefault();
+            const inputs = Array.from(groupEl.querySelectorAll("input.scoreInput"));
+            const idx = inputs.indexOf(input);
+            const next = inputs[idx+1] || null;
+            if(next) next.focus();
+          }
+        });
+
+        body.appendChild(row);
+      }
+
+      groupEl.appendChild(head);
+      groupEl.appendChild(holeCtl);
+      groupEl.appendChild(body);
+
+      head.querySelector('button[data-action="scorecard"]').addEventListener("click", () => openScorecardModal(gi));
+
+      els.groups.appendChild(groupEl);
+    });
+  }
+
+  // ---------- UI: leaderboard ----------
+  function renderLeaderboard(){
+    els.lbBody.innerHTML = "";
+
+    if(state.players.length === 0){
+      els.lbMeta.textContent = "No players yet";
+      return;
+    }
+
+    ensureRegistry();
+    refreshHandicapCache(state.players.map(p=>p.id));
+
+    const withHcp = !!state.showHandicapOnLeaderboard;
+
+    const rows = state.players.map(p => {
+      const gross = totalFor(p.id) || 0;
+      const h = state.handicapCache[p.id]?.handicap ?? 0;
+      const net = gross - h;
+      return ({
+        id: p.id,
+        name: p.name,
+        group: (p.groupIndex >= 0) ? `Group ${p.groupIndex+1}` : "—",
+        holes: holesPlayedFor(p.id),
+        total: gross,
+        handicap: h,
+        net,
+        sd: state.suddenDeath[p.id]
+      });
+    });
+
+    // Determine ties based on displayed scoring metric (gross or net)
+    const metricKey = withHcp ? "net" : "total";
+    const ties = (() => {
+      const map = new Map(); // metricValue -> ids
+      rows.forEach(r => {
+        if(r.holes !== 18) return;
+        const v = r[metricKey];
+        const k = String(v);
+        if(!map.has(k)) map.set(k, []);
+        map.get(k).push(r.id);
+      });
+      const out = [];
+      map.forEach((ids, k) => { if(ids.length > 1) out.push({ value: Number(k), ids }); });
+      return out;
+    })();
+
+    const tieSet = new Set();
+    ties.forEach(t => t.ids.forEach(id => tieSet.add(id)));
+
+    // Disable tie resolution unless there are actual ties (reduces accidental taps)
+    if(els.btnShowTies){
+      els.btnShowTies.disabled = (ties.length === 0);
+      els.btnShowTies.style.opacity = (ties.length === 0) ? "0.45" : "1";
+      els.btnShowTies.style.pointerEvents = (ties.length === 0) ? "none" : "auto";
+    }
+
+
+    // sort
+    if(state.leaderboardSort === "progress"){
+      rows.sort((a,b) => b.holes - a.holes || comparePlayers(a.id,b.id));
+    }else{
+      rows.sort((a,b) => {
+        const aKey = a[metricKey];
+        const bKey = b[metricKey];
+        return aKey - bKey || a.total - b.total || comparePlayers(a.id,b.id);
+      });
+    }
+
+    // rank
+    let rank = 1;
+    let lastKey = null;
+    let lastSD = null;
+
+    for(let i=0;i<rows.length;i++){
+      const curKey = rows[i][metricKey];
+      const curSD = Number.isFinite(rows[i].sd) ? rows[i].sd : null;
+
+      if(i === 0){
+        rank = 1;
+      }else{
+        const sameKey = (curKey === lastKey);
+        const sameSD = (curSD === lastSD) || (curSD === null && lastSD === null);
+        // When sorting by progress, ranking should follow holes primarily
+        if(state.leaderboardSort === "progress"){
+          if(rows[i].holes !== rows[i-1].holes) rank = i+1;
+        }else{
+          if(!(sameKey && sameSD)) rank = i+1;
+        }
+      }
+
+      lastKey = curKey;
+      lastSD = curSD;
+
+      const tieStatus = tieSet.has(rows[i].id)
+        ? (Number.isFinite(rows[i].sd) ? "Tied (SD entered)" : "Tied (needs SD)")
+        : "—";
+
+      const tr = document.createElement("tr");
+
+      if(withHcp){
+        tr.innerHTML = `
+          <td><b>${rank}</b></td>
+          <td><b>${escapeHtml(rows[i].name)}</b></td>
+          <td>${escapeHtml(rows[i].group)}</td>
+          <td class="r">${rows[i].holes}/18</td>
+          <td class="r">${rows[i].total || 0}</td>
+          <td class="r">${rows[i].handicap}</td>
+          <td class="r"><b>${rows[i].net}</b></td>
+          <td>${escapeHtml(tieStatus)}</td>
+        `;
+      }else{
+        tr.innerHTML = `
+          <td><b>${rank}</b></td>
+          <td><b>${escapeHtml(rows[i].name)}</b></td>
+          <td>${escapeHtml(rows[i].group)}</td>
+          <td class="r">${rows[i].holes}/18</td>
+          <td class="r">${rows[i].total || 0}</td>
+          <td>${escapeHtml(tieStatus)}</td>
+        `;
+      }
+
+      els.lbBody.appendChild(tr);
+    }
+
+    const completed = rows.filter(r => r.holes === 18).length;
+    const mode = withHcp ? "Net (handicap)" : "Gross";
+    els.lbMeta.textContent = `${rows.length} players • ${completed} complete • Mode: ${mode} • Event: ${state.currentEventId || "—"}`;
+
+    // Update button label
+    if(els.btnToggleHcp){
+      els.btnToggleHcp.textContent = withHcp ? "Leaderboard: Net" : "Leaderboard: Gross";
+    }
+
+    // Table headers
+    if(withHcp){
+      els.lbHead.innerHTML = `
+        <tr>
+          <th style="width:70px;">Rank</th>
+          <th>Player</th>
+          <th style="width:110px;">Group</th>
+          <th class="r" style="width:110px;">Holes</th>
+          <th class="r" style="width:110px;">Gross</th>
+          <th class="r" style="width:110px;">HCP</th>
+          <th class="r" style="width:110px;">Net</th>
+          <th style="width:180px;">Tie Status</th>
+        </tr>
+      `;
+    }else{
+      els.lbHead.innerHTML = `
+        <tr>
+          <th style="width:70px;">Rank</th>
+          <th>Player</th>
+          <th style="width:110px;">Group</th>
+          <th class="r" style="width:110px;">Holes</th>
+          <th class="r" style="width:160px;">Total</th>
+          <th style="width:180px;">Tie Status</th>
+        </tr>
+      `;
+    }
+  }
+
+  // ---------- UI: sudden death modal ----------
+  function openTieModal(){
+    const ties = getTiesByTotal();
+
+    els.modalTitle.textContent = "Resolve ties with sudden death";
+    els.modalDesc.textContent = "Only players tied on total strokes are shown. Enter sudden-death score (one hole). Lowest wins the tie.";
+    els.modalNote.style.display = "none";
+    els.modalBody.innerHTML = "";
+
+    if(ties.length === 0){
+      setStatus("No ties to resolve", "ok");
+      return;
+    }
+
+    for(const t of ties){
+      const block = document.createElement("div");
+      block.style.marginBottom = "12px";
+      block.innerHTML = `<div class="pill" style="margin-bottom:10px;">Tied total: <b style="color:var(--text); margin-left:6px;">${t.total}</b></div>`;
+
+      for(const pid of t.ids){
+        const p = state.players.find(pp=>pp.id===pid);
+        const row = document.createElement("div");
+        row.className = "sdRow";
+        row.innerHTML = `
+          <div><b>${escapeHtml(p?.name || "Unknown")}</b> <span class="badge">Total ${t.total}</span></div>
+          <input class="scoreInput" inputmode="numeric" placeholder="Sudden death" value="${Number.isFinite(state.suddenDeath[pid]) ? state.suddenDeath[pid] : ""}" />
+        `;
+        row.querySelector("input").dataset.pid = pid;
+        block.appendChild(row);
+      }
+      els.modalBody.appendChild(block);
+    }
+
+    els.btnModalPrimary.textContent = "Apply Sudden Death";
+    els.btnModalPrimary.onclick = () => {
+      const inputs = Array.from(els.modalBody.querySelectorAll("input.scoreInput"));
+      for(const inp of inputs){
+        const pid = inp.dataset.pid;
+        const raw = inp.value.trim();
+        if(!pid) continue;
+        if(raw === "") state.suddenDeath[pid] = null;
+        else{
+          const n = Number(raw);
+          if(Number.isFinite(n) && n >= 0 && n <= 99) state.suddenDeath[pid] = Math.floor(n);
+        }
+      }
+      save();
+      renderLeaderboard();
+      closeModal();
+    };
+    openModal();
+  }
+
+  // ---------- UI: full scorecard modal ----------
+  function openScorecardModal(groupIndex){
+    const g = state.groups[groupIndex];
+    if(!g) return;
+
+    els.modalTitle.textContent = `Group ${groupIndex+1} — Full Scorecard`;
+    els.modalDesc.textContent = "Edit any hole. Totals update instantly.";
+    els.modalNote.style.display = "none";
+    els.modalBody.innerHTML = "";
+
+    const table = document.createElement("div");
+    table.style.border = "1px solid rgba(255,255,255,.10)";
+    table.style.borderRadius = "14px";
+    table.style.overflow = "hidden";
+    table.style.background = "rgba(0,0,0,.18)";
+
+    const hdr = document.createElement("div");
+    hdr.style.display = "grid";
+    hdr.style.gridTemplateColumns = "220px repeat(18, 1fr) 90px";
+    hdr.style.borderBottom = "1px solid rgba(255,255,255,.08)";
+    hdr.style.background = "rgba(255,255,255,.04)";
+    hdr.innerHTML = `<div style="padding:10px;font-weight:900;color:var(--muted);font-size:12px;">Player</div>` +
+      Array.from({length:18}, (_,i)=>`<div style="padding:10px;text-align:center;font-weight:900;color:var(--muted);font-size:12px;">${i+1}</div>`).join("") +
+      `<div style="padding:10px;text-align:right;font-weight:900;color:var(--muted);font-size:12px;">Total</div>`;
+    table.appendChild(hdr);
+
+    for(const pid of g){
+      const p = state.players.find(pp=>pp.id===pid);
+      const row = document.createElement("div");
+      row.style.display = "grid";
+      row.style.gridTemplateColumns = "220px repeat(18, 1fr) 90px";
+      row.style.borderBottom = "1px solid rgba(255,255,255,.06)";
+      row.style.alignItems = "center";
+
+      const nameCell = document.createElement("div");
+      nameCell.textContent = p?.name || "Unknown";
+      nameCell.style.padding = "10px";
+      nameCell.style.fontWeight = "900";
+      nameCell.style.whiteSpace = "nowrap";
+      nameCell.style.overflow = "hidden";
+      nameCell.style.textOverflow = "ellipsis";
+      row.appendChild(nameCell);
+
+      let totalCell = null;
+
+      for(let h=0; h<18; h++){
+        const cell = document.createElement("div");
+        cell.style.padding = "6px";
+        const inp = document.createElement("input");
+        inp.className = "scoreInput";
+        inp.style.padding = "8px 8px";
+        inp.style.borderRadius = "10px";
+        inp.style.textAlign = "center";
+        inp.value = (state.scores[pid][h] ?? "");
+        inp.placeholder = "-";
+        inp.addEventListener("input", (e)=>{
+          const raw = e.target.value.trim();
+          if(raw === "") state.scores[pid][h] = null;
+          else{
+            const n = Number(raw);
+            if(Number.isFinite(n) && n >= 0 && n <= 99) state.scores[pid][h] = Math.floor(n);
+            else return;
+          }
+          save();
+          if(totalCell) totalCell.textContent = String(totalFor(pid) || 0);
+          renderGroups();
+          renderProgressBoard();
+          renderLeaderboard();
+        });
+        cell.appendChild(inp);
+        row.appendChild(cell);
+      }
+
+      totalCell = document.createElement("div");
+      totalCell.textContent = String(totalFor(pid) || 0);
+      totalCell.style.padding = "10px";
+      totalCell.style.textAlign = "right";
+      totalCell.style.fontFamily = "var(--mono)";
+      totalCell.style.fontWeight = "900";
+      row.appendChild(totalCell);
+
+      table.appendChild(row);
+    }
+
+    els.modalBody.appendChild(table);
+    els.btnModalPrimary.textContent = "Done";
+    els.btnModalPrimary.onclick = () => closeModal();
+    openModal();
+  }
+
+  // ---------- export/import/reset ----------
+  function downloadBackupJson(){
+    const payload = JSON.stringify(state, null, 2);
+    const blob = new Blob([payload], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `pftc-tournament-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus("Backup downloaded", "ok");
+  }
+
+  async function importBackupJson(){
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "application/json";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if(!file) return;
+      try{
+        const text = await file.text();
+        const imported = JSON.parse(text);
+        if(!confirm("Import this backup? This overwrites your current tournament state (but keeps your handicap database).")) return;
+
+        // Preserve handicap "central DB" across imports unless the imported file has its own.
+        const prevDB = {
+          registry: state.registry,
+          ledger: state.ledger,
+          handicapCache: state.handicapCache,
+          eventSeq: state.eventSeq,
+          parTotal: state.parTotal
+        };
+
+        Object.assign(state, imported);
+
+        // Ensure system structures exist
+        ensureRegistry();
+
+        // Restore DB pieces if the imported file didn't have them (or had empty shells)
+        const importedHasRegistry = imported.registry && imported.registry.players && Object.keys(imported.registry.players).length > 0;
+        const importedHasLedger = Array.isArray(imported.ledger) && imported.ledger.length > 0;
+
+        if(!importedHasRegistry) state.registry = prevDB.registry || state.registry;
+        if(!importedHasLedger) state.ledger = prevDB.ledger || state.ledger;
+
+        if(!imported.handicapCache) state.handicapCache = prevDB.handicapCache || state.handicapCache;
+        if(!imported.eventSeq) state.eventSeq = prevDB.eventSeq || state.eventSeq;
+        if(!imported.parTotal) state.parTotal = prevDB.parTotal || state.parTotal;
+
+        // Back-compat defaults
+        state.players ||= [];
+        state.groups ||= [];
+        state.scores ||= {};
+        state.suddenDeath ||= {};
+        state.leaderboardSort ||= "total";
+        state.showHandicapOnLeaderboard ||= false;
+        state._groupingNote ||= "";
+        state.groupHoles ||= {};
+
+        // Ensure we have an event id after import (older backups won't)
+        if(!state.currentEventId){
+          state.currentEventId = makeEventId();
+        }
+
+        // --- Always sync player registry + stable IDs from roster names (exact-match) ---
+        // This allows handicap inference even when importing older backups that used unstable ids.
+        const idMap = {}; // oldId -> newStableId
+        if(state.players.length){
+          state.players.forEach(p => {
+            const alias = String(p.name || "").trim();
+            if(!alias) return;
+
+            // Resolve stable id by exact alias (creates if needed)
+            const stableId = getOrCreatePlayerIdByExactAlias(alias);
+
+            // If imported id is missing or not stable, migrate
+            if(!p.id || p.id !== stableId){
+              const oldId = p.id;
+              p.id = stableId;
+
+              if(oldId && oldId !== stableId){
+                idMap[oldId] = stableId;
+                // migrate scores + sudden death keys if present
+                if(state.scores[oldId] && !state.scores[stableId]) state.scores[stableId] = state.scores[oldId];
+                if(state.suddenDeath && oldId in state.suddenDeath && !(stableId in state.suddenDeath)) state.suddenDeath[stableId] = state.suddenDeath[oldId];
+                delete state.scores[oldId];
+                if(state.suddenDeath) delete state.suddenDeath[oldId];
+              }
+            }
+
+            // ensure alias mapping exists
+            if(!state.registry.aliasToId[alias]) state.registry.aliasToId[alias] = stableId;
+            const rec = state.registry.players[stableId];
+            if(rec && Array.isArray(rec.aliases) && !rec.aliases.includes(alias)) rec.aliases.push(alias);
+          });
+        }
+
+        // If groups were imported, rewrite group ids via idMap
+        if(state.groups && state.groups.length && Object.keys(idMap).length){
+          state.groups = state.groups.map(g => g.map(pid => idMap[pid] || pid));
+        }
+
+        // --- Retroactive handicap inference on import ---
+        // Treat an imported tournament with known totals as a historical event and backfill ledger.
+        const eventId = state.currentEventId;
+        const hasThisEvent = state.ledger.some(r => r.eventId === eventId);
+
+        // Determine "completed" players:
+        // Primary: 18/18 holes present
+        // Fallback: if a player has ANY score entries AND totals are non-zero, include them (covers some older backups)
+        const completed = state.players.filter(p => {
+          const hp = holesPlayedFor(p.id);
+          if(hp === 18) return true;
+          // fallback: any holes entered + total > 0
+          const tot = totalFor(p.id) || 0;
+          return (hp > 0 && tot > 0);
+        });
+
+        if(completed.length > 0 && !hasThisEvent){
+          const eventDate = (() => {
+            if(state.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(state.eventDate)) return state.eventDate;
+            const d = new Date();
+            const y = d.getFullYear();
+            const m = String(d.getMonth()+1).padStart(2,"0");
+            const day = String(d.getDate()).padStart(2,"0");
+            return `${y}-${m}-${day}`;
+          })();
+
+          completed.forEach(p => {
+            const scoreTotal = totalFor(p.id) || 0;
+            const delta = scoreTotal - state.parTotal;
+            state.ledger.push({
+              eventId,
+              eventDate,
+              playerId: p.id,
+              playerName: p.name,
+              scoreTotal,
+              delta,
+              status: "complete",
+              createdAt: Date.now(),
+              source: "import"
+            });
+          });
+
+          refreshHandicapCache(completed.map(p=>p.id));
+          setStatus(`Imported + inferred handicaps for ${completed.length} player(s)`, "ok");
+        }else{
+          // still refresh cache so leaderboard can show net mode immediately
+          refreshHandicapCache(Object.keys(state.registry.players));
+          setStatus("Backup imported", "ok");
+        }
+
+        els.namesInput.value = state.namesRaw || state.players.map(p=>p.name).join("\n");
+        save();
+        renderAll();
+      }catch(e){
+        console.error(e);
+        setStatus("Import failed", "bad");
+        alert("Import failed. Make sure it’s a valid JSON backup.");
+      }
+    };
+    input.click();
+  }
+
+  function resetAll(){
+    if(!confirm("Reset everything (names, groups, scores, holes)? This overwrites autosave.")) return;
+    localStorage.removeItem(STORAGE_KEY);
+    state.namesRaw = "";
+    state.players = [];
+    state.groups = [];
+    state.scores = {};
+    state.suddenDeath = {};
+    state.groupHoles = {};
+    state.leaderboardSort = "total";
+    state._groupingNote = "";
+    els.namesInput.value = "";
+    save();
+    renderAll();
+    setStatus("Reset", "warn");
+  }
+
+  // ---------- render all ----------
+  
+  function renderPlayers(){
+    ensureRegistry();
+    refreshHandicapCache();
+
+    const ids = Object.keys(state.registry.players);
+    if(ids.length === 0){
+      els.playersMeta.textContent = "No players yet";
+      els.playersBody.innerHTML = "";
+      return;
+    }
+
+    // Sort by display name
+    ids.sort((a,b) => (state.registry.players[a].displayName || "").localeCompare(state.registry.players[b].displayName || ""));
+
+    els.playersBody.innerHTML = "";
+    ids.forEach(pid => {
+      const p = state.registry.players[pid];
+      const h = state.handicapCache[pid] || computeHandicap(pid);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${escapeHtml(p.displayName || pid)}</b></td>
+        <td><code>${escapeHtml(pid)}</code></td>
+        <td class="r">${h.handicap}</td>
+        <td class="r">${Number.isFinite(h.avgDelta) ? h.avgDelta.toFixed(2) : "0.00"}</td>
+        <td class="r">${h.nUsed}</td>
+        <td>${escapeHtml(h.confidence)}</td>
+      `;
+      els.playersBody.appendChild(tr);
+    });
+
+    els.playersMeta.textContent = `${ids.length} players • Ledger entries: ${state.ledger.length}`;
+  }
+
+  function renderHandicaps(){
+    ensureRegistry();
+    refreshHandicapCache();
+
+    const ids = Object.keys(state.registry.players);
+    if(ids.length === 0){
+      els.hcpMeta.textContent = "No handicap data yet";
+      els.hcpBody.innerHTML = "";
+      return;
+    }
+
+    // Sort by handicap asc (better players first if negative), then name
+    ids.sort((a,b) => {
+      const ha = state.handicapCache[a]?.handicap ?? 0;
+      const hb = state.handicapCache[b]?.handicap ?? 0;
+      if(ha !== hb) return ha - hb;
+      return (state.registry.players[a].displayName || "").localeCompare(state.registry.players[b].displayName || "");
+    });
+
+    els.hcpBody.innerHTML = "";
+    ids.forEach(pid => {
+      const p = state.registry.players[pid];
+      const h = state.handicapCache[pid] || computeHandicap(pid);
+      const last = (h.lastDeltas || []).slice(0,5).map(d => (d>=0?`+${d}`:`${d}`)).join(", ");
+      const netPar = state.parTotal + (h.handicap || 0);
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><b>${escapeHtml(p.displayName || pid)}</b></td>
+        <td><code>${escapeHtml(pid)}</code></td>
+        <td class="r"><b>${h.handicap}</b></td>
+        <td class="r">${netPar}</td>
+        <td>${escapeHtml(last || "—")}</td>
+      `;
+      els.hcpBody.appendChild(tr);
+    });
+
+    els.hcpMeta.textContent = `${ids.length} players • Par: ${state.parTotal} • Rolling: up to 5`;
+  }
+
+  function exportCSV(filename, rows){
+    const esc = (v) => {
+      const s = String(v ?? "");
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+    };
+    const csv = rows.map(r => r.map(esc).join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 250);
+  }
+
+  function exportPlayersCSV(){
+    ensureRegistry();
+    refreshHandicapCache();
+
+    const rows = [["player_name","player_id","handicap","avg_delta","n_used","confidence"]];
+    Object.keys(state.registry.players).forEach(pid => {
+      const p = state.registry.players[pid];
+      const h = state.handicapCache[pid] || computeHandicap(pid);
+      rows.push([p.displayName, pid, h.handicap, Number.isFinite(h.avgDelta)?h.avgDelta.toFixed(2):"0.00", h.nUsed, h.confidence]);
+    });
+    exportCSV("pftc_players.csv", rows);
+  }
+
+  function exportHandicapsCSV(){
+    ensureRegistry();
+    refreshHandicapCache();
+
+    const rows = [["player_name","player_id","handicap","avg_delta","n_used","confidence","last_up_to_5_deltas"]];
+    Object.keys(state.registry.players).forEach(pid => {
+      const p = state.registry.players[pid];
+      const h = state.handicapCache[pid] || computeHandicap(pid);
+      const last = (h.lastDeltas || []).slice(0,5).map(d => (d>=0?`+${d}`:`${d}`)).join(" ");
+      rows.push([p.displayName, pid, h.handicap, Number.isFinite(h.avgDelta)?h.avgDelta.toFixed(2):"0.00", h.nUsed, h.confidence, last]);
+    });
+    exportCSV("pftc_handicap_report.csv", rows);
+  }
+
+  function finalizeTournament(){
+    ensureRegistry();
+
+    if(!state.currentEventId){
+      openModal(
+        "No tournament event yet",
+        "Build a tournament first (enter names and click Build).",
+        "",
+        { primaryText: "OK", onPrimary: closeModal }
+      );
+      return;
+    }
+
+    // Gather completed players (18 holes)
+    const completed = state.players.filter(p => holesPlayedFor(p.id) === 18);
+    if(completed.length === 0){
+      openModal(
+        "Nothing to finalize",
+        "No players have 18 holes entered yet.",
+        "",
+        { primaryText: "OK", onPrimary: closeModal }
+      );
+      return;
+    }
+
+    const eventId = state.currentEventId;
+    const eventDate = (() => {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,"0");
+      const day = String(d.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    })();
+
+    const body = `
+      <div class="note">
+        <b>Event:</b> <code>${escapeHtml(eventId)}</code><br>
+        <b>Date:</b> ${escapeHtml(eventDate)}<br><br>
+        This will append <b>${completed.length}</b> completed results to your handicap ledger and refresh handicaps (rolling up to 5).
+      </div>
+      <div class="note" style="margin-top:10px;">
+        Tip: If someone didn't finish, leave them incomplete; they won't affect handicaps.
+      </div>
+    `;
+
+    openModal(
+      "Finalize Tournament",
+      "Are you ready to lock this tournament into the handicap ledger?",
+      body,
+      {
+        primaryText: "Finalize + Update Handicaps",
+        onPrimary: () => {
+          // Prevent duplicate finalization: if ledger already has entries for this eventId, block
+          const already = state.ledger.some(r => r.eventId === eventId);
+          if(already){
+            closeModal();
+            openModal(
+              "Already finalized",
+              "This event already exists in the ledger. If you need to re-finalize, reset the tournament event id (or delete ledger entries via a future admin tool).",
+              "",
+              { primaryText: "OK", onPrimary: closeModal }
+            );
+            return;
+          }
+
+          completed.forEach(p => {
+            const scoreTotal = totalFor(p.id) || 0;
+            const delta = scoreTotal - state.parTotal;
+            state.ledger.push({
+              eventId,
+              eventDate,
+              playerId: p.id,
+              playerName: p.name,
+              scoreTotal,
+              delta,
+              status: "complete",
+              createdAt: Date.now()
+            });
+          });
+
+          refreshHandicapCache(completed.map(p=>p.id));
+          save();
+          closeModal();
+
+          // Gentle feedback
+          openModal(
+            "Handicaps updated",
+            `Saved ${completed.length} results to the ledger.`,
+            `<div class="note">You can review changes in the <b>Handicaps</b> tab.</div>`,
+            { primaryText: "Go to Handicaps", onPrimary: () => { closeModal(); setTab("handicaps"); } }
+          );
+        }
+      }
+    );
+  }
+function renderAll(){
+    renderRosterCount();
+    renderProgressBoard();
+    renderGroups();
+    renderLeaderboard();
+    renderBackupCount();
+  }
+
+  function setTab(tab){
+    els.tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+
+    els.viewScoring.style.display = (tab === "scoring") ? "block" : "none";
+    els.viewLeaderboard.style.display = (tab === "leaderboard") ? "block" : "none";
+    els.viewPlayers.style.display = (tab === "players") ? "block" : "none";
+    els.viewHandicaps.style.display = (tab === "handicaps") ? "block" : "none";
+
+    // Keep progress board hidden unless explicitly shown elsewhere
+    if(tab !== "scoring"){
+      els.progressBoard.style.display = "none";
+    }
+
+    if(tab === "leaderboard") renderLeaderboard();
+    if(tab === "players") renderPlayers();
+    if(tab === "handicaps") renderHandicaps();
+    save();
+  }
+
+  // ---------- events ----------
+  els.namesInput.addEventListener("input", () => {
+    renderRosterCount();
+    state.namesRaw = els.namesInput.value;
+  });
+  els.namesInput.addEventListener("blur", () => {
+    state.namesRaw = els.namesInput.value;
+    save();
+  });
+
+  $("#btnBuild").addEventListener("click", () => {
+    const names = parseNames(els.namesInput.value);
+    if(names.length < 2){
+      setStatus("Need at least 2 players", "warn");
+      return;
+    }
+    buildTournamentFromNames(names);
+    renderAll();
+    setStatus("Groups created", "ok");
+  });
+
+  $("#btnReshuffle").addEventListener("click", () => {
+    if(state.players.length < 2){
+      setStatus("Nothing to shuffle", "warn");
+      return;
+    }
+    reshuffleGroupsOnly();
+    renderAll();
+    setStatus("Re-shuffled", "ok");
+  });
+
+  $("#btnClearNames").addEventListener("click", () => {
+    els.namesInput.value = "";
+    state.namesRaw = "";
+    renderRosterCount();
+    save();
+    setStatus("Names cleared", "warn");
+  });
+
+  els.tabs.forEach(t => t.addEventListener("click", () => setTab(t.dataset.tab)));
+
+  els.btnSortTotal.addEventListener("click", () => {
+    state.leaderboardSort = "total";
+    save();
+    renderLeaderboard();
+    setStatus("Sorted by total", "ok");
+  });
+
+  els.btnSortProgress.addEventListener("click", () => {
+    state.leaderboardSort = "progress";
+    save();
+    renderLeaderboard();
+    setStatus("Sorted by progress", "ok");
+  });
+
+  els.btnShowTies.addEventListener("click", openTieModal);
+
+  // Backups
+  els.btnBackupNow.addEventListener("click", () => { save(); backupNow(); });
+  els.btnRestoreBackup.addEventListener("click", openBackupsModal);
+  els.btnDownloadBackup.addEventListener("click", downloadBackupJson);
+  els.btnImport.addEventListener("click", importBackupJson);
+
+  els.btnReset.addEventListener("click", resetAll);
+
+  // Modal close
+  els.btnCloseModal.addEventListener("click", closeModal);
+  els.modalBack.addEventListener("click", (e) => { if(e.target === els.modalBack) closeModal(); });
+
+  // ---------- init ----------
+  const had = load();
+  if(had){
+    els.namesInput.value = state.namesRaw || state.players.map(p=>p.name).join("\n");
+    if (els.saveState) els.saveState.textContent = "on";
+    setStatus("Loaded", "ok");
+    setTimeout(() => setStatus("Ready", "ready"), 650);
+  }else{
+    if (els.saveState) els.saveState.textContent = "off";
+  }
+
+  
+  // Leaderboard handicap toggle
+  if(els.btnToggleHcp){
+    els.btnToggleHcp.addEventListener("click", () => {
+      state.showHandicapOnLeaderboard = !state.showHandicapOnLeaderboard;
+      renderLeaderboard();
+      save();
+    });
+  }
+
+  // Finalize tournament -> update handicap ledger
+  if(els.btnFinalize){
+    els.btnFinalize.addEventListener("click", finalizeTournament);
+  }
+
+  // Players/Handicaps exports
+  if(els.btnExportPlayers){
+    els.btnExportPlayers.addEventListener("click", exportPlayersCSV);
+  }
+  if(els.btnExportHandicaps){
+    els.btnExportHandicaps.addEventListener("click", exportHandicapsCSV);
+  }
+renderAll();
+  setTab("scoring");
+})();
+</script>
+</body>
+</html>

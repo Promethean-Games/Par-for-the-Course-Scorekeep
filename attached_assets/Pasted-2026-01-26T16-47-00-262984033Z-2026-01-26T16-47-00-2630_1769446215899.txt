@@ -1,0 +1,50 @@
+2026-01-26T16:47:00.262984033Z 
+2026-01-26T16:47:00.263003743Z 64 packages are looking for funding
+2026-01-26T16:47:00.263029974Z   run `npm fund` for details
+2026-01-26T16:47:00.292877579Z 
+2026-01-26T16:47:00.359770633Z 13 vulnerabilities (3 low, 6 moderate, 4 high)
+2026-01-26T16:47:00.359785373Z 
+2026-01-26T16:47:00.359791513Z To address issues that do not require attention, run:
+2026-01-26T16:47:00.359795783Z   npm audit fix
+2026-01-26T16:47:00.359799943Z 
+2026-01-26T16:47:00.359804064Z To address all issues (including breaking changes), run:
+2026-01-26T16:47:00.359809124Z   npm audit fix --force
+2026-01-26T16:47:00.359812034Z 
+2026-01-26T16:47:00.359815414Z Run `npm audit` for details.
+2026-01-26T16:47:00.755951147Z 
+2026-01-26T16:47:00.755977018Z > rest-express@1.0.0 build
+2026-01-26T16:47:00.755982928Z > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+2026-01-26T16:47:00.755988588Z 
+2026-01-26T16:47:01.382570552Z vite v5.4.20 building for production...
+2026-01-26T16:47:01.48485501Z transforming...
+2026-01-26T16:47:06.694324357Z ✓ 1732 modules transformed.
+2026-01-26T16:47:07.000157779Z rendering chunks...
+2026-01-26T16:47:07.013552799Z computing gzip size...
+2026-01-26T16:47:07.028208194Z ../dist/public/index.html                          2.01 kB │ gzip:   0.76 kB
+2026-01-26T16:47:07.082876754Z ../dist/public/assets/draw-image-BeAoxE9Q.png  2,255.05 kB
+2026-01-26T16:47:07.082981277Z ../dist/public/assets/index-CtOmwZxm.css           7.44 kB │ gzip:   1.30 kB
+2026-01-26T16:47:07.082989407Z ../dist/public/assets/index-4TMDAG1S.js          459.22 kB │ gzip: 135.09 kB
+2026-01-26T16:47:07.082993317Z ✓ built in 5.62s
+2026-01-26T16:47:07.094461346Z 
+2026-01-26T16:47:07.094486157Z   dist/index.js  48.8kb
+2026-01-26T16:47:07.094490747Z 
+2026-01-26T16:47:07.094495027Z ⚡ Done in 8ms
+2026-01-26T16:47:09.080869035Z ==> Uploading build...
+2026-01-26T16:47:40.536695326Z ==> Uploaded in 7.3s. Compression took 24.1s
+2026-01-26T16:47:40.59094228Z ==> Build successful 🎉
+2026-01-26T16:48:47.764396617Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-01-26T16:48:47.837725921Z ==> Deploying...
+2026-01-26T16:49:11.2524342Z ==> Running 'npm start'
+2026-01-26T16:49:12.355127582Z 
+2026-01-26T16:49:12.355142182Z > rest-express@1.0.0 start
+2026-01-26T16:49:12.355146342Z > NODE_ENV=production node dist/index.js
+2026-01-26T16:49:12.355148872Z 
+2026-01-26T16:49:17.450550213Z Serving static files from: /opt/render/project/src/dist/public
+2026-01-26T16:49:17.558267174Z 4:49:17 PM [express] serving on port 10000
+2026-01-26T16:49:18.83332009Z ==> Your service is live 🎉
+2026-01-26T16:49:18.920223894Z ==> 
+2026-01-26T16:49:19.003244541Z ==> ///////////////////////////////////////////////////////////
+2026-01-26T16:49:19.623869898Z ==> 
+2026-01-26T16:49:19.711691392Z ==> Available at your primary URL https://pftc.onrender.com
+2026-01-26T16:49:19.809238542Z ==> 
+2026-01-26T16:49:20.391457895Z ==> ///////////////////////////////////////////////////////////

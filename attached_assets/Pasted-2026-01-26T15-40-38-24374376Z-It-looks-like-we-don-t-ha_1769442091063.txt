@@ -1,0 +1,40 @@
+2026-01-26T15:40:38.24374376Z ==> It looks like we don't have access to your repo, but we'll try to clone it anyway.
+2026-01-26T15:40:38.243757621Z ==> Cloning from https://github.com/Promethean-Games/PftC
+2026-01-26T15:40:38.600075774Z ==> Checking out commit 13a437cd151158f4bf35ebc2d7f4ebc9e32ebbe4 in branch main
+2026-01-26T15:40:39.323086897Z ==> Using Node.js version 22.22.0 (default)
+2026-01-26T15:40:39.35188818Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-01-26T15:40:42.364042325Z ==> Running build command 'npm ci --include=dev && npm run build'...
+2026-01-26T15:40:55.791667704Z 
+2026-01-26T15:40:55.791694664Z added 478 packages, and audited 479 packages in 13s
+2026-01-26T15:40:55.791704895Z 
+2026-01-26T15:40:55.791718665Z 64 packages are looking for funding
+2026-01-26T15:40:55.791723605Z   run `npm fund` for details
+2026-01-26T15:40:55.82223559Z 
+2026-01-26T15:40:55.822257691Z 13 vulnerabilities (3 low, 6 moderate, 4 high)
+2026-01-26T15:40:55.822262841Z 
+2026-01-26T15:40:55.822268061Z To address issues that do not require attention, run:
+2026-01-26T15:40:55.822272831Z   npm audit fix
+2026-01-26T15:40:55.822277091Z 
+2026-01-26T15:40:55.822282091Z To address all issues (including breaking changes), run:
+2026-01-26T15:40:55.822287111Z   npm audit fix --force
+2026-01-26T15:40:55.822291511Z 
+2026-01-26T15:40:55.822299872Z Run `npm audit` for details.
+2026-01-26T15:40:56.041838152Z 
+2026-01-26T15:40:56.041863042Z > rest-express@1.0.0 build
+2026-01-26T15:40:56.041868012Z > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+2026-01-26T15:40:56.041872762Z 
+2026-01-26T15:40:56.241221422Z vite v5.4.20 building for production...
+2026-01-26T15:40:56.304429824Z transforming...
+2026-01-26T15:40:57.862570498Z ✓ 1646 modules transformed.
+2026-01-26T15:40:57.868905457Z x Build failed in 1.60s
+2026-01-26T15:40:57.868983909Z error during build:
+2026-01-26T15:40:57.868995419Z [vite:asset] Could not load /opt/render/project/src/attached_assets/draw-image.png (imported by client/src/components/DrawDialog.tsx): ENOTDIR: not a directory, open '/opt/render/project/src/attached_assets/draw-image.png'
+2026-01-26T15:40:57.869002059Z     at async open (node:internal/fs/promises:636:25)
+2026-01-26T15:40:57.869007729Z     at async Object.readFile (node:internal/fs/promises:1235:14)
+2026-01-26T15:40:57.869013629Z     at async fileToBuiltUrl (file:///opt/render/project/src/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:20428:19)
+2026-01-26T15:40:57.869018919Z     at async Object.load (file:///opt/render/project/src/node_modules/vite/dist/node/chunks/dep-D_zLpgQd.js:20328:17)
+2026-01-26T15:40:57.86902433Z     at async PluginDriver.hookFirstAndGetPlugin (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:20689:28)
+2026-01-26T15:40:57.86902994Z     at async file:///opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:19809:33
+2026-01-26T15:40:57.86903526Z     at async Queue.work (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:20899:32)
+2026-01-26T15:40:57.949371275Z ==> Build failed 😞
+2026-01-26T15:40:57.949393555Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

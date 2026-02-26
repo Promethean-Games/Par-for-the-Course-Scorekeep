@@ -1,0 +1,66 @@
+2026-01-26T15:48:41.18753965Z ==> It looks like we don't have access to your repo, but we'll try to clone it anyway.
+2026-01-26T15:48:41.1875566Z ==> Cloning from https://github.com/Promethean-Games/PftC
+2026-01-26T15:48:41.608440541Z ==> Checking out commit d5ae47bfaa05d4e95d15abfef0a162ae4f996cd5 in branch main
+2026-01-26T15:48:46.775938025Z ==> Using Node.js version 22.22.0 (default)
+2026-01-26T15:48:46.807676963Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-01-26T15:48:49.505691257Z ==> Running build command 'npm ci --include=dev && npm run build'...
+2026-01-26T15:48:59.878533085Z 
+2026-01-26T15:48:59.878561755Z added 478 packages, and audited 479 packages in 10s
+2026-01-26T15:48:59.878576176Z 
+2026-01-26T15:48:59.878590036Z 64 packages are looking for funding
+2026-01-26T15:48:59.878595646Z   run `npm fund` for details
+2026-01-26T15:48:59.906748502Z 
+2026-01-26T15:48:59.906775813Z 13 vulnerabilities (3 low, 6 moderate, 4 high)
+2026-01-26T15:48:59.906781413Z 
+2026-01-26T15:48:59.906791433Z To address issues that do not require attention, run:
+2026-01-26T15:48:59.906797163Z   npm audit fix
+2026-01-26T15:48:59.906802614Z 
+2026-01-26T15:48:59.906808184Z To address all issues (including breaking changes), run:
+2026-01-26T15:48:59.906812454Z   npm audit fix --force
+2026-01-26T15:48:59.906815704Z 
+2026-01-26T15:48:59.906819724Z Run `npm audit` for details.
+2026-01-26T15:49:00.209008319Z 
+2026-01-26T15:49:00.20903345Z > rest-express@1.0.0 build
+2026-01-26T15:49:00.20903871Z > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+2026-01-26T15:49:00.20904614Z 
+2026-01-26T15:49:00.39266808Z vite v5.4.20 building for production...
+2026-01-26T15:49:00.43795528Z transforming...
+2026-01-26T15:49:03.055333753Z ✓ 1732 modules transformed.
+2026-01-26T15:49:03.275909922Z rendering chunks...
+2026-01-26T15:49:03.28328713Z computing gzip size...
+2026-01-26T15:49:03.295954464Z ../dist/public/index.html                   2.01 kB │ gzip:   0.77 kB
+2026-01-26T15:49:03.295968214Z ../dist/public/assets/index-CtOmwZxm.css    7.44 kB │ gzip:   1.30 kB
+2026-01-26T15:49:03.296085766Z ../dist/public/assets/index-DP1cerA1.js   459.21 kB │ gzip: 135.09 kB
+2026-01-26T15:49:03.296365112Z ✓ built in 2.88s
+2026-01-26T15:49:03.342574468Z 
+2026-01-26T15:49:03.342617548Z   dist/index.js  48.4kb
+2026-01-26T15:49:03.342651159Z 
+2026-01-26T15:49:03.342659539Z ⚡ Done in 7ms
+2026-01-26T15:49:14.469410146Z ==> Uploading build...
+2026-01-26T15:49:24.821837591Z ==> Uploaded in 6.0s. Compression took 4.3s
+2026-01-26T15:49:24.927686605Z ==> Build successful 🎉
+2026-01-26T15:49:31.296360389Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-01-26T15:49:31.362356804Z ==> Deploying...
+2026-01-26T15:49:48.279272467Z ==> Running 'npm start'
+2026-01-26T15:49:49.27847212Z 
+2026-01-26T15:49:49.278502161Z > rest-express@1.0.0 start
+2026-01-26T15:49:49.278508231Z > NODE_ENV=production node dist/index.js
+2026-01-26T15:49:49.278510661Z 
+2026-01-26T15:49:54.067249302Z file:///opt/render/project/src/dist/index.js:203
+2026-01-26T15:49:54.067272682Z   throw new Error(
+2026-01-26T15:49:54.067275942Z         ^
+2026-01-26T15:49:54.067278623Z 
+2026-01-26T15:49:54.067282243Z Error: DATABASE_URL must be set. Did you forget to provision a database?
+2026-01-26T15:49:54.067285473Z     at file:///opt/render/project/src/dist/index.js:203:9
+2026-01-26T15:49:54.067288253Z     at ModuleJob.run (node:internal/modules/esm/module_job:343:25)
+2026-01-26T15:49:54.067291403Z     at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:665:26)
+2026-01-26T15:49:54.067293973Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-01-26T15:49:54.067296413Z 
+2026-01-26T15:49:54.067298823Z Node.js v22.22.0
+2026-01-26T15:49:56.565996109Z ==> Exited with status 1
+2026-01-26T15:49:56.632048733Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+2026-01-26T15:50:00.945150866Z ==> Running 'npm start'
+2026-01-26T15:50:01.843400998Z 
+2026-01-26T15:50:01.843430929Z > rest-express@1.0.0 start
+2026-01-26T15:50:01.843436839Z > NODE_ENV=production node dist/index.js
+2026-01-26T15:50:01.843439719Z 

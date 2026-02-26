@@ -1,0 +1,139 @@
+2026-01-26T13:57:11.410570897Z ==> Cloning from https://github.com/Promethean-Games/PftC
+2026-01-26T13:57:12.022049113Z ==> Checking out commit a3800b8c752f3aeb999b5addd6f186802a48fdf6 in branch main
+2026-01-26T13:57:14.273650718Z #1 [internal] load build definition from Dockerfile
+2026-01-26T13:57:14.273676248Z #1 transferring dockerfile: 778B done
+2026-01-26T13:57:14.273678728Z #1 DONE 0.1s
+2026-01-26T13:57:14.432322677Z 
+2026-01-26T13:57:14.432346117Z #2 [internal] load metadata for docker.io/library/node:20-alpine
+2026-01-26T13:57:14.591455603Z #2 ...
+2026-01-26T13:57:14.591474883Z 
+2026-01-26T13:57:14.591482094Z #3 [auth] library/node:pull render-prod/docker-mirror-repository/library/node:pull token for us-west1-docker.pkg.dev
+2026-01-26T13:57:14.591488304Z #3 DONE 0.0s
+2026-01-26T13:57:14.741692929Z 
+2026-01-26T13:57:14.741724919Z #2 [internal] load metadata for docker.io/library/node:20-alpine
+2026-01-26T13:57:14.911762018Z #2 DONE 0.6s
+2026-01-26T13:57:15.02765572Z 
+2026-01-26T13:57:15.027701691Z #4 [internal] load .dockerignore
+2026-01-26T13:57:15.027707371Z #4 transferring context: 2B done
+2026-01-26T13:57:15.027711801Z #4 DONE 0.0s
+2026-01-26T13:57:15.027715952Z 
+2026-01-26T13:57:15.027720912Z #5 [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c
+2026-01-26T13:57:15.027725652Z #5 resolve docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c 0.0s done
+2026-01-26T13:57:15.197654248Z #5 ...
+2026-01-26T13:57:15.197673759Z 
+2026-01-26T13:57:15.197679208Z #6 [internal] load build context
+2026-01-26T13:57:15.197683969Z #6 transferring context: 1.06MB 0.0s done
+2026-01-26T13:57:15.197687809Z #6 DONE 0.1s
+2026-01-26T13:57:15.197691539Z 
+2026-01-26T13:57:15.197696529Z #5 [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c
+2026-01-26T13:57:15.521917385Z #5 extracting sha256:1074353eec0db2c1d81d5af2671e56e00cf5738486f5762609ea33d606f88612 0.1s done
+2026-01-26T13:57:15.821249447Z #5 extracting sha256:c2b4197efb6ccd7f8b482ae7800f1c9c78c044ea192587887300080bcff6b2c9
+2026-01-26T13:57:24.039786889Z #5 extracting sha256:c2b4197efb6ccd7f8b482ae7800f1c9c78c044ea192587887300080bcff6b2c9 8.4s done
+2026-01-26T13:57:24.039808959Z #5 DONE 9.1s
+2026-01-26T13:57:24.190228422Z 
+2026-01-26T13:57:24.197326185Z #5 [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c
+2026-01-26T13:57:24.197334795Z #5 extracting sha256:3dcec91425079e7b455efc5f2a18d026450c47c9382c41897620afc6b1424e44
+2026-01-26T13:57:24.863760669Z #5 extracting sha256:3dcec91425079e7b455efc5f2a18d026450c47c9382c41897620afc6b1424e44 0.8s done
+2026-01-26T13:57:24.86378256Z #5 DONE 9.9s
+2026-01-26T13:57:25.005065939Z 
+2026-01-26T13:57:25.005089089Z #5 [builder 1/6] FROM docker.io/library/node:20-alpine@sha256:3960ed74dfe320a67bf8da9555b6bade25ebda2b22b6081d2f60fd7d5d430e9c
+2026-01-26T13:57:25.005096189Z #5 extracting sha256:41b3afaea3b1b1ab04a268431e10dcace7883019a5da7d326aa35dc9713fcbb5 0.0s done
+2026-01-26T13:57:25.005101999Z #5 DONE 9.9s
+2026-01-26T13:57:25.005107179Z 
+2026-01-26T13:57:25.00511259Z #7 [builder 2/6] WORKDIR /app
+2026-01-26T13:57:25.00511837Z #7 DONE 0.0s
+2026-01-26T13:57:25.00512386Z 
+2026-01-26T13:57:25.00514442Z #8 [builder 3/6] COPY package.json package-lock.json ./
+2026-01-26T13:57:25.00514972Z #8 DONE 0.1s
+2026-01-26T13:57:25.159101959Z 
+2026-01-26T13:57:25.159124619Z #9 [builder 4/6] RUN npm ci
+2026-01-26T13:57:32.483375671Z #9 7.475 npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+2026-01-26T13:57:32.693873896Z #9 7.535 npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+2026-01-26T13:57:35.094101029Z #9 ...
+2026-01-26T13:57:35.09415394Z 
+2026-01-26T13:57:35.09416402Z #10 [production 4/5] RUN npm ci --omit=dev
+2026-01-26T13:57:38.508798842Z #10 13.50 
+2026-01-26T13:57:38.508824662Z #10 13.50 added 371 packages, and audited 372 packages in 13s
+2026-01-26T13:57:38.671504581Z #10 13.50 
+2026-01-26T13:57:38.703476874Z #10 13.50 52 packages are looking for funding
+2026-01-26T13:57:38.703492325Z #10 13.50   run `npm fund` for details
+2026-01-26T13:57:38.703500145Z #10 13.51 
+2026-01-26T13:57:38.703520695Z #10 13.51 8 vulnerabilities (3 low, 1 moderate, 4 high)
+2026-01-26T13:57:38.703526035Z #10 13.51 
+2026-01-26T13:57:38.703531375Z #10 13.51 To address all issues, run:
+2026-01-26T13:57:38.703537315Z #10 13.51   npm audit fix
+2026-01-26T13:57:38.703542575Z #10 13.51 
+2026-01-26T13:57:38.703548405Z #10 13.51 Run `npm audit` for details.
+2026-01-26T13:57:38.703556086Z #10 13.51 npm notice
+2026-01-26T13:57:38.703561916Z #10 13.51 npm notice New major version of npm available! 10.8.2 -> 11.8.0
+2026-01-26T13:57:38.703567356Z #10 13.51 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.8.0
+2026-01-26T13:57:38.703572416Z #10 13.51 npm notice To update run: npm install -g npm@11.8.0
+2026-01-26T13:57:38.703577646Z #10 13.51 npm notice
+2026-01-26T13:57:40.012322659Z #10 ...
+2026-01-26T13:57:40.012340929Z 
+2026-01-26T13:57:40.012347209Z #9 [builder 4/6] RUN npm ci
+2026-01-26T13:57:40.0123511Z #9 15.00 
+2026-01-26T13:57:40.01235678Z #9 15.00 added 478 packages, and audited 479 packages in 15s
+2026-01-26T13:57:40.01236087Z #9 15.00 
+2026-01-26T13:57:40.01236612Z #9 15.00 64 packages are looking for funding
+2026-01-26T13:57:40.01236981Z #9 15.00   run `npm fund` for details
+2026-01-26T13:57:40.195308116Z #9 15.04 
+2026-01-26T13:57:40.195323917Z #9 15.04 13 vulnerabilities (3 low, 6 moderate, 4 high)
+2026-01-26T13:57:40.195327286Z #9 15.04 
+2026-01-26T13:57:40.195330237Z #9 15.04 To address issues that do not require attention, run:
+2026-01-26T13:57:40.195334237Z #9 15.04   npm audit fix
+2026-01-26T13:57:40.195337287Z #9 15.04 
+2026-01-26T13:57:40.195341727Z #9 15.04 To address all issues (including breaking changes), run:
+2026-01-26T13:57:40.195345827Z #9 15.04   npm audit fix --force
+2026-01-26T13:57:40.195348667Z #9 15.04 
+2026-01-26T13:57:40.195352717Z #9 15.04 Run `npm audit` for details.
+2026-01-26T13:57:40.195355637Z #9 15.04 npm notice
+2026-01-26T13:57:40.195358537Z #9 15.04 npm notice New major version of npm available! 10.8.2 -> 11.8.0
+2026-01-26T13:57:40.195361367Z #9 15.04 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.8.0
+2026-01-26T13:57:40.195364267Z #9 15.04 npm notice To update run: npm install -g npm@11.8.0
+2026-01-26T13:57:40.195375507Z #9 15.04 npm notice
+2026-01-26T13:57:44.772662667Z #9 DONE 19.8s
+2026-01-26T13:57:44.772678547Z 
+2026-01-26T13:57:44.772685237Z #10 [production 4/5] RUN npm ci --omit=dev
+2026-01-26T13:57:44.929298958Z #10 DONE 19.8s
+2026-01-26T13:57:44.929320498Z 
+2026-01-26T13:57:44.929326428Z #11 [builder 5/6] COPY . .
+2026-01-26T13:57:45.381186316Z #11 DONE 0.6s
+2026-01-26T13:57:45.534349831Z 
+2026-01-26T13:57:45.534365051Z #12 [builder 6/6] RUN npm run build
+2026-01-26T13:57:45.649695343Z #12 0.266 
+2026-01-26T13:57:45.649714893Z #12 0.266 > rest-express@1.0.0 build
+2026-01-26T13:57:45.649721313Z #12 0.266 > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+2026-01-26T13:57:45.649726743Z #12 0.266 
+2026-01-26T13:57:45.886399921Z #12 0.503 vite v5.4.20 building for production...
+2026-01-26T13:57:46.00093365Z #12 0.546 ✓ 0 modules transformed.
+2026-01-26T13:57:46.00096292Z #12 0.548 x Build failed in 15ms
+2026-01-26T13:57:46.00096545Z #12 0.548 error during build:
+2026-01-26T13:57:46.00096783Z #12 0.548 Could not resolve entry module "index.html".
+2026-01-26T13:57:46.00097Z #12 0.548     at getRollupError (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+2026-01-26T13:57:46.00097249Z #12 0.548     at error (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+2026-01-26T13:57:46.00097481Z #12 0.548     at ModuleLoader.loadEntryModule (file:///app/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+2026-01-26T13:57:46.00097662Z #12 0.548     at async Promise.all (index 0)
+2026-01-26T13:57:46.00097846Z #12 ERROR: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1
+2026-01-26T13:57:46.035931749Z ------
+2026-01-26T13:57:46.03594676Z  > [builder 6/6] RUN npm run build:
+2026-01-26T13:57:46.035949809Z 0.266 
+2026-01-26T13:57:46.0359525Z 0.503 vite v5.4.20 building for production...
+2026-01-26T13:57:46.03595586Z 0.546 ✓ 0 modules transformed.
+2026-01-26T13:57:46.03595836Z 0.548 x Build failed in 15ms
+2026-01-26T13:57:46.03596094Z 0.548 error during build:
+2026-01-26T13:57:46.0359641Z 0.548 Could not resolve entry module "index.html".
+2026-01-26T13:57:46.03596751Z 0.548     at getRollupError (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+2026-01-26T13:57:46.03597011Z 0.548     at error (file:///app/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+2026-01-26T13:57:46.03597323Z 0.548     at ModuleLoader.loadEntryModule (file:///app/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+2026-01-26T13:57:46.035976Z 0.548     at async Promise.all (index 0)
+2026-01-26T13:57:46.03597848Z ------
+2026-01-26T13:57:46.036811213Z Dockerfile:16
+2026-01-26T13:57:46.036820503Z --------------------
+2026-01-26T13:57:46.036823513Z   14 |     
+2026-01-26T13:57:46.036827003Z   15 |     # Build the application
+2026-01-26T13:57:46.036830423Z   16 | >>> RUN npm run build
+2026-01-26T13:57:46.036832893Z   17 |     
+2026-01-26T13:57:46.036836023Z   18 |     # Production stage
+2026-01-26T13:57:46.036838634Z --------------------
+2026-01-26T13:57:46.036842003Z error: failed to solve: process "/bin/sh -c npm run build" did not complete successfully: exit code: 1

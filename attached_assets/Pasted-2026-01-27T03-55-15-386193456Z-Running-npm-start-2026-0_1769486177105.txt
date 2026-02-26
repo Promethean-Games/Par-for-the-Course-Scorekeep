@@ -1,0 +1,80 @@
+2026-01-27T03:55:15.386193456Z ==> Running 'npm start'
+2026-01-27T03:55:16.381391134Z 
+2026-01-27T03:55:16.381411664Z > rest-express@1.0.0 start
+2026-01-27T03:55:16.381416764Z > NODE_ENV=production node dist/index.js
+2026-01-27T03:55:16.381418974Z 
+2026-01-27T03:55:20.981836415Z Serving static files from: /opt/render/project/src/dist/public
+2026-01-27T03:55:21.091366957Z 3:55:20 AM [express] serving on port 10000
+2026-01-27T03:55:38.010966207Z 3:55:38 AM [express] POST /api/director/verify 200 in 2ms :: {"isValid":true}
+2026-01-27T03:55:38.127992092Z Error listing tournaments: error: relation "tournaments" does not exist
+2026-01-27T03:55:38.128021162Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2026-01-27T03:55:38.128028483Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-01-27T03:55:38.128035213Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2026-01-27T03:55:38.128040563Z     at async file:///opt/render/project/src/dist/index.js:523:28 {
+2026-01-27T03:55:38.128044183Z   length: 111,
+2026-01-27T03:55:38.128048613Z   severity: 'ERROR',
+2026-01-27T03:55:38.128052133Z   code: '42P01',
+2026-01-27T03:55:38.128055593Z   detail: undefined,
+2026-01-27T03:55:38.128059033Z   hint: undefined,
+2026-01-27T03:55:38.128062483Z   position: '114',
+2026-01-27T03:55:38.128066483Z   internalPosition: undefined,
+2026-01-27T03:55:38.128069934Z   internalQuery: undefined,
+2026-01-27T03:55:38.128073383Z   where: undefined,
+2026-01-27T03:55:38.128077754Z   schema: undefined,
+2026-01-27T03:55:38.128081224Z   table: undefined,
+2026-01-27T03:55:38.128084664Z   column: undefined,
+2026-01-27T03:55:38.128088084Z   dataType: undefined,
+2026-01-27T03:55:38.128091504Z   constraint: undefined,
+2026-01-27T03:55:38.128094994Z   file: 'parse_relation.c',
+2026-01-27T03:55:38.128098474Z   line: '1466',
+2026-01-27T03:55:38.128101944Z   routine: 'parserOpenTable'
+2026-01-27T03:55:38.128105434Z }
+2026-01-27T03:55:38.128654175Z 3:55:38 AM [express] GET /api/tournaments 500 in 22ms :: {"error":"Failed to list tournaments"}
+2026-01-27T03:55:39.381674931Z Error getting universal players: error: relation "universal_players" does not exist
+2026-01-27T03:55:39.381702501Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2026-01-27T03:55:39.381707681Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-01-27T03:55:39.381712861Z     at async file:///opt/render/project/src/node_modules/drizzle-orm/node-postgres/session.js:83:22
+2026-01-27T03:55:39.381717221Z     at async file:///opt/render/project/src/dist/index.js:948:23 {
+2026-01-27T03:55:39.381721681Z   length: 117,
+2026-01-27T03:55:39.381726921Z   severity: 'ERROR',
+2026-01-27T03:55:39.381731421Z   code: '42P01',
+2026-01-27T03:55:39.381735892Z   detail: undefined,
+2026-01-27T03:55:39.381740362Z   hint: undefined,
+2026-01-27T03:55:39.381744652Z   position: '149',
+2026-01-27T03:55:39.381749842Z   internalPosition: undefined,
+2026-01-27T03:55:39.381754172Z   internalQuery: undefined,
+2026-01-27T03:55:39.381758562Z   where: undefined,
+2026-01-27T03:55:39.381762862Z   schema: undefined,
+2026-01-27T03:55:39.381766902Z   table: undefined,
+2026-01-27T03:55:39.381770922Z   column: undefined,
+2026-01-27T03:55:39.381774852Z   dataType: undefined,
+2026-01-27T03:55:39.381779062Z   constraint: undefined,
+2026-01-27T03:55:39.381783142Z   file: 'parse_relation.c',
+2026-01-27T03:55:39.381787122Z   line: '1466',
+2026-01-27T03:55:39.381791073Z   routine: 'parserOpenTable'
+2026-01-27T03:55:39.381811393Z }
+2026-01-27T03:55:39.382469166Z 3:55:39 AM [express] GET /api/universal-players 500 in 9ms :: {"error":"Failed to get universal play…
+2026-01-27T03:55:54.631527135Z Error creating universal player: error: relation "universal_players" does not exist
+2026-01-27T03:55:54.631562526Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2026-01-27T03:55:54.631568676Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-01-27T03:55:54.631574166Z     at async DatabaseStorage.getNextUniqueCode (file:///opt/render/project/src/dist/index.js:346:20)
+2026-01-27T03:55:54.631578226Z     at async file:///opt/render/project/src/dist/index.js:982:26 {
+2026-01-27T03:55:54.631582836Z   length: 116,
+2026-01-27T03:55:54.631606597Z   severity: 'ERROR',
+2026-01-27T03:55:54.631612357Z   code: '42P01',
+2026-01-27T03:55:54.631616757Z   detail: undefined,
+2026-01-27T03:55:54.631621027Z   hint: undefined,
+2026-01-27T03:55:54.631625177Z   position: '90',
+2026-01-27T03:55:54.631630487Z   internalPosition: undefined,
+2026-01-27T03:55:54.631634767Z   internalQuery: undefined,
+2026-01-27T03:55:54.631639127Z   where: undefined,
+2026-01-27T03:55:54.631643427Z   schema: undefined,
+2026-01-27T03:55:54.631647708Z   table: undefined,
+2026-01-27T03:55:54.631651768Z   column: undefined,
+2026-01-27T03:55:54.631655448Z   dataType: undefined,
+2026-01-27T03:55:54.631659368Z   constraint: undefined,
+2026-01-27T03:55:54.631663498Z   file: 'parse_relation.c',
+2026-01-27T03:55:54.631670868Z   line: '1466',
+2026-01-27T03:55:54.631675768Z   routine: 'parserOpenTable'
+2026-01-27T03:55:54.631680238Z }
+2026-01-27T03:55:54.632404872Z 3:55:54 AM [express] POST /api/universal-players 500 in 13ms :: {"error":"Failed to create universal…

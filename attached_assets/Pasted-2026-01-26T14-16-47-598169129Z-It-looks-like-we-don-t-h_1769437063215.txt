@@ -1,0 +1,36 @@
+2026-01-26T14:16:47.598169129Z ==> It looks like we don't have access to your repo, but we'll try to clone it anyway.
+2026-01-26T14:16:47.59819471Z ==> Cloning from https://github.com/Promethean-Games/PftC
+2026-01-26T14:16:47.884611875Z ==> Checking out commit 555877a4d88267ce89feda976816bafc74afb3a9 in branch main
+2026-01-26T14:16:50.725738087Z ==> Using Node.js version 22.22.0 (default)
+2026-01-26T14:16:50.750351333Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-01-26T14:16:53.437721858Z ==> Running build command 'npm ci --include=dev && npm run build'...
+2026-01-26T14:17:01.922157263Z 
+2026-01-26T14:17:01.922182213Z added 478 packages, and audited 479 packages in 8s
+2026-01-26T14:17:01.922193444Z 
+2026-01-26T14:17:01.922197474Z 64 packages are looking for funding
+2026-01-26T14:17:01.922201134Z   run `npm fund` for details
+2026-01-26T14:17:01.950942209Z 
+2026-01-26T14:17:01.95097665Z 13 vulnerabilities (3 low, 6 moderate, 4 high)
+2026-01-26T14:17:01.95098295Z 
+2026-01-26T14:17:01.95098819Z To address issues that do not require attention, run:
+2026-01-26T14:17:01.95099222Z   npm audit fix
+2026-01-26T14:17:01.95099633Z 
+2026-01-26T14:17:01.95100047Z To address all issues (including breaking changes), run:
+2026-01-26T14:17:01.95100595Z   npm audit fix --force
+2026-01-26T14:17:01.95100997Z 
+2026-01-26T14:17:01.951014371Z Run `npm audit` for details.
+2026-01-26T14:17:02.194763824Z 
+2026-01-26T14:17:02.194790464Z > rest-express@1.0.0 build
+2026-01-26T14:17:02.194795605Z > vite build && esbuild server/index-prod.ts --platform=node --packages=external --bundle --format=esm --outfile=dist/index.js
+2026-01-26T14:17:02.194800555Z 
+2026-01-26T14:17:02.386887219Z vite v5.4.20 building for production...
+2026-01-26T14:17:02.474256381Z ✓ 0 modules transformed.
+2026-01-26T14:17:02.475918312Z x Build failed in 9ms
+2026-01-26T14:17:02.475950432Z error during build:
+2026-01-26T14:17:02.475963343Z Could not resolve entry module "client/index.html".
+2026-01-26T14:17:02.475969863Z     at getRollupError (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/parseAst.js:396:41)
+2026-01-26T14:17:02.475975003Z     at error (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/parseAst.js:392:42)
+2026-01-26T14:17:02.475980563Z     at ModuleLoader.loadEntryModule (file:///opt/render/project/src/node_modules/rollup/dist/es/shared/node-entry.js:20086:20)
+2026-01-26T14:17:02.475985733Z     at async Promise.all (index 0)
+2026-01-26T14:17:02.55197126Z ==> Build failed 😞
+2026-01-26T14:17:02.551989441Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
