@@ -1848,6 +1848,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/recalculate-handicaps", async (req, res) => {
+    try {
+      const directorPin = req.body.directorPin;
+      if (directorPin !== MASTER_DIRECTOR_PIN) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+      
+      const allPlayers = await storage.getAllUniversalPlayers();
+      let updated = 0;
+      
+      for (const player of allPlayers) {
+        await storage.recalculateHandicap(player.id);
+        updated++;
+      }
+      
+      res.json({ success: true, message: `Recalculated handicaps for ${updated} players` });
+    } catch (error) {
+      console.error("Error recalculating handicaps:", error);
+      res.status(500).json({ error: "Failed to recalculate handicaps" });
+    }
+  });
+
   // ==================== PLAYER LOGIN ENDPOINTS ====================
 
   // Player login - verify player code + PIN
