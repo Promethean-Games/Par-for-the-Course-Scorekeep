@@ -1158,8 +1158,8 @@ export function PlayerDirectoryTab({ directorPin, onNotifyPlayer }: PlayerDirect
                           <div className="text-sm text-muted-foreground">
                             {entry.courseName && <span>{entry.courseName} {"\u2022"} </span>}
                             {entry.holesPlayed} holes {"\u2022"} {entry.totalStrokes} strokes (par {entry.totalPar})
-                            <span className={entry.relativeToPar > 0 ? "text-red-500" : entry.relativeToPar < 0 ? "text-green-500" : ""}>
-                              {" "}({entry.relativeToPar >= 0 ? "+" : ""}{entry.relativeToPar})
+                            <span className={(entry.totalStrokes - entry.totalPar) > 0 ? "text-red-500" : (entry.totalStrokes - entry.totalPar) < 0 ? "text-green-500" : ""}>
+                              {" "}({(entry.totalStrokes - entry.totalPar) >= 0 ? "+" : ""}{entry.totalStrokes - entry.totalPar})
                             </span>
                           </div>
                           {((entry.totalPenalties ?? 0) > 0 || (entry.totalScratches ?? 0) > 0) && (
