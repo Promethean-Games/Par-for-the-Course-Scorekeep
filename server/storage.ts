@@ -527,7 +527,7 @@ export class DatabaseStorage implements IStorage {
       return updated;
     }
     
-    const totalRelativeToPar = history.reduce((sum, r) => sum + r.relativeToPar, 0);
+    const totalRelativeToPar = history.reduce((sum, r) => sum + (r.totalStrokes - r.totalPar), 0);
     const handicap = Math.round((totalRelativeToPar / history.length) * 10) / 10;
     
     const isProvisional = history.length < 5;
