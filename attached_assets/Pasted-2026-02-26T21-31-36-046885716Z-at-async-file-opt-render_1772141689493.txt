@@ -1,0 +1,50 @@
+2026-02-26T21:31:36.046885716Z     at async file:///opt/render/project/src/dist/index.js:2767:3 {
+2026-02-26T21:31:36.046890676Z   length: 37,
+2026-02-26T21:31:36.046894227Z   severity: 'FATAL',
+2026-02-26T21:31:36.046897067Z   code: '28000',
+2026-02-26T21:31:36.046899887Z   detail: undefined,
+2026-02-26T21:31:36.046902667Z   hint: undefined,
+2026-02-26T21:31:36.046905427Z   position: undefined,
+2026-02-26T21:31:36.046909027Z   internalPosition: undefined,
+2026-02-26T21:31:36.046911857Z   internalQuery: undefined,
+2026-02-26T21:31:36.046914667Z   where: undefined,
+2026-02-26T21:31:36.046917447Z   schema: undefined,
+2026-02-26T21:31:36.046920307Z   table: undefined,
+2026-02-26T21:31:36.046923067Z   column: undefined,
+2026-02-26T21:31:36.046925888Z   dataType: undefined,
+2026-02-26T21:31:36.046928657Z   constraint: undefined,
+2026-02-26T21:31:36.046931428Z   file: undefined,
+2026-02-26T21:31:36.046934228Z   line: undefined,
+2026-02-26T21:31:36.046937478Z   routine: undefined
+2026-02-26T21:31:36.046940348Z }
+2026-02-26T21:31:36.047460424Z node:internal/process/promises:394
+2026-02-26T21:31:36.047471494Z     triggerUncaughtException(err, true /* fromPromise */);
+2026-02-26T21:31:36.047476034Z     ^
+2026-02-26T21:31:36.047479854Z 
+2026-02-26T21:31:36.047484394Z error: SSL/TLS required
+2026-02-26T21:31:36.047488465Z     at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+2026-02-26T21:31:36.047492805Z     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+2026-02-26T21:31:36.047496995Z     at async initializeDatabase (file:///opt/render/project/src/dist/index.js:269:5)
+2026-02-26T21:31:36.047501395Z     at async file:///opt/render/project/src/dist/index.js:2767:3 {
+2026-02-26T21:31:36.047505915Z   length: 37,
+2026-02-26T21:31:36.047510415Z   severity: 'FATAL',
+2026-02-26T21:31:36.047514665Z   code: '28000',
+2026-02-26T21:31:36.047518866Z   detail: undefined,
+2026-02-26T21:31:36.047522766Z   hint: undefined,
+2026-02-26T21:31:36.047526926Z   position: undefined,
+2026-02-26T21:31:36.047531206Z   internalPosition: undefined,
+2026-02-26T21:31:36.047535486Z   internalQuery: undefined,
+2026-02-26T21:31:36.047539586Z   where: undefined,
+2026-02-26T21:31:36.047543716Z   schema: undefined,
+2026-02-26T21:31:36.047547936Z   table: undefined,
+2026-02-26T21:31:36.047552116Z   column: undefined,
+2026-02-26T21:31:36.047556397Z   dataType: undefined,
+2026-02-26T21:31:36.047560677Z   constraint: undefined,
+2026-02-26T21:31:36.047565057Z   file: undefined,
+2026-02-26T21:31:36.047569297Z   line: undefined,
+2026-02-26T21:31:36.047572187Z   routine: undefined
+2026-02-26T21:31:36.047575787Z }
+2026-02-26T21:31:36.047580117Z 
+2026-02-26T21:31:36.047584237Z Node.js v22.22.0
+2026-02-26T21:31:38.422307887Z ==> Exited with status 1
+2026-02-26T21:31:38.425565722Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys

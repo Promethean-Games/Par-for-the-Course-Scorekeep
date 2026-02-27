@@ -1,0 +1,50 @@
+2026-02-26T21:09:13.198981981Z #12 6.536 computing gzip size...
+2026-02-26T21:09:13.198999821Z #12 6.554 ../dist/public/index.html                          2.01 kB │ gzip:   0.77 kB
+2026-02-26T21:09:13.199002981Z #12 6.554 ../dist/public/assets/draw-image-BeAoxE9Q.png  2,255.05 kB
+2026-02-26T21:09:13.199005231Z #12 6.554 ../dist/public/assets/index-FBv_p9In.css          84.38 kB │ gzip:  13.45 kB
+2026-02-26T21:09:13.199007321Z #12 6.554 ../dist/public/assets/index-QT3DIEA9.js          582.66 kB │ gzip: 163.55 kB
+2026-02-26T21:09:13.199009461Z #12 6.554 
+2026-02-26T21:09:13.199011711Z #12 6.554 (!) Some chunks are larger than 500 kB after minification. Consider:
+2026-02-26T21:09:13.199014421Z #12 6.554 - Using dynamic import() to code-split the application
+2026-02-26T21:09:13.199017361Z #12 6.554 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+2026-02-26T21:09:13.199019501Z #12 6.554 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+2026-02-26T21:09:13.199021741Z #12 6.554 ✓ built in 6.04s
+2026-02-26T21:09:13.199023841Z #12 6.638 
+2026-02-26T21:09:13.199026641Z #12 6.638   dist/index.js  110.1kb
+2026-02-26T21:09:13.199028911Z #12 6.638 
+2026-02-26T21:09:13.199031252Z #12 6.638 ⚡ Done in 14ms
+2026-02-26T21:09:13.379004081Z #12 DONE 6.7s
+2026-02-26T21:09:13.663072925Z 
+2026-02-26T21:09:13.663097886Z #13 [production 5/5] COPY --from=builder /app/dist ./dist
+2026-02-26T21:09:13.903810734Z #13 DONE 0.2s
+2026-02-26T21:09:14.055445501Z 
+2026-02-26T21:09:14.055469302Z #14 exporting to docker image format
+2026-02-26T21:09:14.055473912Z #14 exporting layers
+2026-02-26T21:09:22.117122204Z #14 exporting layers 8.2s done
+2026-02-26T21:09:22.331853954Z #14 exporting manifest sha256:8b1a29774435c110096cf7a90b53c38ae761843b4ee0ac50149399bd43b9f9c4 done
+2026-02-26T21:09:22.331875384Z #14 exporting config sha256:31852c994973bb4f7c60979de7e8eb902de629b17763718c1bfb6d6f5d37c965 done
+2026-02-26T21:09:23.549876446Z #14 DONE 9.6s
+2026-02-26T21:09:23.700328595Z 
+2026-02-26T21:09:23.700350706Z #15 exporting cache to client directory
+2026-02-26T21:09:23.700354866Z #15 preparing build cache for export
+2026-02-26T21:09:39.887793117Z #15 writing cache image manifest sha256:f31f3228e06a502c7a9d2b9b8ef24494eb2a53cf22e06b66e6533b4e19ab38a3 done
+2026-02-26T21:09:39.887815507Z #15 DONE 16.3s
+2026-02-26T21:09:40.570744235Z Pushing image to registry...
+2026-02-26T21:09:47.957251513Z Upload succeeded
+2026-02-26T21:09:50.835742412Z ==> Deploying...
+2026-02-26T21:09:50.953493214Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-02-26T21:09:59.475324606Z 
+2026-02-26T21:09:59.475374747Z > rest-express@1.0.0 start
+2026-02-26T21:09:59.475380618Z > NODE_ENV=production node dist/index.js
+2026-02-26T21:09:59.475382918Z 
+2026-02-26T21:10:00.554119819Z file:///app/dist/index.js:260
+2026-02-26T21:10:00.554144729Z   throw new Error(
+2026-02-26T21:10:00.554147569Z         ^
+2026-02-26T21:10:00.554149599Z 
+2026-02-26T21:10:00.554152339Z Error: DATABASE_URL must be set. Did you forget to provision a database?
+2026-02-26T21:10:00.554155179Z     at file:///app/dist/index.js:260:9
+2026-02-26T21:10:00.55415742Z     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+2026-02-26T21:10:00.55415953Z     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+2026-02-26T21:10:00.554215931Z     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)
+2026-02-26T21:10:00.554292483Z 
+2026-02-26T21:10:00.554297703Z Node.js v20.20.0
