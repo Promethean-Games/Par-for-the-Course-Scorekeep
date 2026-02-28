@@ -767,21 +767,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           tShirtSize: p.tShirtSize || null,
           contactInfo: p.contactInfo || null,
           uniqueCode,
-          handicap: p.handicap,
-          isProvisional: p.isProvisional ?? true,
-          completedTournaments: p.completedTournaments ?? 0,
+          handicap: null,
+          isProvisional: true,
+          completedTournaments: 0,
         });
 
         if (entry.history && Array.isArray(entry.history)) {
           for (const h of entry.history) {
+            const computedRelativeToPar = (h.totalStrokes ?? 0) - (h.totalPar ?? 0);
             await storage.addTournamentHistory({
               universalPlayerId: newPlayer.id,
+              tournamentId: h.tournamentId ?? null,
               tournamentName: h.tournamentName,
               courseName: h.courseName || null,
               totalStrokes: h.totalStrokes,
               totalPar: h.totalPar,
               holesPlayed: h.holesPlayed,
-              relativeToPar: h.relativeToPar,
+              relativeToPar: computedRelativeToPar,
               totalScratches: h.totalScratches ?? 0,
               totalPenalties: h.totalPenalties ?? 0,
               isManualEntry: h.isManualEntry ?? true,
@@ -789,6 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             historyImported++;
           }
         }
+        await storage.recalculateHandicap(newPlayer.id);
         playersImported++;
       }
 
@@ -833,21 +836,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
             tShirtSize: p.tShirtSize || null,
             contactInfo: p.contactInfo || null,
             uniqueCode,
-            handicap: p.handicap,
-            isProvisional: p.isProvisional ?? true,
-            completedTournaments: p.completedTournaments ?? 0,
+            handicap: null,
+            isProvisional: true,
+            completedTournaments: 0,
           });
 
           if (entry.history && Array.isArray(entry.history)) {
             for (const h of entry.history) {
+              const computedRelativeToPar = (h.totalStrokes ?? 0) - (h.totalPar ?? 0);
               await storage.addTournamentHistory({
                 universalPlayerId: newPlayer.id,
+                tournamentId: h.tournamentId ?? null,
                 tournamentName: h.tournamentName,
                 courseName: h.courseName || null,
                 totalStrokes: h.totalStrokes,
                 totalPar: h.totalPar,
                 holesPlayed: h.holesPlayed,
-                relativeToPar: h.relativeToPar,
+                relativeToPar: computedRelativeToPar,
                 totalScratches: h.totalScratches ?? 0,
                 totalPenalties: h.totalPenalties ?? 0,
                 isManualEntry: h.isManualEntry ?? true,
@@ -855,6 +860,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               historyImported++;
             }
           }
+          await storage.recalculateHandicap(newPlayer.id);
           playersImported++;
         }
       }
