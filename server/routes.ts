@@ -2167,6 +2167,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get push subscriber info for a tournament (deviceIds + universalPlayerIds that have subscriptions)
+  app.get("/api/push/tournament-subscribers/:roomCode", async (req, res) => {
+    try {
+      const { directorPin } = req.query as { directorPin?: string };
+      if (directorPin !== MASTER_DIRECTOR_PIN) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+      const subs = await storage.getSubscriptionsForTournament(req.params.roomCode);
+      const deviceIds = subs.map(s => s.deviceId).filter(Boolean) as string[];
+      const universalPlayerIds = subs.map(s => s.universalPlayerId).filter(Boolean) as number[];
+      res.json({ deviceIds, universalPlayerIds });
+    } catch (error) {
+      console.error("Error getting tournament subscribers:", error);
+      res.status(500).json({ error: "Failed to get subscriber info" });
+    }
+  });
+
+  // Send push notification to specific tournament players (by tournament player ID)
+  app.post("/api/push/send-to-players", async (req, res) => {
+    try {
+      const { directorPin, tournamentRoomCode, tournamentPlayerIds, title, body } = req.body;
+      if (directorPin !== MASTER_DIRECTOR_PIN) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+      if (!title || !body || !tournamentRoomCode || !Array.isArray(tournamentPlayerIds) || tournamentPlayerIds.length === 0) {
+        return res.status(400).json({ error: "Title, body, room code, and player IDs are required" });
+      }
+      if (!pushEnabled) {
+        return res.status(503).json({ error: "Push notifications are not configured" });
+      }
+
+      const tournament = await storage.getTournamentByCode(tournamentRoomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+
+      const allPlayers = await storage.getPlayersInTournament(tournament.id);
+      const selected = allPlayers.filter(p => tournamentPlayerIds.includes(p.id));
+
+      // Collect subscriptions, deduplicating by endpoint
+      const seenEndpoints = new Set<string>();
+      const allSubs: Awaited<ReturnType<typeof storage.getAllPushSubscriptions>> = [];
+
+      for (const player of selected) {
+        let subs: typeof allSubs = [];
+        if (player.universalPlayerId) {
+          subs = await storage.getSubscriptionsForPlayer(player.universalPlayerId);
+        } else if (player.deviceId) {
+          subs = await storage.getSubscriptionsForDevices([player.deviceId], tournamentRoomCode);
+        }
+        for (const sub of subs) {
+          if (!seenEndpoints.has(sub.endpoint)) {
+            seenEndpoints.add(sub.endpoint);
+            allSubs.push(sub);
+          }
+        }
+      }
+
+      const payload = JSON.stringify({
+        title,
+        body,
+        tag: `targeted-${Date.now()}`,
+        url: `/?room=${tournamentRoomCode}`,
+      });
+
+      let sentCount = 0;
+      await Promise.allSettled(
+        allSubs.map(async (sub) => {
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              payload
+            );
+            sentCount++;
+          } catch (err: any) {
+            if (err.statusCode === 404 || err.statusCode === 410) {
+              await storage.removePushSubscription(sub.endpoint);
+            }
+          }
+        })
+      );
+
+      res.json({ success: true, sentCount, message: `Sent to ${sentCount} device(s)` });
+    } catch (error) {
+      console.error("Error sending to players:", error);
+      res.status(500).json({ error: "Failed to send notification" });
+    }
+  });
+
   app.post("/api/push/send-to-player", async (req, res) => {
     try {
       const { directorPin, universalPlayerId, title, body } = req.body;

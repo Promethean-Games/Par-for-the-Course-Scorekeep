@@ -93,6 +93,7 @@ export interface IStorage {
   getSubscriptionsForTournament(roomCode: string): Promise<PushSubscription[]>;
   getDirectorSubscriptionsForTournament(roomCode: string): Promise<PushSubscription[]>;
   getSubscriptionsForPlayer(universalPlayerId: number): Promise<PushSubscription[]>;
+  getSubscriptionsForDevices(deviceIds: string[], tournamentRoomCode: string): Promise<PushSubscription[]>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
 }
 
@@ -661,6 +662,16 @@ export class DatabaseStorage implements IStorage {
 
     return db.select().from(pushSubscriptions).where(
       or(...deviceIds.map(id => eq(pushSubscriptions.deviceId, id)))!
+    );
+  }
+
+  async getSubscriptionsForDevices(deviceIds: string[], tournamentRoomCode: string): Promise<PushSubscription[]> {
+    if (deviceIds.length === 0) return [];
+    return db.select().from(pushSubscriptions).where(
+      and(
+        eq(pushSubscriptions.tournamentRoomCode, tournamentRoomCode),
+        or(...deviceIds.map(id => eq(pushSubscriptions.deviceId, id)))!
+      )
     );
   }
 
