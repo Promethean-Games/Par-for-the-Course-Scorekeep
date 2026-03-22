@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,6 +15,54 @@ import { SaveLoadDialog } from "@/components/SaveLoadDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { isLeader } from "@/lib/game-utils";
 import { PushPrompt } from "@/components/PushPrompt";
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  info: ErrorInfo | null;
+}
+
+class ErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null, info: null };
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error, info: null };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("App crashed:", error, info);
+    this.setState({ info });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+          <h1 className="text-2xl font-bold mb-2 text-destructive">Something went wrong</h1>
+          <p className="text-muted-foreground mb-4">The app encountered an error and couldn't recover.</p>
+          <pre className="text-xs text-left bg-muted p-4 rounded-md max-w-full overflow-auto mb-6 max-h-64">
+            {this.state.error?.message}
+            {"\n\n"}
+            {this.state.error?.stack?.slice(0, 800)}
+          </pre>
+          <button
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            onClick={() => {
+              this.setState({ hasError: false, error: null, info: null });
+              window.location.reload();
+            }}
+          >
+            Reload App
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 type Screen = "splash" | "setup" | "game" | "summary";
 type ActiveTab = "game" | "summary" | "settings" | "save";
@@ -290,18 +338,22 @@ function GameApp() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <ThemeProvider>
-          <TournamentProvider>
-            <GameProvider>
-              <GameApp />
-            </GameProvider>
-          </TournamentProvider>
-        </ThemeProvider>
-        <PushPrompt />
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <ThemeProvider>
+            <TournamentProvider>
+              <GameProvider>
+                <ErrorBoundary>
+                  <GameApp />
+                </ErrorBoundary>
+              </GameProvider>
+            </TournamentProvider>
+          </ThemeProvider>
+          <PushPrompt />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

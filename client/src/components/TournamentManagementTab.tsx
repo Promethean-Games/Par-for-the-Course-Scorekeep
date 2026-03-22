@@ -50,7 +50,7 @@ interface TournamentSummary {
   createdAt: string;
   startedAt: string | null;
   completedAt: string | null;
-  stats: TournamentStats;
+  stats?: TournamentStats;
 }
 
 export function TournamentManagementTab({ directorPin }: TournamentManagementTabProps) {
@@ -392,7 +392,7 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
                         <span className="font-mono">{t.roomCode}</span>
                         <span className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
-                          {t.stats.playerCount} players
+                          {t.stats?.playerCount ?? 0} players
                         </span>
                         {t.startedAt && (
                           <span className="flex items-center gap-1" data-testid={`text-runtime-${t.roomCode}`}>
@@ -401,21 +401,21 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
                           </span>
                         )}
                       </div>
-                      {t.stats.playersWithScores > 0 && (
+                      {(t.stats?.playersWithScores ?? 0) > 0 && (
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1" title="Holes completed range">
                             <Target className="w-3 h-3" />
-                            {t.stats.leastHolesCompleted === t.stats.mostHolesCompleted 
-                              ? `${t.stats.mostHolesCompleted} holes`
-                              : `${t.stats.leastHolesCompleted}-${t.stats.mostHolesCompleted} holes`}
+                            {t.stats?.leastHolesCompleted === t.stats?.mostHolesCompleted 
+                              ? `${t.stats?.mostHolesCompleted} holes`
+                              : `${t.stats?.leastHolesCompleted}-${t.stats?.mostHolesCompleted} holes`}
                           </span>
-                          {t.stats.averageScore !== null && (
+                          {t.stats?.averageScore != null && (
                             <span className="flex items-center gap-1" title="Average score">
                               <BarChart3 className="w-3 h-3" />
                               Avg: {t.stats.averageScore}
                             </span>
                           )}
-                          {t.stats.averageRelativeToPar !== null && (
+                          {t.stats?.averageRelativeToPar != null && (
                             <span className={`flex items-center gap-1 ${t.stats.averageRelativeToPar <= 0 ? 'text-green-600' : 'text-red-500'}`} title="Average relative to par">
                               <TrendingUp className="w-3 h-3" />
                               {t.stats.averageRelativeToPar > 0 ? '+' : ''}{t.stats.averageRelativeToPar}
@@ -491,7 +491,7 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
                         <span className="font-mono">{t.roomCode}</span>
                         <span className="flex items-center gap-1">
                           <Users className="w-3 h-3" />
-                          {t.stats.playerCount} players
+                          {t.stats?.playerCount ?? 0} players
                         </span>
                         {t.startedAt && (
                           <span className="flex items-center gap-1" data-testid={`text-runtime-archived-${t.roomCode}`}>
@@ -500,19 +500,19 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
                           </span>
                         )}
                       </div>
-                      {t.stats.playersWithScores > 0 && (
+                      {(t.stats?.playersWithScores ?? 0) > 0 && (
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
                             <Target className="w-3 h-3" />
-                            {t.stats.mostHolesCompleted} holes
+                            {t.stats?.mostHolesCompleted} holes
                           </span>
-                          {t.stats.averageScore !== null && (
+                          {t.stats?.averageScore != null && (
                             <span className="flex items-center gap-1">
                               <BarChart3 className="w-3 h-3" />
                               Avg: {t.stats.averageScore}
                             </span>
                           )}
-                          {t.stats.averageRelativeToPar !== null && (
+                          {t.stats?.averageRelativeToPar != null && (
                             <span className={`flex items-center gap-1 ${t.stats.averageRelativeToPar <= 0 ? 'text-green-600' : 'text-red-500'}`}>
                               <TrendingUp className="w-3 h-3" />
                               {t.stats.averageRelativeToPar > 0 ? '+' : ''}{t.stats.averageRelativeToPar}
