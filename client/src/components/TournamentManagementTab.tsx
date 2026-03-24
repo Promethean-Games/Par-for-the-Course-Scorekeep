@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -303,14 +304,17 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
   };
 
   if (selectedTournament) {
-    return (
-      <DirectorPortal 
-        onClose={() => {
-          setSelectedTournament(null);
-          tournament.leaveRoom();
-          fetchTournaments();
-        }} 
-      />
+    return createPortal(
+      <div className="fixed inset-0 z-50 overflow-auto">
+        <DirectorPortal 
+          onClose={() => {
+            setSelectedTournament(null);
+            tournament.leaveRoom();
+            fetchTournaments();
+          }} 
+        />
+      </div>,
+      document.body
     );
   }
 
