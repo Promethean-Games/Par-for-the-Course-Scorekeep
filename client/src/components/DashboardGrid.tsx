@@ -59,7 +59,8 @@ interface DashboardGridProps {
 
 export function DashboardGrid({ children, storageKey }: DashboardGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(800);
+  // null means "not yet measured" — grid won't render until we have the real width
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
 
   const [layouts, setLayouts] = useState<Layouts>(() => {
     try {
@@ -74,10 +75,13 @@ export function DashboardGrid({ children, storageKey }: DashboardGridProps) {
     const el = containerRef.current;
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
-      setContainerWidth(entry.contentRect.width);
+      const w = entry.contentRect.width;
+      if (w > 0) setContainerWidth(w);
     });
     observer.observe(el);
-    setContainerWidth(el.getBoundingClientRect().width);
+    // Synchronous first measurement — avoids the wrong-breakpoint first paint
+    const w = el.getBoundingClientRect().width;
+    if (w > 0) setContainerWidth(w);
     return () => observer.disconnect();
   }, []);
 
@@ -105,21 +109,27 @@ export function DashboardGrid({ children, storageKey }: DashboardGridProps) {
           Reset Layout
         </Button>
       </div>
-      <div ref={containerRef}>
-        <Responsive
-          width={containerWidth}
-          layouts={layouts}
-          onLayoutChange={handleLayoutChange}
-          breakpoints={{ lg: 992, md: 768, sm: 480, xs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4 }}
-          rowHeight={34}
-          margin={[6, 6]}
-          containerPadding={[0, 0]}
-          dragConfig={{ enabled: true, handle: ".drag-handle" } as any}
-          resizeConfig={{ enabled: true, handles: ["se"] } as any}
-        >
-          {children}
-        </Responsive>
+      <div ref={containerRef} style={{ position: "relative" }}>
+        {containerWidth !== null ? (
+          <Responsive
+            width={containerWidth}
+            layouts={layouts}
+            onLayoutChange={handleLayoutChange}
+            breakpoints={{ lg: 992, md: 768, sm: 480, xs: 0 }}
+            cols={{ lg: 12, md: 10, sm: 6, xs: 4 }}
+            rowHeight={34}
+            margin={[6, 6]}
+            containerPadding={[0, 0]}
+            dragConfig={{ enabled: true, handle: ".drag-handle" } as any}
+            resizeConfig={{ enabled: true, handles: ["se"] } as any}
+          >
+            {children}
+          </Responsive>
+        ) : (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            Loading dashboard...
+          </div>
+        )}
       </div>
     </div>
   );
