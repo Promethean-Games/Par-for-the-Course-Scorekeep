@@ -18,6 +18,7 @@ const DASHBOARD_DEFAULT_LAYOUTS: Layouts = {
     { i: "groups",      x: 6,  y: 4,  w: 6,  h: 7,  minW: 3, minH: 4 },
     { i: "addplayer",   x: 0,  y: 11, w: 6,  h: 7,  minW: 4, minH: 5 },
     { i: "players",     x: 6,  y: 11, w: 6,  h: 7,  minW: 4, minH: 5 },
+    { i: "payout",      x: 0,  y: 18, w: 12, h: 10, minW: 6, minH: 7 },
   ],
   md: [
     { i: "status",      x: 0,  y: 0,  w: 5,  h: 4,  minW: 3, minH: 3 },
@@ -27,6 +28,7 @@ const DASHBOARD_DEFAULT_LAYOUTS: Layouts = {
     { i: "groups",      x: 5,  y: 7,  w: 5,  h: 7,  minW: 3, minH: 4 },
     { i: "addplayer",   x: 0,  y: 14, w: 5,  h: 7,  minW: 3, minH: 5 },
     { i: "players",     x: 5,  y: 14, w: 5,  h: 7,  minW: 3, minH: 5 },
+    { i: "payout",      x: 0,  y: 21, w: 10, h: 10, minW: 5, minH: 7 },
   ],
   sm: [
     { i: "status",      x: 0,  y: 0,  w: 3,  h: 4,  minW: 2, minH: 3 },
@@ -36,6 +38,7 @@ const DASHBOARD_DEFAULT_LAYOUTS: Layouts = {
     { i: "groups",      x: 3,  y: 7,  w: 3,  h: 7,  minW: 2, minH: 4 },
     { i: "addplayer",   x: 0,  y: 14, w: 6,  h: 7,  minW: 3, minH: 5 },
     { i: "players",     x: 0,  y: 21, w: 6,  h: 7,  minW: 3, minH: 5 },
+    { i: "payout",      x: 0,  y: 28, w: 6,  h: 10, minW: 4, minH: 7 },
   ],
   xs: [
     { i: "status",      x: 0,  y: 0,  w: 4,  h: 4,  minW: 2, minH: 3 },
@@ -45,6 +48,7 @@ const DASHBOARD_DEFAULT_LAYOUTS: Layouts = {
     { i: "groups",      x: 0,  y: 18, w: 4,  h: 7,  minW: 2, minH: 4 },
     { i: "addplayer",   x: 0,  y: 25, w: 4,  h: 7,  minW: 2, minH: 5 },
     { i: "players",     x: 0,  y: 32, w: 4,  h: 7,  minW: 2, minH: 5 },
+    { i: "payout",      x: 0,  y: 39, w: 4,  h: 10, minW: 3, minH: 7 },
   ],
 };
 

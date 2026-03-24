@@ -100,7 +100,6 @@ function formatRuntime(startedAt: string | null, completedAt: string | null, now
 export function DirectorPortal({ onClose }: DirectorPortalProps) {
   const tournament = useTournament();
   const [activeTab, setActiveTab] = useState<NavTab>("dashboard");
-  const [showPayout, setShowPayout] = useState(false);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [newPlayerGroup, setNewPlayerGroup] = useState("");
   const [newPlayerUniversalId, setNewPlayerUniversalId] = useState("");
@@ -641,15 +640,6 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setShowPayout(!showPayout)}
-            title="Payout Calculator"
-            data-testid="button-toggle-payout"
-          >
-            <DollarSign className="w-5 h-5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
             onClick={() => tournament.refreshLeaderboard()}
             data-testid="button-refresh-leaderboard"
           >
@@ -697,17 +687,6 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
           </button>
         </div>
       </div>
-
-      {/* Payout Calculator Panel */}
-      {showPayout && (
-        <div className="border-b p-4 bg-muted/30">
-          <PayoutCalculator
-            directorPin={localStorage.getItem("directorPin") || "3141"}
-            linkedRoomCode={tournament.roomCode || undefined}
-            onClose={() => setShowPayout(false)}
-          />
-        </div>
-      )}
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 pb-20">
@@ -1046,6 +1025,24 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
                       })}
                     </div>
                   ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Payout Calculator Panel */}
+            <div key="payout" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <DollarSign className="w-3 h-3" />Payout Calculator
+                  </span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  <PayoutCalculator
+                    directorPin={localStorage.getItem("directorPin") || "3141"}
+                    linkedRoomCode={tournament.roomCode || undefined}
+                  />
                 </div>
               </Card>
             </div>
