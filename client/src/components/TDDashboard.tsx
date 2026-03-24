@@ -5,6 +5,8 @@ import { ArrowLeft, Trophy, Users, Settings, Palette, ChevronDown, ChevronUp } f
 import { TournamentManagementTab } from "./TournamentManagementTab";
 import { PlayerDirectoryTab } from "./PlayerDirectoryTab";
 import { PayoutCalculator } from "./PayoutCalculator";
+import { DirectorPortal } from "./DirectorPortal";
+import { useTournament } from "@/contexts/TournamentContext";
 import { Card } from "@/components/ui/card";
 
 interface TDDashboardProps {
@@ -16,6 +18,7 @@ interface TDDashboardProps {
 type DirectorTheme = "default" | "dark-green" | "dark-blue" | "light";
 
 export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardProps) {
+  const tournament = useTournament();
   const [activeTab, setActiveTab] = useState<"tournaments" | "players" | "settings">("tournaments");
   const [directorTheme, setDirectorTheme] = useState<DirectorTheme>(() => {
     const saved = localStorage.getItem("directorTheme");
@@ -23,6 +26,7 @@ export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardP
   });
   const [tournamentOptions, setTournamentOptions] = useState<{ id: number; roomCode: string; name: string }[]>([]);
   const [themeExpanded, setThemeExpanded] = useState(false);
+  const [showDirectorPortal, setShowDirectorPortal] = useState(false);
 
   useEffect(() => {
     fetch(`/api/tournaments?directorPin=${encodeURIComponent(directorPin)}`)
@@ -39,6 +43,17 @@ export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardP
     setDirectorTheme(theme);
     localStorage.setItem("directorTheme", theme);
   };
+
+  if (showDirectorPortal) {
+    return (
+      <DirectorPortal
+        onClose={() => {
+          tournament.leaveRoom();
+          setShowDirectorPortal(false);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="td-dashboard">
@@ -95,7 +110,10 @@ export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardP
         </TabsList>
 
         <TabsContent value="tournaments" className="flex-1 m-0 p-0 overflow-auto">
-          <TournamentManagementTab directorPin={directorPin} />
+          <TournamentManagementTab
+            directorPin={directorPin}
+            onTournamentSelected={() => setShowDirectorPortal(true)}
+          />
         </TabsContent>
 
         <TabsContent value="players" className="flex-1 m-0 p-0 overflow-auto">

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,10 +25,10 @@ import {
   Clock,
 } from "lucide-react";
 import { useTournament } from "@/contexts/TournamentContext";
-import { DirectorPortal } from "./DirectorPortal";
 
 interface TournamentManagementTabProps {
   directorPin: string;
+  onTournamentSelected: () => void;
 }
 
 interface TournamentStats {
@@ -54,14 +53,13 @@ interface TournamentSummary {
   stats?: TournamentStats;
 }
 
-export function TournamentManagementTab({ directorPin }: TournamentManagementTabProps) {
+export function TournamentManagementTab({ directorPin, onTournamentSelected }: TournamentManagementTabProps) {
   const tournament = useTournament();
   const [tournaments, setTournaments] = useState<TournamentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTournamentName, setNewTournamentName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedTournament, setSelectedTournament] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
   const [isHandicapped, setIsHandicapped] = useState(false);
@@ -120,7 +118,9 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
         setNewTournamentName("");
         setIsHandicapped(false);
         await fetchTournaments();
-        setSelectedTournament(result.roomCode);
+        tournament.setIsDirector(true);
+        tournament.setDirectorCredentials(directorPin);
+        onTournamentSelected();
       }
     } catch (err) {
       console.error("Failed to create tournament:", err);
@@ -134,7 +134,7 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
     if (success) {
       tournament.setIsDirector(true);
       tournament.setDirectorCredentials(directorPin);
-      setSelectedTournament(roomCode);
+      onTournamentSelected();
     }
   };
 
@@ -302,21 +302,6 @@ export function TournamentManagementTab({ directorPin }: TournamentManagementTab
     };
     input.click();
   };
-
-  if (selectedTournament) {
-    return createPortal(
-      <div className="fixed inset-0 z-50 overflow-auto">
-        <DirectorPortal 
-          onClose={() => {
-            setSelectedTournament(null);
-            tournament.leaveRoom();
-            fetchTournaments();
-          }} 
-        />
-      </div>,
-      document.body
-    );
-  }
 
   const activeTournaments = tournaments.filter(t => t.isActive);
   const archivedTournaments = tournaments.filter(t => !t.isActive);
