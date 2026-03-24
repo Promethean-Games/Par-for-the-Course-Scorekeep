@@ -8,7 +8,7 @@ import { Shield } from "lucide-react";
 interface TDSignInModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (pin: string) => void;
+  onSuccess: (pin: string, directorName: string) => void;
 }
 
 export function TDSignInModal({ isOpen, onClose, onSuccess }: TDSignInModalProps) {
@@ -36,7 +36,7 @@ export function TDSignInModal({ isOpen, onClose, onSuccess }: TDSignInModalProps
         const data = await response.json();
         if (data.isValid) {
           handleClose();
-          onSuccess(pin);
+          onSuccess(pin, data.directorName || "Tournament Director");
         } else {
           setError("Invalid PIN");
         }

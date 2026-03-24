@@ -10,11 +10,12 @@ import { Card } from "@/components/ui/card";
 interface TDDashboardProps {
   onClose: () => void;
   directorPin: string;
+  directorName?: string;
 }
 
 type DirectorTheme = "default" | "dark-green" | "dark-blue" | "light";
 
-export function TDDashboard({ onClose, directorPin }: TDDashboardProps) {
+export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardProps) {
   const [activeTab, setActiveTab] = useState<"tournaments" | "players" | "settings">("tournaments");
   const [directorTheme, setDirectorTheme] = useState<DirectorTheme>(() => {
     const saved = localStorage.getItem("directorTheme");
@@ -51,7 +52,14 @@ export function TDDashboard({ onClose, directorPin }: TDDashboardProps) {
         >
           <ArrowLeft className="h-6 w-6" />
         </Button>
-        <h1 className="text-xl font-bold flex-1">Tournament Director Dashboard</h1>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold">Tournament Director Dashboard</h1>
+          {directorName && (
+            <p className="text-sm text-primary-foreground/70" data-testid="text-director-name">
+              Signed in as {directorName}
+            </p>
+          )}
+        </div>
       </header>
 
       <Tabs 

@@ -27,6 +27,7 @@ export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onV
   const [showTDSignIn, setShowTDSignIn] = useState(false);
   const [showTournamentManagement, setShowTournamentManagement] = useState(false);
   const [verifiedPin, setVerifiedPin] = useState<string | null>(null);
+  const [directorName, setDirectorName] = useState<string | null>(null);
   const [showPlayerLogin, setShowPlayerLogin] = useState(false);
   const [loggedInPlayer, setLoggedInPlayer] = useState<PlayerProfile | null>(null);
   const [playerHistory, setPlayerHistory] = useState<TournamentHistoryEntry[]>([]);
@@ -60,8 +61,9 @@ export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onV
     }
   }, []);
 
-  const handleTDSignInSuccess = (pin: string) => {
+  const handleTDSignInSuccess = (pin: string, name: string) => {
     setVerifiedPin(pin);
+    setDirectorName(name);
     setShowTournamentManagement(true);
   };
 
@@ -113,8 +115,10 @@ export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onV
         onClose={() => {
           setShowTournamentManagement(false);
           setVerifiedPin(null);
+          setDirectorName(null);
         }} 
         directorPin={verifiedPin}
+        directorName={directorName ?? undefined}
       />
     );
   }

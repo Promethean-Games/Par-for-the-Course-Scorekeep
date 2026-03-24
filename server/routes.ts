@@ -291,15 +291,29 @@ function generateRoomCode(): string {
   return code;
 }
 
-const MASTER_DIRECTOR_PIN = "3141";
+const DIRECTOR_PINS: Record<string, string> = {
+  "3141": "Alan Acevedo",
+  "3115": "Eric Berry",
+};
+
+function isValidDirectorPin(pin: string): boolean {
+  return pin in DIRECTOR_PINS;
+}
+
+function getDirectorName(pin: string): string {
+  return DIRECTOR_PINS[pin] || "Tournament Director";
+}
+
+// Keep for backward compat — first/primary director pin
+const MASTER_DIRECTOR_PIN = Object.keys(DIRECTOR_PINS)[0];
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Verify master director PIN
   app.post("/api/director/verify", async (req, res) => {
     try {
       const { pin } = req.body;
-      if (pin === MASTER_DIRECTOR_PIN) {
-        res.json({ isValid: true });
+      if (isValidDirectorPin(pin)) {
+        res.json({ isValid: true, directorName: getDirectorName(pin) });
       } else {
         res.json({ isValid: false });
       }
@@ -313,7 +327,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tournaments", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -338,7 +352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify master director PIN for creation
-      if (parsed.data.directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(parsed.data.directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -406,7 +420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { directorPin } = req.body;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       
       if (!isMasterDirector && !isTournamentDirector) {
@@ -430,7 +444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const directorPin = req.query.directorPin as string;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       
       if (!isMasterDirector && !isTournamentDirector) {
@@ -458,7 +472,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Tournament not found" });
       }
       const directorPin = req.query.directorPin as string;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       if (!isMasterDirector && !isTournamentDirector) {
         return res.status(403).json({ error: "Invalid director credentials" });
@@ -479,7 +493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Tournament not found" });
       }
       const { directorPin, numPlayers, entryFee, addedPrize, numSpots, percentages } = req.body;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       if (!isMasterDirector && !isTournamentDirector) {
         return res.status(403).json({ error: "Invalid director credentials" });
@@ -505,7 +519,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Tournament not found" });
       }
       const directorPin = req.query.directorPin as string;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       if (!isMasterDirector && !isTournamentDirector) {
         return res.status(403).json({ error: "Invalid director credentials" });
@@ -527,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { directorPin } = req.body;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       
       if (!isMasterDirector && !isTournamentDirector) {
@@ -552,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { directorPin } = req.body;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       
       if (!isMasterDirector && !isTournamentDirector) {
@@ -576,7 +590,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { directorPin } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -592,7 +606,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tournaments/import", async (req, res) => {
     try {
       const { directorPin, backup } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -664,7 +678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/full", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -707,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/export/players", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -738,7 +752,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/players", async (req, res) => {
     try {
       const { directorPin, data } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -811,7 +825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/full", async (req, res) => {
     try {
       const { directorPin, data } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -1025,7 +1039,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tournaments/:roomCode/players/:playerId/unassign-device", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         const tournament = await storage.getTournamentByCode(req.params.roomCode);
         if (!tournament || tournament.directorPin !== directorPin) {
           return res.status(403).json({ error: "Invalid director credentials" });
@@ -1285,7 +1299,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate director PIN
       const directorPin = req.query.directorPin as string;
-      const isMasterDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       
       if (!isMasterDirector && !isTournamentDirector) {
@@ -1431,7 +1445,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/alerts", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director PIN" });
       }
       const roomCode = req.query.roomCode as string | undefined;
@@ -1446,7 +1460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/alerts/:id/dismiss", async (req, res) => {
     try {
       const directorPin = req.body.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director PIN" });
       }
       dismissCheatAlert(parseInt(req.params.id));
@@ -1463,7 +1477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/universal-players", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1495,7 +1509,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/universal-players/search", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1516,7 +1530,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/universal-players", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1558,7 +1572,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid request" });
       }
       
-      if (parsed.data.directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(parsed.data.directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1589,7 +1603,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/universal-players/:id", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1614,7 +1628,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid request" });
       }
       
-      if (parsed.data.directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(parsed.data.directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1634,7 +1648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/universal-players/:id", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1662,7 +1676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/universal-players/:playerId/history", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -1712,7 +1726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/universal-players/:playerId/history/:historyId", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -1739,7 +1753,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tournaments/:roomCode/players/:playerId/link-universal", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1770,7 +1784,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tournaments/:roomCode/complete", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -1857,7 +1871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/recalculate-handicaps", async (req, res) => {
     try {
       const directorPin = req.body.directorPin;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       
@@ -2022,7 +2036,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Verify authorization: director PIN, current PIN (hashed), or no PIN set yet
-      const isDirector = directorPin === MASTER_DIRECTOR_PIN;
+      const isDirector = isValidDirectorPin(directorPin);
       let isCurrentPinValid = false;
       if (player.pin && currentPin) {
         isCurrentPinValid = await bcrypt.compare(currentPin, player.pin);
@@ -2048,7 +2062,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/player/:code/remove-pin", async (req, res) => {
     try {
       const { directorPin } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
@@ -2113,7 +2127,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       let isDirector = false;
       if (tournamentRoomCode && directorPin) {
-        if (directorPin === MASTER_DIRECTOR_PIN) {
+        if (isValidDirectorPin(directorPin)) {
           isDirector = true;
         } else {
           isDirector = await storage.verifyDirectorPin(tournamentRoomCode, directorPin);
@@ -2152,7 +2166,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/push/player-status/:playerId", async (req, res) => {
     try {
       const directorPin = req.query.directorPin as string;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       const playerId = parseInt(req.params.playerId);
@@ -2171,7 +2185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/push/tournament-subscribers/:roomCode", async (req, res) => {
     try {
       const { directorPin } = req.query as { directorPin?: string };
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       const subs = await storage.getSubscriptionsForTournament(req.params.roomCode);
@@ -2188,7 +2202,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/push/send-to-players", async (req, res) => {
     try {
       const { directorPin, tournamentRoomCode, tournamentPlayerIds, title, body } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       if (!title || !body || !tournamentRoomCode || !Array.isArray(tournamentPlayerIds) || tournamentPlayerIds.length === 0) {
@@ -2257,7 +2271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/push/send-to-player", async (req, res) => {
     try {
       const { directorPin, universalPlayerId, title, body } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       if (!title || !body || !universalPlayerId) {
@@ -2306,7 +2320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/push/send", async (req, res) => {
     try {
       const { directorPin, title, body, tournamentRoomCode } = req.body;
-      if (directorPin !== MASTER_DIRECTOR_PIN) {
+      if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
       if (!title || !body) {
