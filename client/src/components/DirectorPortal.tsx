@@ -713,7 +713,7 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
       <div className="flex-1 overflow-y-auto p-4 pb-20">
         {/* Dashboard Tab */}
         {activeTab === "dashboard" && (
-          <DashboardGrid storageKey={`dp-${tournament.roomCode || "default"}`}>
+          <DashboardGrid storageKey={`dp-layout-${localStorage.getItem("directorPin") || "default"}`}>
 
             {/* Status Panel */}
             <div key="status" className="h-full">
