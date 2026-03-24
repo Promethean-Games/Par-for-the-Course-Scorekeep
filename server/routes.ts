@@ -296,7 +296,8 @@ const DIRECTOR_PINS: Record<string, string> = {
   "3115": "Eric Berry",
 };
 
-function isValidDirectorPin(pin: string): boolean {
+function isValidDirectorPin(pin: string | undefined): boolean {
+  if (!pin) return false;
   return pin in DIRECTOR_PINS;
 }
 

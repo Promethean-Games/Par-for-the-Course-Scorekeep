@@ -66,7 +66,7 @@ export function UniversalPlayerPortal({ onClose, directorPin }: UniversalPlayerP
 
   const filteredPlayers = players.filter(p => 
     p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.uniqueCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (p.uniqueCode && p.uniqueCode.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (p.email && p.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 

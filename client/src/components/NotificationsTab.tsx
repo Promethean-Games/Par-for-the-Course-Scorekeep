@@ -389,7 +389,7 @@ function SendPane({ directorPin, initialPlayerId }: NotificationsTabProps) {
     if (initialPlayerId && tournamentPlayers.length > 0) {
       const player = tournamentPlayers.find((p) => p.universalPlayerId === initialPlayerId);
       if (player) {
-        setSelectedPlayerIds((prev) => new Set([...prev, player.id]));
+        setSelectedPlayerIds((prev) => new Set([...Array.from(prev), player.id]));
       }
     }
   }, [initialPlayerId, tournamentPlayers]);
@@ -408,7 +408,7 @@ function SendPane({ directorPin, initialPlayerId }: NotificationsTabProps) {
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(p);
     }
-    return [...map.entries()].sort(([a], [b]) => {
+    return Array.from(map.entries()).sort(([a], [b]) => {
       if (!a && b) return 1;
       if (a && !b) return -1;
       return a.localeCompare(b);

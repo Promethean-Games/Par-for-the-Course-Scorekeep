@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { DashboardGrid } from "./DashboardGrid";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -37,6 +38,7 @@ import {
   ArrowUpDown,
   Clock,
   DollarSign,
+  GripHorizontal,
 } from "lucide-react";
 import { useTournament } from "@/contexts/TournamentContext";
 import { apiRequest } from "@/lib/queryClient";
@@ -711,547 +713,344 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
       <div className="flex-1 overflow-y-auto p-4 pb-20">
         {/* Dashboard Tab */}
         {activeTab === "dashboard" && (
-          <div className="space-y-4">
-            {/* Tournament Status */}
-            <Card className="p-4 border-green-500/30 bg-green-500/5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-70">Tournament Status</p>
-                  <p className="text-2xl font-bold">
-                    {tournament.tournamentInfo?.isStarted ? "IN PROGRESS" : 
-                     tournament.tournamentInfo?.isActive ? "SETUP" : "Ended"}
-                  </p>
-                </div>
-                <div className={`w-4 h-4 rounded-full ${
-                  tournament.tournamentInfo?.isStarted ? "bg-green-500 animate-pulse" : 
-                  tournament.tournamentInfo?.isActive ? "bg-amber-500" : "bg-gray-400"
-                }`} />
-              </div>
-              {tournament.tournamentInfo?.isActive && !tournament.tournamentInfo?.isStarted && (
-                <Button
-                  onClick={handleStartTournament}
-                  disabled={isStarting || tournament.allPlayers.length === 0}
-                  className="w-full mt-3 bg-green-600 hover:bg-green-700"
-                  data-testid="button-start-tournament"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  {isStarting ? "Starting..." : "Start Tournament"}
-                </Button>
-              )}
-              {tournament.tournamentInfo?.isStarted && (
-                <p className="text-sm text-green-600 mt-2 text-center font-medium">
-                  Players have been notified and are playing!
-                </p>
-              )}
-            </Card>
+          <DashboardGrid storageKey={`dp-${tournament.roomCode || "default"}`}>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card className="p-4 text-center">
-                <p className="text-3xl font-bold">{tournament.allPlayers.length}</p>
-                <p className="text-xs opacity-70">Total Players</p>
-              </Card>
-              <Card className="p-4 text-center">
-                <p className="text-3xl font-bold">{Object.keys(groupedPlayers).length}</p>
-                <p className="text-xs opacity-70">Groups</p>
-              </Card>
-              <Card className="p-4 text-center">
-                <p className="text-3xl font-bold">{laggingHole}</p>
-                <p className="text-xs opacity-70">Lagging Hole</p>
-              </Card>
-              <Card className="p-4 text-center">
-                <p className="text-3xl font-bold">{leadingHole}</p>
-                <p className="text-xs opacity-70">Leading Hole</p>
+            {/* Status Panel */}
+            <div key="status" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60">Status</span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs opacity-60">Tournament</p>
+                      <p className={cn("text-base font-bold leading-tight",
+                        tournament.tournamentInfo?.isStarted ? "text-green-600 dark:text-green-400" :
+                        tournament.tournamentInfo?.isActive ? "text-amber-600 dark:text-amber-400" : ""
+                      )}>
+                        {tournament.tournamentInfo?.isStarted ? "IN PROGRESS" :
+                         tournament.tournamentInfo?.isActive ? "SETUP" : "Ended"}
+                      </p>
+                    </div>
+                    <div className={`w-3 h-3 rounded-full shrink-0 ${
+                      tournament.tournamentInfo?.isStarted ? "bg-green-500 animate-pulse" :
+                      tournament.tournamentInfo?.isActive ? "bg-amber-500" : "bg-gray-400"
+                    }`} />
+                  </div>
+                  {tournament.tournamentInfo?.isActive && !tournament.tournamentInfo?.isStarted && (
+                    <Button
+                      onClick={handleStartTournament}
+                      disabled={isStarting || tournament.allPlayers.length === 0}
+                      size="sm"
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      data-testid="button-start-tournament"
+                    >
+                      <Play className="w-3 h-3 mr-1" />
+                      {isStarting ? "Starting..." : "Start Tournament"}
+                    </Button>
+                  )}
+                  {tournament.tournamentInfo?.isStarted && (
+                    <p className="text-xs text-green-600 dark:text-green-400 font-medium text-center">
+                      Players are playing!
+                    </p>
+                  )}
+                </div>
               </Card>
             </div>
 
-            {/* Top 3 Leaderboard Preview */}
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-yellow-500" />
-                Top 3
-              </h3>
-              <div className="space-y-2">
-                {tournament.leaderboard.slice(0, 3).map((entry, index) => (
-                  <div
-                    key={entry.playerId}
-                    className="flex items-center gap-3 p-2 rounded-lg"
-                  >
-                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
-                      index === 0 ? "bg-yellow-500 text-yellow-950" :
-                      index === 1 ? "bg-gray-300 text-gray-700" :
-                      "bg-amber-600 text-amber-50"
-                    }`}>
-                      {index + 1}
-                    </span>
-                    <span className="flex-1 font-medium truncate">{entry.playerName}</span>
-                    <span className="font-mono font-bold">
-                      {entry.relativeToPar > 0 ? "+" : ""}{entry.relativeToPar}
-                    </span>
-                  </div>
-                ))}
-                {tournament.leaderboard.length === 0 && (
-                  <p className="text-center opacity-50 py-2">No scores yet</p>
-                )}
-              </div>
-            </Card>
-
-            {/* Tournament Controls */}
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <Power className="w-4 h-4" />
-                Tournament Controls
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="p-3 rounded-lg bg-black/5 dark:bg-white/5">
-                  <p className="text-sm opacity-70 mb-1">Room Code</p>
-                  <p className="text-2xl font-mono font-bold tracking-wider">
-                    {tournament.roomCode || "—"}
-                  </p>
+            {/* Controls Panel */}
+            <div key="controls" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <Power className="w-3 h-3" />Controls
+                  </span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
                 </div>
-
-                {showConfirmComplete ? (
-                  <div className="space-y-2 p-3 border border-destructive/30 rounded-lg bg-destructive/5">
-                    <p className="text-sm font-medium text-destructive">
-                      End Tournament?
-                    </p>
-                    <p className="text-sm opacity-70">
-                      This will end the tournament, save all player scores to their history, and update handicaps. Players will no longer be able to submit scores.
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        className="flex-1"
-                        onClick={() => setShowConfirmComplete(false)}
-                        disabled={isCompleting}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        className="flex-1"
-                        onClick={handleCompleteTournament}
-                        disabled={isCompleting}
-                        data-testid="button-confirm-complete-tournament"
-                      >
-                        {isCompleting ? "Saving..." : "End & Save Scores"}
-                      </Button>
-                    </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  <div className="px-2 py-1 rounded bg-muted/50">
+                    <p className="text-xs opacity-60">Room Code</p>
+                    <p className="text-xl font-mono font-bold tracking-widest">{tournament.roomCode || "—"}</p>
                   </div>
-                ) : (
-                  <Button
-                    variant="destructive"
-                    className="w-full gap-2"
-                    onClick={() => setShowConfirmComplete(true)}
-                    disabled={!tournament.tournamentInfo?.isStarted}
-                    data-testid="button-complete-tournament"
-                  >
-                    <Trophy className="w-4 h-4" />
-                    {tournament.tournamentInfo?.isActive ? "End Tournament & Save Scores" : "Re-Save Scores to Player History"}
-                  </Button>
-                )}
-              </div>
-            </Card>
-
-            {/* Player Management */}
-            <Card className="p-4">
-              <button
-                onClick={() => setShowGroupTools(!showGroupTools)}
-                className="w-full flex items-center justify-between"
-                data-testid="button-toggle-group-tools"
-              >
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Wand2 className="w-4 h-4" />
-                  Group Management Tools
-                </h3>
-                {showGroupTools ? (
-                  <ChevronUp className="w-4 h-4 opacity-60" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 opacity-60" />
-                )}
-              </button>
-              
-              {showGroupTools && (
-                <div className="mt-4 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Label htmlFor="num-tables" className="text-sm whitespace-nowrap">
-                      Number of tables:
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setNumTables(Math.max(2, numTables - 1))}
-                        disabled={numTables <= 2}
-                        data-testid="button-decrease-num-tables"
-                      >
-                        -
-                      </Button>
-                      <span className="w-8 text-center font-bold text-lg">{numTables}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setNumTables(Math.min(12, numTables + 1))}
-                        disabled={numTables >= 12}
-                        data-testid="button-increase-num-tables"
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-2 rounded-lg bg-black/5 dark:bg-white/5">
-                      <p className="text-2xl font-bold">{tournament.allPlayers.length}</p>
-                      <p className="text-xs opacity-60">Players</p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-black/5 dark:bg-white/5">
-                      <p className="text-2xl font-bold">{Math.min(numTables, tournament.allPlayers.length)}</p>
-                      <p className="text-xs opacity-60">Tables</p>
-                    </div>
-                    <div className="p-2 rounded-lg bg-black/5 dark:bg-white/5">
-                      <p className="text-2xl font-bold">
-                        {tournament.allPlayers.length > 0 ? Math.ceil(tournament.allPlayers.length / Math.min(numTables, tournament.allPlayers.length)) : 0}
-                      </p>
-                      <p className="text-xs opacity-60">Per Table</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={handleAutoAssignGroups}
-                      disabled={isAutoAssigning || tournament.allPlayers.length === 0}
-                      className="flex items-center gap-2"
-                      data-testid="button-auto-assign-groups"
-                    >
-                      <Grid3X3 className="w-4 h-4" />
-                      {isAutoAssigning ? "Assigning..." : "Auto-Assign"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handleShuffleGroups}
-                      disabled={isShuffling || tournament.allPlayers.length === 0}
-                      className="flex items-center gap-2"
-                      data-testid="button-shuffle-groups"
-                    >
-                      <Shuffle className="w-4 h-4" />
-                      {isShuffling ? "Shuffling..." : "Shuffle"}
-                    </Button>
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearGroups}
-                    disabled={tournament.allPlayers.length === 0}
-                    className="w-full text-destructive hover:text-destructive"
-                    data-testid="button-clear-groups"
-                  >
-                    Clear All Groups
-                  </Button>
-
-                  {tournament.allPlayers.length === 0 && (
-                    <div className="flex items-center gap-2 text-sm opacity-60 justify-center">
-                      <AlertCircle className="w-4 h-4" />
-                      Add players first to use group tools
-                    </div>
-                  )}
-                </div>
-              )}
-            </Card>
-
-            {/* Add Player Form */}
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Add Player
-              </h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant={showUniversalSearch ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShowUniversalSearch(!showUniversalSearch)}
-                    className="gap-2"
-                    data-testid="button-toggle-universal-search"
-                  >
-                    <Search className="w-4 h-4" />
-                    {showUniversalSearch ? "Hide Search" : "Find Existing Player"}
-                  </Button>
-                  {selectedUniversalPlayer && (
-                    <div className="flex items-center gap-2 px-2 py-1 bg-green-500/20 text-green-700 dark:text-green-400 rounded text-sm">
-                      <Link2 className="w-3 h-3" />
-                      <span className="truncate max-w-32">{selectedUniversalPlayer.name}</span>
-                      {selectedUniversalPlayer.handicap !== null && (
-                        <span className="font-mono text-xs">
-                          ({selectedUniversalPlayer.isProvisional ? "P" : ""}{selectedUniversalPlayer.handicap?.toFixed(1)})
-                        </span>
-                      )}
-                      <button 
-                        onClick={() => setSelectedUniversalPlayer(null)}
-                        className="hover:text-destructive"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {showUniversalSearch && (
-                  <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
-                      <Input
-                        value={universalSearchQuery}
-                        onChange={(e) => handleSearchUniversalPlayers(e.target.value)}
-                        placeholder="Search by name or email..."
-                        className="pl-9"
-                        data-testid="input-universal-search"
-                      />
-                    </div>
-                    {isSearching && <p className="text-xs opacity-60">Searching...</p>}
-                    {universalSearchResults.length > 0 && (
-                      <div className="max-h-40 overflow-y-auto space-y-1">
-                        {universalSearchResults.map(player => (
-                          <button
-                            key={player.id}
-                            onClick={() => handleSelectUniversalPlayer(player)}
-                            className="w-full text-left p-2 rounded hover:bg-muted flex items-center gap-2"
-                            data-testid={`button-select-universal-${player.id}`}
-                          >
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">{player.name}</p>
-                              <p className="text-xs opacity-60 truncate">{player.email || "No email"}</p>
-                            </div>
-                            {player.handicap !== null ? (
-                              <div className="text-right">
-                                <span className="font-mono text-sm font-bold">
-                                  {player.isProvisional && <Star className="w-3 h-3 inline mr-1 text-amber-500" />}
-                                  {player.handicap.toFixed(1)}
-                                </span>
-                                <p className="text-xs opacity-60">{player.completedTournaments} tournaments</p>
-                              </div>
-                            ) : (
-                              <span className="text-xs opacity-60">New</span>
-                            )}
-                          </button>
-                        ))}
+                  {showConfirmComplete ? (
+                    <div className="space-y-1 p-2 border border-destructive/30 rounded bg-destructive/5">
+                      <p className="text-xs font-medium text-destructive">End Tournament?</p>
+                      <p className="text-xs opacity-70">Saves all scores and updates handicaps.</p>
+                      <div className="flex gap-1">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowConfirmComplete(false)} disabled={isCompleting}>Cancel</Button>
+                        <Button variant="destructive" size="sm" className="flex-1" onClick={handleCompleteTournament} disabled={isCompleting} data-testid="button-confirm-complete-tournament">
+                          {isCompleting ? "Saving..." : "End & Save"}
+                        </Button>
                       </div>
-                    )}
-                    {universalSearchQuery.length >= 2 && universalSearchResults.length === 0 && !isSearching && (
-                      <p className="text-xs opacity-60 text-center py-2">No matching players found</p>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Input
-                    ref={playerNameInputRef}
-                    autoFocus
-                    value={newPlayerName}
-                    onChange={(e) => {
-                      setNewPlayerName(e.target.value);
-                      if (selectedUniversalPlayer && e.target.value !== selectedUniversalPlayer.name) {
-                        setSelectedUniversalPlayer(null);
-                      }
-                    }}
-                    placeholder="Player name *"
-                    className="flex-1"
-                    data-testid="input-director-player-name"
-                  />
-                  <Input
-                    value={newPlayerGroup}
-                    onChange={(e) => setNewPlayerGroup(e.target.value)}
-                    placeholder="Group"
-                    className="w-24"
-                    data-testid="input-director-player-group"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex-1 relative">
-                    <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
-                    <Input
-                      value={newPlayerUniversalId}
-                      onChange={(e) => setNewPlayerUniversalId(e.target.value)}
-                      placeholder="Universal ID"
-                      className="pl-9"
-                      data-testid="input-director-player-uid"
-                    />
-                  </div>
-                  <div className="flex-1 relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
-                    <Input
-                      value={newPlayerContact}
-                      onChange={(e) => setNewPlayerContact(e.target.value)}
-                      placeholder="Contact info"
-                      className="pl-9"
-                      data-testid="input-director-player-contact"
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={handleAddPlayer}
-                  disabled={isAdding || !newPlayerName.trim()}
-                  className="w-full"
-                  data-testid="button-director-add-player"
-                >
-                  {isAdding ? "Adding..." : selectedUniversalPlayer ? "Add Player (Linked)" : "Add Player (New)"}
-                </Button>
-              </div>
-            </Card>
-
-            {/* Player List */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
-                <h3 className="font-semibold flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  All Players ({tournament.allPlayers.length})
-                </h3>
-                <div className="flex items-center gap-1">
-                  <ArrowUpDown className="w-3 h-3 opacity-50" />
-                  {(["name", "hole", "score"] as const).map(opt => (
+                    </div>
+                  ) : (
                     <Button
-                      key={opt}
-                      variant={playerSortBy === opt ? "default" : "ghost"}
+                      variant="destructive"
                       size="sm"
-                      onClick={() => setPlayerSortBy(opt)}
-                      data-testid={`button-sort-${opt}`}
+                      className="w-full gap-1"
+                      onClick={() => setShowConfirmComplete(true)}
+                      disabled={!tournament.tournamentInfo?.isStarted}
+                      data-testid="button-complete-tournament"
                     >
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
+                      <Trophy className="w-3 h-3" />
+                      {tournament.tournamentInfo?.isActive ? "End Tournament" : "Re-Save Scores"}
                     </Button>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Stats Panel */}
+            <div key="stats" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60">Stats</span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 grid grid-cols-2 gap-1 p-2 content-start">
+                  {[
+                    { label: "Players", value: tournament.allPlayers.length },
+                    { label: "Groups", value: Object.keys(groupedPlayers).length },
+                    { label: "Lagging", value: laggingHole },
+                    { label: "Leading", value: leadingHole },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex flex-col items-center justify-center rounded bg-muted/40 py-1.5">
+                      <p className="text-2xl font-bold leading-none">{value}</p>
+                      <p className="text-xs opacity-60 mt-0.5">{label}</p>
+                    </div>
                   ))}
                 </div>
-              </div>
-              {Object.entries(groupedPlayers).map(([groupName, players]) => (
-                <div key={groupName} className="mb-4">
-                  <h4 className="text-sm font-medium opacity-70 mb-2 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-green-500" />
-                    {groupName} ({players.length})
-                  </h4>
-                  <div className="space-y-1">
-                    {players.map(player => {
-                      const entry = leaderboardMap.get(player.id);
-                      return (
-                      <div
-                        key={player.id}
-                        className={cn(
-                          "flex items-center gap-2 p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5",
-                          player.isDnf && "opacity-50"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className={cn("font-medium truncate", player.isDnf && "line-through")}>{player.playerName}</p>
-                            {player.isDnf && (
-                              <span className="text-xs bg-destructive/20 text-destructive px-1.5 py-0.5 rounded font-medium">DNF</span>
-                            )}
-                            {player.universalPlayerId ? (
-                              <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400" title="Linked for handicapping">
-                                <Link2 className="w-3 h-3" />
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400" title="Not linked - no handicap tracking">
-                                <AlertCircle className="w-3 h-3" />
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-xs opacity-60 flex items-center gap-2 flex-wrap">
-                            {player.deviceId ? (
-                              <span className="flex items-center gap-1">
-                                <Smartphone className="w-3 h-3" />
-                                Device
-                              </span>
-                            ) : (
-                              <span>No device</span>
-                            )}
-                            {entry ? (
-                              <>
-                                <span>Hole {entry.holesCompleted}/18</span>
-                                <span className={entry.relativeToPar < 0 ? "text-green-600 dark:text-green-400 font-medium" : entry.relativeToPar > 0 ? "text-red-600 dark:text-red-400 font-medium" : "font-medium"}>
-                                  {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
-                                </span>
-                              </>
-                            ) : (
-                              <span>No scores</span>
-                            )}
-                          </p>
-                        </div>
-                        {player.deviceId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-orange-600 hover:text-orange-700"
-                            onClick={() => handleUnassignDevice(player.id)}
-                            title="Unassign device"
-                            data-testid={`button-unassign-device-${player.id}`}
-                          >
-                            <Unlink className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {!player.universalPlayerId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-amber-600 hover:text-amber-700"
-                            onClick={() => handleLinkPlayer(player)}
-                            title="Link for handicap tracking"
-                            data-testid={`button-link-player-${player.id}`}
-                          >
-                            <Link2 className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-600 hover:text-blue-700"
-                          onClick={() => handleOpenScoreEntry(player)}
-                          title="Enter scores"
-                          data-testid={`button-enter-scores-${player.id}`}
-                        >
-                          <ClipboardList className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleEditPlayer(player)}
-                          data-testid={`button-edit-player-${player.id}`}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        {!player.isDnf && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (tournament.tournamentInfo?.isStarted) {
-                              setDnfPlayer({ id: player.id, name: player.playerName });
-                            } else {
-                              handleRemovePlayer(player.id);
-                            }
-                          }}
-                          title={tournament.tournamentInfo?.isStarted ? "Mark as DNF" : "Remove player"}
-                          data-testid={`button-remove-player-${player.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                        )}
+              </Card>
+            </div>
+
+            {/* Leaderboard Panel */}
+            <div key="leaderboard" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <Trophy className="w-3 h-3 text-yellow-500" />Leaderboard
+                  </span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                  {tournament.leaderboard.length === 0 ? (
+                    <p className="text-center opacity-40 py-4 text-sm">No scores yet</p>
+                  ) : tournament.leaderboard.map((entry, index) => (
+                    <div key={entry.playerId} className="flex items-center gap-2 px-2 py-1.5 border-b last:border-0">
+                      <span className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
+                        index === 0 ? "bg-yellow-500 text-yellow-950" :
+                        index === 1 ? "bg-gray-300 text-gray-700" :
+                        index === 2 ? "bg-amber-600 text-amber-50" : "bg-muted text-muted-foreground"
+                      }`}>{index + 1}</span>
+                      <span className="flex-1 text-sm truncate">{entry.playerName}</span>
+                      <span className="font-mono text-sm font-bold shrink-0">
+                        {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+            {/* Group Tools Panel */}
+            <div key="groups" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <Wand2 className="w-3 h-3" />Group Tools
+                  </span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs opacity-60 whitespace-nowrap">Tables:</span>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => setNumTables(Math.max(2, numTables - 1))} disabled={numTables <= 2} data-testid="button-decrease-num-tables">-</Button>
+                      <span className="w-6 text-center font-bold text-sm">{numTables}</span>
+                      <Button variant="outline" size="icon" className="h-6 w-6" onClick={() => setNumTables(Math.min(12, numTables + 1))} disabled={numTables >= 12} data-testid="button-increase-num-tables">+</Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1 text-center">
+                    {[
+                      { label: "Players", value: tournament.allPlayers.length },
+                      { label: "Tables", value: Math.min(numTables, tournament.allPlayers.length) },
+                      { label: "Per Table", value: tournament.allPlayers.length > 0 ? Math.ceil(tournament.allPlayers.length / Math.min(numTables, tournament.allPlayers.length)) : 0 },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="rounded bg-muted/40 py-1">
+                        <p className="text-lg font-bold leading-none">{value}</p>
+                        <p className="text-xs opacity-60">{label}</p>
                       </div>
-                    );
-                    })}
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Button variant="outline" size="sm" onClick={handleAutoAssignGroups} disabled={isAutoAssigning || tournament.allPlayers.length === 0} className="gap-1 text-xs" data-testid="button-auto-assign-groups">
+                      <Grid3X3 className="w-3 h-3" />{isAutoAssigning ? "Assigning..." : "Auto-Assign"}
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleShuffleGroups} disabled={isShuffling || tournament.allPlayers.length === 0} className="gap-1 text-xs" data-testid="button-shuffle-groups">
+                      <Shuffle className="w-3 h-3" />{isShuffling ? "Shuffling..." : "Shuffle"}
+                    </Button>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleClearGroups} disabled={tournament.allPlayers.length === 0} className="w-full text-destructive text-xs" data-testid="button-clear-groups">
+                    Clear All Groups
+                  </Button>
+                  {tournament.allPlayers.length === 0 && (
+                    <p className="text-xs opacity-50 text-center flex items-center justify-center gap-1">
+                      <AlertCircle className="w-3 h-3" />Add players first
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* Add Player Panel */}
+            <div key="addplayer" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <UserPlus className="w-3 h-3" />Add Player
+                  </span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant={showUniversalSearch ? "default" : "outline"} size="sm" onClick={() => setShowUniversalSearch(!showUniversalSearch)} className="gap-1 text-xs" data-testid="button-toggle-universal-search">
+                      <Search className="w-3 h-3" />{showUniversalSearch ? "Hide Search" : "Find Existing"}
+                    </Button>
+                    {selectedUniversalPlayer && (
+                      <div className="flex items-center gap-1 px-2 py-0.5 bg-green-500/20 text-green-700 dark:text-green-400 rounded text-xs">
+                        <Link2 className="w-3 h-3" />
+                        <span className="truncate max-w-24">{selectedUniversalPlayer.name}</span>
+                        <button onClick={() => setSelectedUniversalPlayer(null)} className="hover:text-destructive ml-1">×</button>
+                      </div>
+                    )}
+                  </div>
+                  {showUniversalSearch && (
+                    <div className="border rounded p-2 space-y-1 bg-muted/30">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" />
+                        <Input value={universalSearchQuery} onChange={(e) => handleSearchUniversalPlayers(e.target.value)} placeholder="Search name or email..." className="pl-7 h-8 text-sm" data-testid="input-universal-search" />
+                      </div>
+                      {isSearching && <p className="text-xs opacity-60">Searching...</p>}
+                      {universalSearchResults.length > 0 && (
+                        <div className="max-h-32 overflow-y-auto space-y-0.5">
+                          {universalSearchResults.map(player => (
+                            <button key={player.id} onClick={() => handleSelectUniversalPlayer(player)} className="w-full text-left p-1.5 rounded hover:bg-muted flex items-center gap-2 text-xs" data-testid={`button-select-universal-${player.id}`}>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium truncate">{player.name}</p>
+                                <p className="opacity-60 truncate">{player.email || "No email"}</p>
+                              </div>
+                              {player.handicap !== null && (
+                                <span className="font-mono font-bold shrink-0">
+                                  {player.isProvisional && <Star className="w-2 h-2 inline mr-0.5 text-amber-500" />}
+                                  {player.handicap.toFixed(1)}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {universalSearchQuery.length >= 2 && universalSearchResults.length === 0 && !isSearching && (
+                        <p className="text-xs opacity-60 text-center py-1">No players found</p>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex gap-1">
+                    <Input ref={playerNameInputRef} autoFocus value={newPlayerName} onChange={(e) => { setNewPlayerName(e.target.value); if (selectedUniversalPlayer && e.target.value !== selectedUniversalPlayer.name) setSelectedUniversalPlayer(null); }} placeholder="Player name *" className="flex-1 h-8 text-sm" data-testid="input-director-player-name" />
+                    <Input value={newPlayerGroup} onChange={(e) => setNewPlayerGroup(e.target.value)} placeholder="Group" className="w-16 h-8 text-sm" data-testid="input-director-player-group" />
+                  </div>
+                  <div className="flex gap-1">
+                    <div className="flex-1 relative">
+                      <Hash className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" />
+                      <Input value={newPlayerUniversalId} onChange={(e) => setNewPlayerUniversalId(e.target.value)} placeholder="Universal ID" className="pl-7 h-8 text-sm" data-testid="input-director-player-uid" />
+                    </div>
+                    <div className="flex-1 relative">
+                      <Mail className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 opacity-50" />
+                      <Input value={newPlayerContact} onChange={(e) => setNewPlayerContact(e.target.value)} placeholder="Contact" className="pl-7 h-8 text-sm" data-testid="input-director-player-contact" />
+                    </div>
+                  </div>
+                  <Button onClick={handleAddPlayer} disabled={isAdding || !newPlayerName.trim()} size="sm" className="w-full" data-testid="button-director-add-player">
+                    {isAdding ? "Adding..." : selectedUniversalPlayer ? "Add (Linked)" : "Add Player"}
+                  </Button>
+                </div>
+              </Card>
+            </div>
+
+            {/* Players Panel */}
+            <div key="players" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <Users className="w-3 h-3" />Players ({tournament.allPlayers.length})
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {(["name", "hole", "score"] as const).map(opt => (
+                      <button key={opt} onClick={() => setPlayerSortBy(opt)} className={cn("text-xs px-1 py-0.5 rounded", playerSortBy === opt ? "bg-primary text-primary-foreground" : "opacity-50 hover:opacity-80")} data-testid={`button-sort-${opt}`}>
+                        {opt}
+                      </button>
+                    ))}
+                    <GripHorizontal className="w-3 h-3 opacity-30 ml-1" />
                   </div>
                 </div>
-              ))}
-              {tournament.allPlayers.length === 0 && (
-                <p className="text-center opacity-50 py-4">No players added yet</p>
-              )}
-            </Card>
-          </div>
+                <div className="flex-1 overflow-y-auto">
+                  {tournament.allPlayers.length === 0 ? (
+                    <p className="text-center opacity-40 py-4 text-sm">No players yet</p>
+                  ) : Object.entries(groupedPlayers).map(([groupName, players]) => (
+                    <div key={groupName}>
+                      <div className="sticky top-0 px-2 py-0.5 bg-muted/80 text-xs font-medium opacity-70 flex items-center gap-1 z-10">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500" />{groupName} ({players.length})
+                      </div>
+                      {players.map(player => {
+                        const entry = leaderboardMap.get(player.id);
+                        return (
+                          <div key={player.id} className={cn("flex items-center gap-1 px-2 py-1.5 border-b last:border-0", player.isDnf && "opacity-50")}>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1">
+                                <p className={cn("text-sm truncate", player.isDnf && "line-through")}>{player.playerName}</p>
+                                {player.isDnf && <span className="text-xs bg-destructive/20 text-destructive px-1 rounded shrink-0">DNF</span>}
+                                {player.universalPlayerId
+                                  ? <Link2 className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" />
+                                  : <AlertCircle className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />}
+                              </div>
+                              <p className="text-xs opacity-50">
+                                {player.deviceId ? "Device" : "No device"}
+                                {entry && <> · H{entry.holesCompleted} · <span className={entry.relativeToPar < 0 ? "text-green-600 dark:text-green-400" : entry.relativeToPar > 0 ? "text-red-600 dark:text-red-400" : ""}>{entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}</span></>}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {player.deviceId && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-orange-600" onClick={() => handleUnassignDevice(player.id)} title="Unassign device" data-testid={`button-unassign-device-${player.id}`}>
+                                  <Unlink className="w-3 h-3" />
+                                </Button>
+                              )}
+                              {!player.universalPlayerId && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-600" onClick={() => handleLinkPlayer(player)} title="Link for handicap" data-testid={`button-link-player-${player.id}`}>
+                                  <Link2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" onClick={() => handleOpenScoreEntry(player)} title="Enter scores" data-testid={`button-enter-scores-${player.id}`}>
+                                <ClipboardList className="w-3 h-3" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditPlayer(player)} data-testid={`button-edit-player-${player.id}`}>
+                                <Edit2 className="w-3 h-3" />
+                              </Button>
+                              {!player.isDnf && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => { if (tournament.tournamentInfo?.isStarted) { setDnfPlayer({ id: player.id, name: player.playerName }); } else { handleRemovePlayer(player.id); } }} title={tournament.tournamentInfo?.isStarted ? "Mark DNF" : "Remove"} data-testid={`button-remove-player-${player.id}`}>
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
+
+          </DashboardGrid>
         )}
 
         {/* Leaderboard Tab */}
