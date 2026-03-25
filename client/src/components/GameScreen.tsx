@@ -198,9 +198,6 @@ export function GameScreen({
     setPendingPar(selectedPar);
     setDrawConfirmTime(Date.now());
     setShowDrawDialog(false);
-    // Show the par overlay for 2 seconds
-    setParOverlay(selectedPar);
-    setTimeout(() => setParOverlay(null), 2000);
     if (holesCompleted === 0) {
       onSetParForAll(selectedPar);
       setPar(selectedPar);
