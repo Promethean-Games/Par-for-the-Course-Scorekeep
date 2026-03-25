@@ -50,7 +50,6 @@ export function GameScreen({
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [pendingPar, setPendingPar] = useState<number | null>(null);
   const [drawConfirmTime, setDrawConfirmTime] = useState<number | null>(null);
-  const [parOverlay, setParOverlay] = useState<number | null>(null);
   const isInitialMount = useRef(true);
   const lastPlayerId = useRef(currentPlayer.id);
   const tournament = useTournament();
@@ -112,12 +111,10 @@ export function GameScreen({
         // First local draw — show hole selection dialog
         setShowDrawDialog(true);
       } else {
-        // Auto-assign par from fixed table, show overlay
+        // Auto-assign par from fixed table
         const autoPar = HOLE_PARS[currentHole - 1];
         setPendingPar(autoPar);
         setDrawConfirmTime(Date.now());
-        setParOverlay(autoPar);
-        setTimeout(() => setParOverlay(null), 2000);
         if (holesCompleted === 0) {
           onSetParForAll(autoPar);
           setPar(autoPar);
@@ -415,6 +412,15 @@ export function GameScreen({
           >
             {isFinishingGame ? "Finish Game" : "Next Card"}
           </Button>
+          {par === 0 && (
+            <button
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+              onClick={() => setShowDrawDialog(true)}
+              data-testid="button-set-par-reminder"
+            >
+              Set par to continue
+            </button>
+          )}
         </div>
       </div>
 
@@ -423,27 +429,6 @@ export function GameScreen({
           onSelectPar={handleDrawPar}
           onSelectStartingHole={game.updateStartingHole}
         />
-      )}
-
-      {parOverlay !== null && (
-        <div className="fixed inset-0 bg-background/90 z-50 flex flex-col items-center justify-center pointer-events-none">
-          <div className="par-overlay-anim text-center">
-            <div
-              className="font-bold tracking-widest text-muted-foreground uppercase"
-              style={{ fontSize: "2rem", fontFamily: "'Architects Daughter', cursive" }}
-              data-testid="text-par-overlay-label"
-            >
-              Par
-            </div>
-            <div
-              className="font-extrabold leading-none text-foreground"
-              style={{ fontSize: "14rem", fontFamily: "'Architects Daughter', cursive", lineHeight: 1 }}
-              data-testid="text-par-overlay-number"
-            >
-              {parOverlay}
-            </div>
-          </div>
-        </div>
       )}
 
       {showTableSetupDialog && pendingPar !== null && (
