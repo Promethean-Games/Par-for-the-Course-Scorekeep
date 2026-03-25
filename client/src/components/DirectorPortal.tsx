@@ -618,10 +618,315 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
     }
   }, [directorTheme]);
 
+  const MOBILE_PANELS = [
+    { id: "debug" as const,      label: "Debug" },
+    { id: "status" as const,     label: "Status" },
+    { id: "controls" as const,   label: "Controls" },
+    { id: "stats" as const,      label: "Stats" },
+    { id: "leaderboard" as const,label: "Leaderboard" },
+    { id: "groups" as const,     label: "Group Tools" },
+    { id: "addplayer" as const,  label: "Add Player" },
+    { id: "players" as const,    label: `Players (${tournament.allPlayers.length})` },
+    { id: "payout" as const,     label: "Payout" },
+  ];
+  type MobilePanelId = typeof MOBILE_PANELS[number]["id"];
+
+  const renderMobileCard = (panelId: MobilePanelId) => {
+    switch (panelId) {
+      case "debug": return (
+        <div className="p-4 space-y-1 font-mono text-sm">
+          <p className="text-xs font-sans text-muted-foreground uppercase tracking-wider pb-3">Live Connection Debug</p>
+          {([
+            ["Room Code",   tournament.roomCode || "—"],
+            ["Connected",   tournament.isConnected ? "YES" : "NO"],
+            ["Is Director", tournament.isDirector ? "YES" : "NO"],
+            ["Players",     String(tournament.allPlayers.length)],
+            ["Leaderboard", `${tournament.leaderboard.length} entries`],
+            ["Name",        tournament.tournamentInfo?.name || "—"],
+            ["Status",      tournament.tournamentInfo?.isStarted ? "STARTED"
+                            : tournament.tournamentInfo?.isActive ? "ACTIVE (setup)"
+                            : tournament.tournamentInfo ? "ENDED" : "NO INFO"],
+            ["Error",       tournament.error || "none"],
+          ] as [string, string][]).map(([label, value]) => (
+            <div key={label} className="flex justify-between gap-2 py-1.5 border-b border-border/30 last:border-0">
+              <span className="text-muted-foreground shrink-0">{label}</span>
+              <span className={cn(
+                "text-right break-all",
+                label === "Error" && value !== "none" ? "text-destructive" : "",
+                label === "Connected" && value === "YES" ? "text-green-600 dark:text-green-400" : "",
+                label === "Connected" && value === "NO" ? "text-destructive" : "",
+              )}>{value}</span>
+            </div>
+          ))}
+          <p className="text-xs text-muted-foreground text-center pt-3">{new Date().toLocaleTimeString()}</p>
+        </div>
+      );
+      case "status": return (
+        <div className="p-3 space-y-3">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/40">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Tournament Status</p>
+              <p className={cn("text-xl font-bold", tournament.tournamentInfo?.isStarted ? "text-green-600 dark:text-green-400" : tournament.tournamentInfo?.isActive ? "text-amber-600 dark:text-amber-400" : "")}>
+                {tournament.tournamentInfo?.isStarted ? "IN PROGRESS" : tournament.tournamentInfo?.isActive ? "SETUP" : "Ended"}
+              </p>
+            </div>
+            <div className={`w-4 h-4 rounded-full ${tournament.tournamentInfo?.isStarted ? "bg-green-500 animate-pulse" : tournament.tournamentInfo?.isActive ? "bg-amber-500" : "bg-gray-400"}`} />
+          </div>
+          {tournament.tournamentInfo?.isActive && !tournament.tournamentInfo?.isStarted && (
+            <Button onClick={handleStartTournament} disabled={isStarting || tournament.allPlayers.length === 0} className="w-full bg-green-600 hover:bg-green-700" data-testid="button-start-tournament-mobile">
+              <Play className="w-4 h-4 mr-2" />{isStarting ? "Starting..." : "Start Tournament"}
+            </Button>
+          )}
+          {tournament.tournamentInfo?.isStarted && (
+            <p className="text-center text-green-600 dark:text-green-400 font-medium py-2">Players are playing!</p>
+          )}
+          {tournament.tournamentInfo?.startedAt && (
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Clock className="w-4 h-4" />
+              <span>{formatRuntime(tournament.tournamentInfo.startedAt, tournament.tournamentInfo.completedAt, now)}</span>
+            </div>
+          )}
+        </div>
+      );
+      case "controls": return (
+        <div className="p-3 space-y-3">
+          <div className="p-4 rounded-lg bg-muted/50 text-center">
+            <p className="text-xs text-muted-foreground mb-1">Room Code</p>
+            <p className="text-5xl font-mono font-bold tracking-widest">{tournament.roomCode || "—"}</p>
+          </div>
+          {showConfirmComplete ? (
+            <div className="space-y-2 p-3 border border-destructive/30 rounded-lg bg-destructive/5">
+              <p className="font-medium text-destructive">End Tournament?</p>
+              <p className="text-sm text-muted-foreground">Saves all scores and updates handicaps.</p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowConfirmComplete(false)} disabled={isCompleting}>Cancel</Button>
+                <Button variant="destructive" className="flex-1" onClick={handleCompleteTournament} disabled={isCompleting} data-testid="button-confirm-complete-tournament-mobile">
+                  {isCompleting ? "Saving..." : "End & Save"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="destructive" className="w-full gap-2" onClick={() => setShowConfirmComplete(true)} disabled={!tournament.tournamentInfo?.isStarted} data-testid="button-complete-tournament-mobile">
+              <Trophy className="w-4 h-4" />
+              {tournament.tournamentInfo?.isActive ? "End Tournament" : "Re-Save Scores"}
+            </Button>
+          )}
+        </div>
+      );
+      case "stats": return (
+        <div className="grid grid-cols-2 gap-3 p-3">
+          {[
+            { label: "Players", value: tournament.allPlayers.length },
+            { label: "Groups",  value: Object.keys(groupedPlayers).length },
+            { label: "Lagging", value: laggingHole },
+            { label: "Leading", value: leadingHole },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex flex-col items-center justify-center rounded-lg bg-muted/40 py-8">
+              <p className="text-4xl font-bold leading-none">{value}</p>
+              <p className="text-sm text-muted-foreground mt-1">{label}</p>
+            </div>
+          ))}
+        </div>
+      );
+      case "leaderboard": return (
+        <div>
+          {tournament.leaderboard.length === 0 ? (
+            <p className="text-center text-muted-foreground py-12">No scores yet</p>
+          ) : tournament.leaderboard.map((entry, index) => (
+            <div key={entry.playerId} className="flex items-center gap-3 px-4 py-3 border-b last:border-0">
+              <span className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
+                index === 0 ? "bg-yellow-500 text-yellow-950" :
+                index === 1 ? "bg-gray-300 text-gray-700" :
+                index === 2 ? "bg-amber-600 text-amber-50" : "bg-muted text-muted-foreground"
+              }`}>{index + 1}</span>
+              <span className="flex-1 truncate">{entry.playerName}</span>
+              <span className="font-mono font-bold shrink-0">
+                {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+      case "groups": return (
+        <div className="p-3 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">Tables</span>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" onClick={() => setNumTables(Math.max(2, numTables - 1))} disabled={numTables <= 2} data-testid="button-decrease-num-tables-mobile">-</Button>
+              <span className="w-8 text-center font-bold text-lg">{numTables}</span>
+              <Button variant="outline" size="icon" onClick={() => setNumTables(Math.min(12, numTables + 1))} disabled={numTables >= 12} data-testid="button-increase-num-tables-mobile">+</Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            {[
+              { label: "Players",   value: tournament.allPlayers.length },
+              { label: "Tables",    value: Math.min(numTables, tournament.allPlayers.length) },
+              { label: "Per Table", value: tournament.allPlayers.length > 0 ? Math.ceil(tournament.allPlayers.length / Math.min(numTables, tournament.allPlayers.length)) : 0 },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-lg bg-muted/40 py-3">
+                <p className="text-2xl font-bold">{value}</p>
+                <p className="text-xs text-muted-foreground">{label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={handleAutoAssignGroups} disabled={isAutoAssigning || tournament.allPlayers.length === 0} className="gap-2" data-testid="button-auto-assign-groups-mobile">
+              <Grid3X3 className="w-4 h-4" />{isAutoAssigning ? "Assigning..." : "Auto-Assign"}
+            </Button>
+            <Button variant="outline" onClick={handleShuffleGroups} disabled={isShuffling || tournament.allPlayers.length === 0} className="gap-2" data-testid="button-shuffle-groups-mobile">
+              <Shuffle className="w-4 h-4" />{isShuffling ? "Shuffling..." : "Shuffle"}
+            </Button>
+          </div>
+          <Button variant="ghost" onClick={handleClearGroups} disabled={tournament.allPlayers.length === 0} className="w-full text-destructive" data-testid="button-clear-groups-mobile">
+            Clear All Groups
+          </Button>
+          {tournament.allPlayers.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center flex items-center justify-center gap-1">
+              <AlertCircle className="w-4 h-4" />Add players first
+            </p>
+          )}
+        </div>
+      );
+      case "addplayer": return (
+        <div className="p-3 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant={showUniversalSearch ? "default" : "outline"} size="sm" onClick={() => setShowUniversalSearch(!showUniversalSearch)} className="gap-1">
+              <Search className="w-3 h-3" />{showUniversalSearch ? "Hide Search" : "Find Existing"}
+            </Button>
+            {selectedUniversalPlayer && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-700 dark:text-green-400 rounded text-sm">
+                <Link2 className="w-3 h-3" />
+                <span className="truncate max-w-32">{selectedUniversalPlayer.name}</span>
+                <button onClick={() => setSelectedUniversalPlayer(null)} className="hover:text-destructive ml-1">×</button>
+              </div>
+            )}
+          </div>
+          {showUniversalSearch && (
+            <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
+                <Input value={universalSearchQuery} onChange={(e) => handleSearchUniversalPlayers(e.target.value)} placeholder="Search name or email..." className="pl-9" data-testid="input-universal-search-mobile" />
+              </div>
+              {isSearching && <p className="text-sm text-muted-foreground">Searching...</p>}
+              {universalSearchResults.length > 0 && (
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {universalSearchResults.map(player => (
+                    <button key={player.id} onClick={() => handleSelectUniversalPlayer(player)} className="w-full text-left p-2 rounded-lg hover:bg-muted flex items-center gap-2" data-testid={`button-select-universal-mobile-${player.id}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{player.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">{player.email || "No email"}</p>
+                      </div>
+                      {player.handicap !== null && (
+                        <span className="font-mono font-bold shrink-0 text-sm">
+                          {player.isProvisional && <Star className="w-3 h-3 inline mr-0.5 text-amber-500" />}{player.handicap.toFixed(1)}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {universalSearchQuery.length >= 2 && universalSearchResults.length === 0 && !isSearching && (
+                <p className="text-sm text-muted-foreground text-center">No players found</p>
+              )}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Input value={newPlayerName} onChange={(e) => { setNewPlayerName(e.target.value); if (selectedUniversalPlayer && e.target.value !== selectedUniversalPlayer.name) setSelectedUniversalPlayer(null); }} placeholder="Player name *" className="flex-1" data-testid="input-director-player-name-mobile" />
+            <Input value={newPlayerGroup} onChange={(e) => setNewPlayerGroup(e.target.value)} placeholder="Group" className="w-20" data-testid="input-director-player-group-mobile" />
+          </div>
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Hash className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
+              <Input value={newPlayerUniversalId} onChange={(e) => setNewPlayerUniversalId(e.target.value)} placeholder="Universal ID" className="pl-9" data-testid="input-director-player-uid-mobile" />
+            </div>
+            <div className="flex-1 relative">
+              <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 opacity-50" />
+              <Input value={newPlayerContact} onChange={(e) => setNewPlayerContact(e.target.value)} placeholder="Contact" className="pl-9" data-testid="input-director-player-contact-mobile" />
+            </div>
+          </div>
+          <Button onClick={handleAddPlayer} disabled={isAdding || !newPlayerName.trim()} className="w-full" data-testid="button-director-add-player-mobile">
+            {isAdding ? "Adding..." : selectedUniversalPlayer ? "Add (Linked)" : "Add Player"}
+          </Button>
+        </div>
+      );
+      case "players": return (
+        <div>
+          <div className="flex gap-2 px-3 py-2 border-b">
+            <span className="text-sm text-muted-foreground self-center">Sort:</span>
+            {(["name", "hole", "score"] as const).map(opt => (
+              <button key={opt} onClick={() => setPlayerSortBy(opt)} className={cn("text-sm px-2 py-1 rounded", playerSortBy === opt ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")} data-testid={`button-sort-${opt}-mobile`}>
+                {opt}
+              </button>
+            ))}
+          </div>
+          {tournament.allPlayers.length === 0 ? (
+            <p className="text-center text-muted-foreground py-12">No players yet</p>
+          ) : Object.entries(groupedPlayers).map(([groupName, players]) => (
+            <div key={groupName}>
+              <div className="sticky top-0 px-3 py-1.5 bg-muted/80 text-sm font-medium flex items-center gap-2 z-10">
+                <span className="w-2 h-2 rounded-full bg-green-500" />{groupName} ({players.length})
+              </div>
+              {players.map(player => {
+                const entry = leaderboardMap.get(player.id);
+                return (
+                  <div key={player.id} className={cn("flex items-center gap-2 px-3 py-3 border-b last:border-0", player.isDnf && "opacity-50")}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className={cn("font-medium truncate", player.isDnf && "line-through")}>{player.playerName}</p>
+                        {player.isDnf && <span className="text-xs bg-destructive/20 text-destructive px-1 rounded shrink-0">DNF</span>}
+                        {player.universalPlayerId ? <Link2 className="w-3 h-3 text-green-600 dark:text-green-400 shrink-0" /> : <AlertCircle className="w-3 h-3 text-amber-500 shrink-0" />}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {player.deviceId ? "Device assigned" : "No device"}
+                        {entry && <> · H{entry.holesCompleted} · <span className={entry.relativeToPar < 0 ? "text-green-600 dark:text-green-400" : entry.relativeToPar > 0 ? "text-red-500" : ""}>{entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}</span></>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {player.deviceId && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-orange-600" onClick={() => handleUnassignDevice(player.id)} data-testid={`button-unassign-device-mobile-${player.id}`}>
+                          <Unlink className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {!player.universalPlayerId && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => handleLinkPlayer(player)} data-testid={`button-link-player-mobile-${player.id}`}>
+                          <Link2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => handleOpenScoreEntry(player)} data-testid={`button-enter-scores-mobile-${player.id}`}>
+                        <ClipboardList className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditPlayer(player)} data-testid={`button-edit-player-mobile-${player.id}`}>
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      {!player.isDnf && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { if (tournament.tournamentInfo?.isStarted) { setDnfPlayer({ id: player.id, name: player.playerName }); } else { handleRemovePlayer(player.id); } }} data-testid={`button-remove-player-mobile-${player.id}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      );
+      case "payout": return (
+        <div className="p-3">
+          <PayoutCalculator
+            directorPin={localStorage.getItem("directorPin") || "3141"}
+            linkedRoomCode={tournament.roomCode || undefined}
+          />
+        </div>
+      );
+      default: return null;
+    }
+  };
+
   return (
     <div 
       id="director-portal"
-      className={`flex flex-col min-h-screen ${themeClasses[directorTheme]}`}
+      className={`flex flex-col h-screen overflow-hidden ${themeClasses[directorTheme]}`}
     >
       {/* Fixed Header */}
       <div className="sticky top-0 z-20 border-b bg-inherit">
@@ -701,9 +1006,54 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
         </div>
       </div>
 
-      {/* Scrollable Content */}
+      {/* Mobile carousel: dashboard panels as swipeable cards */}
+      {isMobile && activeTab === "dashboard" && (
+        <div
+          className="flex-1 flex flex-col overflow-hidden"
+          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchEnd={(e) => {
+            const diff = touchStartX.current - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) {
+              if (diff > 0) setMobileCardIndex(i => Math.min(MOBILE_PANELS.length - 1, i + 1));
+              else setMobileCardIndex(i => Math.max(0, i - 1));
+            }
+          }}
+        >
+          {/* Panel label bar */}
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 shrink-0">
+            <span className="font-semibold text-sm">{MOBILE_PANELS[mobileCardIndex].label}</span>
+            <span className="text-xs text-muted-foreground">{mobileCardIndex + 1} / {MOBILE_PANELS.length}</span>
+          </div>
+          {/* Panel content */}
+          <div className="flex-1 overflow-y-auto">
+            {renderMobileCard(MOBILE_PANELS[mobileCardIndex].id)}
+          </div>
+          {/* Bottom nav: prev/dots/next */}
+          <div className="flex items-center justify-between px-3 py-2 border-t shrink-0">
+            <Button variant="ghost" size="icon" onClick={() => setMobileCardIndex(i => Math.max(0, i - 1))} disabled={mobileCardIndex === 0}>
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex gap-1.5 flex-wrap justify-center">
+              {MOBILE_PANELS.map((panel, i) => (
+                <button
+                  key={panel.id}
+                  onClick={() => setMobileCardIndex(i)}
+                  className={`w-2 h-2 rounded-full transition-all ${i === mobileCardIndex ? "bg-primary scale-125" : "bg-muted-foreground/30"}`}
+                  aria-label={`Go to ${panel.label}`}
+                />
+              ))}
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setMobileCardIndex(i => Math.min(MOBILE_PANELS.length - 1, i + 1))} disabled={mobileCardIndex === MOBILE_PANELS.length - 1}>
+              <ChevronRight className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Desktop dashboard + all tabs on mobile (leaderboard/notify) */}
+      {!(isMobile && activeTab === "dashboard") && (
       <div className="flex-1 overflow-y-auto p-4 pb-20">
-        {/* Dashboard Tab */}
+        {/* Dashboard Tab — desktop only */}
         {activeTab === "dashboard" && (
           <DashboardGrid storageKey={`dp-layout-${localStorage.getItem("directorPin") || "default"}`}>
 
@@ -1139,6 +1489,7 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
           <NotificationsTab directorPin={localStorage.getItem("directorPin") || "3141"} />
         )}
       </div>
+      )}
 
       {/* Edit Player Dialog */}
       <Dialog open={!!editingPlayer} onOpenChange={(open) => !open && setEditingPlayer(null)}>
