@@ -15,7 +15,7 @@ interface PlayerSetupProps {
   onUpdatePlayerName: (id: string, name: string) => void;
   onUpdatePlayerColor: (id: string, color: string) => void;
   onMovePlayer: (id: string, direction: "up" | "down") => void;
-  onStartGame: () => void;
+  onStartGame: (startingHole: number) => void;
   onBack?: () => void;
 }
 
@@ -32,6 +32,7 @@ export function PlayerSetup({
   const [showColorPicker, setShowColorPicker] = useState<string | null>(null);
   const [newPlayerName, setNewPlayerName] = useState("");
   const [insertPosition, setInsertPosition] = useState<string>("end");
+  const [startingHole, setStartingHole] = useState(1);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -193,8 +194,36 @@ export function PlayerSetup({
             Add
           </Button>
         </div>
+
+        {/* Starting hole selector */}
+        <div className="flex items-center gap-3 p-3 rounded-md bg-muted/40 border">
+          <label className="text-sm font-medium whitespace-nowrap flex-1">
+            Starting Hole
+          </label>
+          <Select
+            value={startingHole.toString()}
+            onValueChange={(v) => setStartingHole(parseInt(v))}
+          >
+            <SelectTrigger className="w-28" data-testid="select-starting-hole">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => (
+                <SelectItem key={h} value={h.toString()}>
+                  Hole {h}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {startingHole !== 1 && (
+          <p className="text-xs text-muted-foreground text-center">
+            Game will start at hole {startingHole} and wrap through all 18 holes
+          </p>
+        )}
+
         <Button
-          onClick={onStartGame}
+          onClick={() => onStartGame(startingHole)}
           disabled={!canStart}
           className="w-full h-12 text-lg font-semibold"
           data-testid="button-start-game"

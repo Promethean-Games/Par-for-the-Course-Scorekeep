@@ -177,6 +177,34 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
     return () => window.removeEventListener("resize", handler);
   }, []);
 
+  // Group starting holes state
+  const [groupStartingHoles, setGroupStartingHoles] = useState<Record<string, number>>({});
+  const [isSavingStartingHoles, setIsSavingStartingHoles] = useState(false);
+
+  useEffect(() => {
+    if (!tournament.roomCode) return;
+    apiRequest("GET", `/api/tournaments/${tournament.roomCode}/group-starting-holes`)
+      .then(r => r.json())
+      .then(data => setGroupStartingHoles(data || {}))
+      .catch(() => {});
+  }, [tournament.roomCode]);
+
+  const handleUpdateGroupStartingHole = async (groupName: string, hole: number) => {
+    const updated = { ...groupStartingHoles, [groupName]: hole };
+    setGroupStartingHoles(updated);
+    setIsSavingStartingHoles(true);
+    try {
+      await apiRequest("PUT", `/api/tournaments/${tournament.roomCode}/group-starting-holes`, {
+        directorPin: "3141",
+        holes: updated,
+      });
+    } catch (e) {
+      console.error("Failed to save starting holes", e);
+    } finally {
+      setIsSavingStartingHoles(false);
+    }
+  };
+
   const handleSearchUniversalPlayers = async (query: string) => {
     setUniversalSearchQuery(query);
     if (query.length < 2) {
@@ -785,6 +813,22 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
               <AlertCircle className="w-4 h-4" />Add players first
             </p>
           )}
+          {/* Starting holes per group */}
+          {Object.keys(groupedPlayers).filter(g => g !== "Unassigned").length > 0 && (
+            <div className="space-y-2 pt-2 border-t">
+              <p className="text-xs text-muted-foreground font-medium">Starting Hole per Group {isSavingStartingHoles && <span className="ml-1 opacity-50">(saving…)</span>}</p>
+              {Object.keys(groupedPlayers).filter(g => g !== "Unassigned").sort().map(groupName => (
+                <div key={groupName} className="flex items-center justify-between gap-2">
+                  <span className="text-sm truncate">{groupName}</span>
+                  <div className="flex items-center gap-1">
+                    <Button variant="outline" size="sm" onClick={() => handleUpdateGroupStartingHole(groupName, Math.max(1, (groupStartingHoles[groupName] ?? 1) - 1))} disabled={(groupStartingHoles[groupName] ?? 1) <= 1} data-testid={`button-dec-hole-${groupName}-mobile`} className="px-2">−</Button>
+                    <span className="w-5 text-center text-sm font-bold">{groupStartingHoles[groupName] ?? 1}</span>
+                    <Button variant="outline" size="sm" onClick={() => handleUpdateGroupStartingHole(groupName, Math.min(18, (groupStartingHoles[groupName] ?? 1) + 1))} disabled={(groupStartingHoles[groupName] ?? 1) >= 18} data-testid={`button-inc-hole-${groupName}-mobile`} className="px-2">+</Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
       case "addplayer": return (
@@ -1241,6 +1285,20 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
                     <p className="text-xs opacity-50 text-center flex items-center justify-center gap-1">
                       <AlertCircle className="w-3 h-3" />Add players first
                     </p>
+                  )}
+                  {/* Starting holes per group */}
+                  {Object.keys(groupedPlayers).filter(g => g !== "Unassigned").length > 0 && (
+                    <div className="space-y-1 pt-2 border-t">
+                      <p className="text-xs opacity-60 mb-1">Start Hole {isSavingStartingHoles && <span className="opacity-50">(saving…)</span>}</p>
+                      {Object.keys(groupedPlayers).filter(g => g !== "Unassigned").sort().map(groupName => (
+                        <div key={groupName} className="flex items-center gap-1">
+                          <span className="text-xs truncate flex-1">{groupName}</span>
+                          <Button variant="outline" size="sm" onClick={() => handleUpdateGroupStartingHole(groupName, Math.max(1, (groupStartingHoles[groupName] ?? 1) - 1))} disabled={(groupStartingHoles[groupName] ?? 1) <= 1} data-testid={`button-dec-hole-${groupName}`} className="px-1.5">−</Button>
+                          <span className="w-4 text-center text-xs font-bold">{groupStartingHoles[groupName] ?? 1}</span>
+                          <Button variant="outline" size="sm" onClick={() => handleUpdateGroupStartingHole(groupName, Math.min(18, (groupStartingHoles[groupName] ?? 1) + 1))} disabled={(groupStartingHoles[groupName] ?? 1) >= 18} data-testid={`button-inc-hole-${groupName}`} className="px-1.5">+</Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </Card>

@@ -15,6 +15,7 @@ interface GameScreenProps {
   players: Player[];
   currentPlayer: Player;
   currentHole: number;
+  holesCompleted: number;
   scores: Record<string, HoleScore[]>;
   isLeader: boolean;
   leftHandedMode?: boolean;
@@ -32,6 +33,7 @@ export function GameScreen({
   players,
   currentPlayer,
   currentHole,
+  holesCompleted,
   scores,
   isLeader,
   leftHandedMode = false,
@@ -181,9 +183,9 @@ export function GameScreen({
     setPendingPar(selectedPar);
     setDrawConfirmTime(Date.now());
     setShowDrawDialog(false);
-    // Show table setup dialog (except for first hole where table isn't set up yet)
-    if (currentHole === 1) {
-      // First hole - apply par immediately without table setup confirmation
+    // Show table setup dialog (except for the very first hole of the game)
+    if (holesCompleted === 0) {
+      // First hole of game - apply par immediately without table setup confirmation
       onSetParForAll(selectedPar);
       setPar(selectedPar);
     } else {
@@ -219,7 +221,7 @@ export function GameScreen({
   });
 
   const canAdvance = par > 0 && strokes > 0 && allPlayersHaveScores;
-  const isLastHole = currentHole >= MAX_HOLES;
+  const isLastHole = holesCompleted >= MAX_HOLES - 1;
   const isLastPlayer = players.indexOf(currentPlayer) === players.length - 1;
   const isFinishingGame = isLastHole && isLastPlayer && allPlayersHaveScores;
 
@@ -291,7 +293,10 @@ export function GameScreen({
 
       {/* Hole & Shooters Remaining */}
       <div className="flex justify-between items-center mb-3">
-        <div className="text-lg font-bold" data-testid="text-hole">Hole {currentHole}</div>
+        <div className="flex items-baseline gap-2">
+          <div className="text-lg font-bold" data-testid="text-hole">Hole {currentHole}</div>
+          <div className="text-sm text-muted-foreground" data-testid="text-holes-progress">{holesCompleted}/{MAX_HOLES} played</div>
+        </div>
         <div className="text-sm text-muted-foreground" data-testid="text-shooters-remaining">{shooterInfo}</div>
       </div>
 
@@ -425,7 +430,7 @@ export function GameScreen({
       {showDrawDialog && (
         <DrawDialog
           onSelectPar={handleDrawPar}
-          isFirstDraw={currentHole === 1}
+          isFirstDraw={holesCompleted === 0}
           isTournament={tournament.isConnected}
         />
       )}

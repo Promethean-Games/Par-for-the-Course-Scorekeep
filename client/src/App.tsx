@@ -121,8 +121,8 @@ function GameApp() {
     setShowSaveLoad("load");
   };
 
-  const handleStartGame = () => {
-    game.startGame();
+  const handleStartGame = (startingHole: number = 1) => {
+    game.startGame(startingHole);
     setScreen("game");
   };
 
@@ -136,6 +136,19 @@ function GameApp() {
     } catch (err) {
       console.log("No existing scores to restore or error fetching:", err);
     }
+
+    // Fetch group starting holes from server
+    let startingHole = 1;
+    try {
+      const groupName = tournament.myPlayers[0]?.groupName;
+      if (groupName) {
+        const res = await apiRequest("GET", `/api/tournaments/${tournament.roomCode}/group-starting-holes`);
+        const data = await res.json();
+        startingHole = data[groupName] ?? 1;
+      }
+    } catch (err) {
+      console.log("Could not fetch group starting holes:", err);
+    }
     
     // Reset local game and populate with tournament players
     game.resetGame();
@@ -145,7 +158,7 @@ function GameApp() {
       game.addPlayer(tp.playerName, idx);
     });
     
-    game.startGame();
+    game.startGame(startingHole);
     
     // Use a small delay to ensure state is updated, then restore scores
     setTimeout(() => {
@@ -263,6 +276,7 @@ function GameApp() {
           players={game.players}
           currentPlayer={currentPlayer}
           currentHole={game.currentHole}
+          holesCompleted={game.holesCompleted}
           scores={game.scores}
           isLeader={playerIsLeader}
           leftHandedMode={game.settings.leftHandedMode}

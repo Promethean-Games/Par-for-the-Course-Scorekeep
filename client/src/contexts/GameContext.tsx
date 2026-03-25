@@ -6,6 +6,8 @@ interface GameState {
   players: Player[];
   currentHole: number;
   currentPlayerIndex: number;
+  holesCompleted: number;
+  startingHole: number;
   scores: Record<string, HoleScore[]>;
   isComplete: boolean;
   settings: Settings;
@@ -17,7 +19,7 @@ interface GameContextValue extends GameState {
   updatePlayerName: (id: string, name: string) => void;
   updatePlayerColor: (id: string, color: string) => void;
   movePlayer: (id: string, direction: "up" | "down") => void;
-  startGame: () => void;
+  startGame: (startingHole?: number) => void;
   updateScore: (playerId: string, hole: number, score: Partial<HoleScore>) => void;
   nextCard: () => void;
   previousPlayer: () => void;
@@ -49,7 +51,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem("currentGame");
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          ...parsed,
+          holesCompleted: parsed.holesCompleted ?? 0,
+          startingHole: parsed.startingHole ?? 1,
+        };
       } catch {
         // Fallback to default
       }
@@ -58,6 +65,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       players: [],
       currentHole: 1,
       currentPlayerIndex: 0,
+      holesCompleted: 0,
+      startingHole: 1,
       scores: {},
       isComplete: false,
       settings: {
@@ -176,17 +185,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const startGame = () => {
+  const startGame = (startingHole: number = 1) => {
     setGameState((prev) => ({
       ...prev,
-      currentHole: 1,
+      currentHole: startingHole,
       currentPlayerIndex: 0,
+      holesCompleted: 0,
+      startingHole,
       isComplete: false,
     }));
   };
 
   const updateScore = (playerId: string, hole: number, scoreUpdate: Partial<HoleScore>) => {
-    if (hole > MAX_HOLES) return;
     saveHistory(gameState);
     setGameState((prev) => {
       const playerScores = prev.scores[playerId] || [];
@@ -241,29 +251,34 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setGameState((prev) => {
       const nextPlayerIndex = (prev.currentPlayerIndex + 1) % prev.players.length;
       const wouldAdvanceHole = nextPlayerIndex === 0;
-      const nextHole = wouldAdvanceHole ? prev.currentHole + 1 : prev.currentHole;
-      
-      if (wouldAdvanceHole && prev.currentHole >= MAX_HOLES) {
-        return {
-          ...prev,
-          isComplete: true,
-        };
-      }
-      
+
       if (wouldAdvanceHole) {
+        const newHolesCompleted = prev.holesCompleted + 1;
+
+        // Game complete after MAX_HOLES total holes played
+        if (newHolesCompleted >= MAX_HOLES) {
+          return {
+            ...prev,
+            holesCompleted: newHolesCompleted,
+            isComplete: true,
+          };
+        }
+
+        // Wrap: hole 18 → hole 1, etc.
+        const nextHole = (prev.currentHole % MAX_HOLES) + 1;
         const sortedPlayers = sortPlayersByPreviousHole(prev.players, prev.scores, prev.currentHole);
         return {
           ...prev,
           players: sortedPlayers,
           currentPlayerIndex: 0,
           currentHole: nextHole,
+          holesCompleted: newHolesCompleted,
         };
       }
-      
+
       return {
         ...prev,
         currentPlayerIndex: nextPlayerIndex,
-        currentHole: nextHole,
       };
     });
   };
@@ -295,6 +310,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       players: [],
       currentHole: 1,
       currentPlayerIndex: 0,
+      holesCompleted: 0,
+      startingHole: 1,
       scores: {},
       isComplete: false,
       settings: gameState.settings,
@@ -320,6 +337,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         players: games[slot].players,
         currentHole: games[slot].currentHole,
         currentPlayerIndex: games[slot].currentPlayerIndex,
+        holesCompleted: games[slot].holesCompleted ?? 0,
+        startingHole: games[slot].startingHole ?? 1,
         scores: games[slot].scores,
         isComplete: games[slot].isComplete,
         settings: games[slot].settings || gameState.settings,

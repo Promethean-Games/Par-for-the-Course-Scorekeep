@@ -11,6 +11,9 @@ const SALT_ROUNDS = 10;
 
 const playerSessions = new Map<string, { playerCode: string; createdAt: number }>();
 
+// In-memory store for group starting holes: roomCode -> { groupName -> startingHole }
+const groupStartingHoles = new Map<string, Record<string, number>>();
+
 function createPlayerSession(playerCode: string): string {
   const token = crypto.randomBytes(32).toString("hex");
   playerSessions.set(token, { playerCode, createdAt: Date.now() });
@@ -1101,6 +1104,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting device scores:", error);
       res.status(500).json({ error: "Failed to get scores" });
+    }
+  });
+
+  // GET group starting holes for a tournament
+  app.get("/api/tournaments/:roomCode/group-starting-holes", async (req, res) => {
+    const holes = groupStartingHoles.get(req.params.roomCode) || {};
+    res.json(holes);
+  });
+
+  // PUT group starting holes (director only)
+  app.put("/api/tournaments/:roomCode/group-starting-holes", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+      const { directorPin, holes } = req.body;
+      const masterPin = process.env.MASTER_DIRECTOR_PIN || "3141";
+      const isValid = directorPin === masterPin || await storage.verifyDirectorPin(req.params.roomCode, directorPin);
+      if (!isValid) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+      if (typeof holes !== "object" || holes === null || Array.isArray(holes)) {
+        return res.status(400).json({ error: "holes must be an object" });
+      }
+      groupStartingHoles.set(req.params.roomCode, holes as Record<string, number>);
+      res.json({ ok: true, holes });
+    } catch (error) {
+      console.error("Error setting group starting holes:", error);
+      res.status(500).json({ error: "Failed to set group starting holes" });
     }
   });
 
