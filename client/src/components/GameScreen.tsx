@@ -431,6 +431,7 @@ export function GameScreen({
         <DrawDialog
           onSelectPar={handleDrawPar}
           onSelectStartingHole={game.updateStartingHole}
+          currentHole={currentHole}
           isFirstDraw={holesCompleted === 0}
           isTournament={tournament.isConnected}
         />
