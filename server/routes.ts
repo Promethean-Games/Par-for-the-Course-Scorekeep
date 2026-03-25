@@ -836,14 +836,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let playersImported = 0;
+      let playersSkipped = 0;
       let historyImported = 0;
       let tournamentsImported = 0;
+      const errors: string[] = [];
 
       for (const entry of data.universalPlayers) {
-        const p = entry.player;
-        const existing = p.uniqueCode ? await storage.getUniversalPlayerByCode(p.uniqueCode) : null;
-        
-        if (!existing) {
+        try {
+          const p = entry.player;
+          if (!p?.name) { errors.push(`Skipped player with missing name`); continue; }
+          const existing = p.uniqueCode ? await storage.getUniversalPlayerByCode(p.uniqueCode) : null;
+
+          if (existing) {
+            playersSkipped++;
+            continue;
+          }
+
           const uniqueCode = p.uniqueCode || await storage.getNextUniqueCode();
           const newPlayer = await storage.createUniversalPlayer({
             name: p.name,
@@ -859,97 +867,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           if (entry.history && Array.isArray(entry.history)) {
             for (const h of entry.history) {
-              const computedRelativeToPar = (h.totalStrokes ?? 0) - (h.totalPar ?? 0);
-              await storage.addTournamentHistory({
-                universalPlayerId: newPlayer.id,
-                tournamentId: null, // IDs differ across databases; name is preserved
-                tournamentName: h.tournamentName,
-                courseName: h.courseName || null,
-                totalStrokes: h.totalStrokes,
-                totalPar: h.totalPar,
-                holesPlayed: h.holesPlayed,
-                relativeToPar: computedRelativeToPar,
-                totalScratches: h.totalScratches ?? 0,
-                totalPenalties: h.totalPenalties ?? 0,
-                isManualEntry: h.isManualEntry ?? true,
-              });
-              historyImported++;
+              try {
+                const totalStrokes = h.totalStrokes ?? 0;
+                const totalPar = h.totalPar ?? 0;
+                await storage.addTournamentHistory({
+                  universalPlayerId: newPlayer.id,
+                  tournamentId: null, // IDs differ across databases; name is preserved
+                  tournamentName: h.tournamentName || "Unknown Tournament",
+                  courseName: h.courseName || null,
+                  totalStrokes,
+                  totalPar,
+                  holesPlayed: h.holesPlayed ?? 0,
+                  relativeToPar: totalStrokes - totalPar,
+                  totalScratches: h.totalScratches ?? 0,
+                  totalPenalties: h.totalPenalties ?? 0,
+                  isManualEntry: h.isManualEntry ?? true,
+                });
+                historyImported++;
+              } catch (hErr: any) {
+                errors.push(`History for ${p.name}: ${hErr?.message || hErr}`);
+              }
             }
           }
           await storage.recalculateHandicap(newPlayer.id);
           playersImported++;
+        } catch (pErr: any) {
+          errors.push(`Player ${entry?.player?.name || "unknown"}: ${pErr?.message || pErr}`);
         }
       }
 
       if (data.tournaments && Array.isArray(data.tournaments)) {
         for (const entry of data.tournaments) {
-          let roomCode = generateRoomCode();
-          let attempts = 0;
-          while (await storage.getTournamentByCode(roomCode) && attempts < 10) {
-            roomCode = generateRoomCode();
-            attempts++;
-          }
-
-          const newTournament = await storage.createTournament({
-            roomCode,
-            name: entry.tournament.name + " (Imported)",
-            directorPin: MASTER_DIRECTOR_PIN,
-            isActive: false,
-            isHandicapped: entry.tournament.isHandicapped ?? false,
-            isStarted: entry.tournament.isStarted ?? false,
-          });
-
-          const playerIdMap: Record<number, number> = {};
-          if (entry.players) {
-            for (const player of entry.players) {
-              // Resolve universalPlayerId by the text code (universalId), not the raw
-              // integer from the source DB which may not exist in this database.
-              let resolvedUniversalPlayerId: number | null = null;
-              if (player.universalId) {
-                const up = await storage.getUniversalPlayerByCode(player.universalId);
-                resolvedUniversalPlayerId = up?.id ?? null;
-              }
-              const newPlayer = await storage.addPlayerToTournament({
-                tournamentId: newTournament.id,
-                playerName: player.playerName,
-                deviceId: null,
-                groupName: player.groupName || null,
-                universalId: player.universalId || null,
-                universalPlayerId: resolvedUniversalPlayerId,
-                contactInfo: player.contactInfo || null,
-              });
-              playerIdMap[player.id] = newPlayer.id;
+          try {
+            let roomCode = generateRoomCode();
+            let attempts = 0;
+            while (await storage.getTournamentByCode(roomCode) && attempts < 10) {
+              roomCode = generateRoomCode();
+              attempts++;
             }
-          }
 
-          if (entry.scores) {
-            for (const score of entry.scores) {
-              const newPlayerId = playerIdMap[score.tournamentPlayerId];
-              if (newPlayerId) {
-                await storage.upsertScore({
-                  tournamentPlayerId: newPlayerId,
-                  hole: score.hole,
-                  par: score.par,
-                  strokes: score.strokes,
-                  scratches: score.scratches ?? 0,
-                  penalties: score.penalties ?? 0,
-                });
+            const newTournament = await storage.createTournament({
+              roomCode,
+              name: entry.tournament.name + " (Imported)",
+              directorPin: MASTER_DIRECTOR_PIN,
+              isActive: false,
+              isHandicapped: entry.tournament.isHandicapped ?? false,
+              isStarted: entry.tournament.isStarted ?? false,
+            });
+
+            const playerIdMap: Record<number, number> = {};
+            if (entry.players) {
+              for (const player of entry.players) {
+                try {
+                  // Resolve universalPlayerId via text code; raw integer IDs differ across DBs
+                  let resolvedUniversalPlayerId: number | null = null;
+                  if (player.universalId) {
+                    const up = await storage.getUniversalPlayerByCode(player.universalId);
+                    resolvedUniversalPlayerId = up?.id ?? null;
+                  }
+                  const newPlayer = await storage.addPlayerToTournament({
+                    tournamentId: newTournament.id,
+                    playerName: player.playerName,
+                    deviceId: null,
+                    groupName: player.groupName || null,
+                    universalId: player.universalId || null,
+                    universalPlayerId: resolvedUniversalPlayerId,
+                    contactInfo: player.contactInfo || null,
+                  });
+                  playerIdMap[player.id] = newPlayer.id;
+                } catch (plErr: any) {
+                  errors.push(`Tournament player ${player.playerName}: ${plErr?.message || plErr}`);
+                }
               }
             }
+
+            if (entry.scores) {
+              for (const score of entry.scores) {
+                try {
+                  const newPlayerId = playerIdMap[score.tournamentPlayerId];
+                  if (newPlayerId) {
+                    await storage.upsertScore({
+                      tournamentPlayerId: newPlayerId,
+                      hole: score.hole,
+                      par: score.par,
+                      strokes: score.strokes,
+                      scratches: score.scratches ?? 0,
+                      penalties: score.penalties ?? 0,
+                    });
+                  }
+                } catch (sErr: any) {
+                  errors.push(`Score hole ${score.hole}: ${sErr?.message || sErr}`);
+                }
+              }
+            }
+            tournamentsImported++;
+          } catch (tErr: any) {
+            errors.push(`Tournament ${entry?.tournament?.name || "unknown"}: ${tErr?.message || tErr}`);
           }
-          tournamentsImported++;
         }
       }
 
       res.json({
         success: true,
         playersImported,
+        playersSkipped,
         historyImported,
         tournamentsImported,
+        errors: errors.length > 0 ? errors : undefined,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error importing full data:", error);
-      res.status(500).json({ error: "Failed to import data" });
+      res.status(500).json({ error: error?.message || "Failed to import data" });
     }
   });
 
