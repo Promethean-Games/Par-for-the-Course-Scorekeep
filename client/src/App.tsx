@@ -274,7 +274,6 @@ function GameApp() {
           canUndo={true}
           onSetParForAll={(par) => game.setParForAllPlayers(game.currentHole, par)}
           onRecordSetupTime={game.recordSetupTime}
-          onHome={() => setScreen("splash")}
         />
       )}
 
@@ -310,6 +309,7 @@ function GameApp() {
           onUpdateSettings={game.updateSettings}
           onAddPlayer={game.addPlayer}
           onEndGame={handleEndGame}
+          onHome={() => setScreen("splash")}
           viewOnly={viewOnly}
           onLogout={() => {
             game.endGame();

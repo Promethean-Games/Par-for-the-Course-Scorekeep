@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Trophy, LogOut, Users, Shield, Bell, User } from "lucide-react";
+import { UserPlus, Trophy, LogOut, Users, Shield, Bell, User, Home } from "lucide-react";
 import { useTournament } from "@/contexts/TournamentContext";
 import { PlayerSelectionDialog } from "./PlayerSelectionDialog";
 import { DirectorPortal } from "./DirectorPortal";
@@ -21,10 +21,11 @@ interface SettingsPanelProps {
   onAddPlayer: (name: string, position?: number) => void;
   onEndGame: () => void;
   onLogout?: () => void;
+  onHome?: () => void;
   viewOnly?: boolean;
 }
 
-export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer, onEndGame, onLogout, viewOnly = false }: SettingsPanelProps) {
+export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer, onEndGame, onLogout, onHome, viewOnly = false }: SettingsPanelProps) {
   const [newPlayerName, setNewPlayerName] = useState("");
   const [insertPosition, setInsertPosition] = useState<string>("end");
   const [roomCodeInput, setRoomCodeInput] = useState("");
@@ -491,7 +492,18 @@ export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer
             <p className="text-xs text-muted-foreground">Version 2.1.0</p>
           </Card>
 
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
+            {onHome && (
+              <Button
+                variant="outline"
+                className="w-full h-12"
+                onClick={onHome}
+                data-testid="button-home"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Home
+              </Button>
+            )}
             {tournament.roomCode ? (
               <Button
                 variant="destructive"
