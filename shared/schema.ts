@@ -202,6 +202,8 @@ export const gameSessionSchema = z.object({
   players: z.array(playerSchema),
   currentHole: z.number(),
   currentPlayerIndex: z.number(),
+  holesCompleted: z.number().default(0),
+  startingHole: z.number().default(1),
   scores: z.record(z.string(), z.array(holeScoreSchema)),
   isComplete: z.boolean(),
   createdAt: z.string(),

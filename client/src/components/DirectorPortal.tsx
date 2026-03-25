@@ -194,8 +194,9 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
     setGroupStartingHoles(updated);
     setIsSavingStartingHoles(true);
     try {
+      const directorPin = localStorage.getItem("directorPin") || "3141";
       await apiRequest("PUT", `/api/tournaments/${tournament.roomCode}/group-starting-holes`, {
-        directorPin: "3141",
+        directorPin,
         holes: updated,
       });
     } catch (e) {
