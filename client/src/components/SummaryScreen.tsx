@@ -148,10 +148,19 @@ export function SummaryScreen({ players, scores, onNewGame, onSubmitToSheets, is
           </Card>
 
           <Card className="p-4 mb-6 flex-1 overflow-auto">
-            <h3 className="font-bold mb-3 flex items-center gap-2">
-              <Trophy className="w-4 h-4" />
-              Live Leaderboard
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold flex items-center gap-2">
+                <Trophy className="w-4 h-4" />
+                Live Leaderboard
+              </h3>
+            </div>
+            {(() => {
+              const holes = tournament.leaderboard.map(e => e.holesCompleted);
+              const hasVariation = holes.length > 0 && Math.max(...holes) !== Math.min(...holes);
+              return hasVariation ? (
+                <p className="text-xs text-muted-foreground mb-2">Groups are on different holes — standings are live</p>
+              ) : null;
+            })()}
             <div className="space-y-2">
               {tournament.leaderboard.map((entry, index) => {
                 const isMyPlayer = tournament.myPlayers.some(p => p.id === entry.playerId);

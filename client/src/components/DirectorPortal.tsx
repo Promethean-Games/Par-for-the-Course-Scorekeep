@@ -760,19 +760,29 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
         <div>
           {tournament.leaderboard.length === 0 ? (
             <p className="text-center text-muted-foreground py-12">No scores yet</p>
-          ) : tournament.leaderboard.map((entry, index) => (
-            <div key={entry.playerId} className="flex items-center gap-3 px-4 py-3 border-b last:border-0">
-              <span className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
-                index === 0 ? "bg-yellow-500 text-yellow-950" :
-                index === 1 ? "bg-gray-300 text-gray-700" :
-                index === 2 ? "bg-amber-600 text-amber-50" : "bg-muted text-muted-foreground"
-              }`}>{index + 1}</span>
-              <span className="flex-1 truncate">{entry.playerName}</span>
-              <span className="font-mono font-bold shrink-0">
-                {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
-              </span>
-            </div>
-          ))}
+          ) : (
+            <>
+              {leadingHole !== laggingHole && (
+                <p className="text-xs text-muted-foreground text-center py-2 px-4 border-b">
+                  Groups are on different holes — standings are live
+                </p>
+              )}
+              {tournament.leaderboard.map((entry, index) => (
+                <div key={entry.playerId} className="flex items-center gap-3 px-4 py-3 border-b last:border-0">
+                  <span className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
+                    index === 0 ? "bg-yellow-500 text-yellow-950" :
+                    index === 1 ? "bg-gray-300 text-gray-700" :
+                    index === 2 ? "bg-amber-600 text-amber-50" : "bg-muted text-muted-foreground"
+                  }`}>{index + 1}</span>
+                  <span className="flex-1 truncate">{entry.playerName}</span>
+                  <span className="text-xs text-muted-foreground shrink-0">{entry.holesCompleted}/18</span>
+                  <span className="font-mono font-bold shrink-0 w-10 text-right">
+                    {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
+                  </span>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       );
       case "groups": return (
@@ -1223,19 +1233,27 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
                 <div className="flex-1 overflow-y-auto">
                   {tournament.leaderboard.length === 0 ? (
                     <p className="text-center opacity-40 py-4 text-sm">No scores yet</p>
-                  ) : tournament.leaderboard.map((entry, index) => (
-                    <div key={entry.playerId} className="flex items-center gap-2 px-2 py-1.5 border-b last:border-0">
-                      <span className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
-                        index === 0 ? "bg-yellow-500 text-yellow-950" :
-                        index === 1 ? "bg-gray-300 text-gray-700" :
-                        index === 2 ? "bg-amber-600 text-amber-50" : "bg-muted text-muted-foreground"
-                      }`}>{index + 1}</span>
-                      <span className="flex-1 text-sm truncate">{entry.playerName}</span>
-                      <span className="font-mono text-sm font-bold shrink-0">
-                        {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
-                      </span>
-                    </div>
-                  ))}
+                  ) : (
+                    <>
+                      {leadingHole !== laggingHole && (
+                        <p className="text-xs opacity-50 text-center py-1 border-b">Groups on different holes — standings are live</p>
+                      )}
+                      {tournament.leaderboard.map((entry, index) => (
+                        <div key={entry.playerId} className="flex items-center gap-2 px-2 py-1.5 border-b last:border-0">
+                          <span className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-xs font-bold ${
+                            index === 0 ? "bg-yellow-500 text-yellow-950" :
+                            index === 1 ? "bg-gray-300 text-gray-700" :
+                            index === 2 ? "bg-amber-600 text-amber-50" : "bg-muted text-muted-foreground"
+                          }`}>{index + 1}</span>
+                          <span className="flex-1 text-sm truncate">{entry.playerName}</span>
+                          <span className="text-xs opacity-40 shrink-0">{entry.holesCompleted}/18</span>
+                          <span className="font-mono text-sm font-bold shrink-0 w-8 text-right">
+                            {entry.relativeToPar === 0 ? "E" : entry.relativeToPar > 0 ? `+${entry.relativeToPar}` : entry.relativeToPar}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  )}
                 </div>
               </Card>
             </div>

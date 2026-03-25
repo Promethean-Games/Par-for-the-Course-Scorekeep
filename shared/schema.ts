@@ -66,6 +66,7 @@ export const tournaments = pgTable("tournaments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
+  groupStartingHoles: jsonb("group_starting_holes").$type<Record<string, number>>(),
 });
 
 export const tournamentsRelations = relations(tournaments, ({ many }) => ({

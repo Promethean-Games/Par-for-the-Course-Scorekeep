@@ -47,6 +47,8 @@ export interface IStorage {
   deleteTournament(id: number): Promise<void>;
   verifyDirectorPin(roomCode: string, pin: string): Promise<boolean>;
   getTournamentBackup(tournamentId: number): Promise<{ tournament: Tournament; players: TournamentPlayer[]; scores: TournamentScore[] }>;
+  setTournamentStartingHoles(roomCode: string, holes: Record<string, number>): Promise<void>;
+  getTournamentStartingHoles(roomCode: string): Promise<Record<string, number>>;
 
   // Tournament player operations
   addPlayerToTournament(player: InsertTournamentPlayer): Promise<TournamentPlayer>;
@@ -257,6 +259,17 @@ export class DatabaseStorage implements IStorage {
       scores.push(...playerScores);
     }
     return { tournament, players, scores };
+  }
+
+  async setTournamentStartingHoles(roomCode: string, holes: Record<string, number>): Promise<void> {
+    await db.update(tournaments)
+      .set({ groupStartingHoles: holes })
+      .where(eq(tournaments.roomCode, roomCode));
+  }
+
+  async getTournamentStartingHoles(roomCode: string): Promise<Record<string, number>> {
+    const tournament = await this.getTournamentByCode(roomCode);
+    return (tournament?.groupStartingHoles as Record<string, number>) || {};
   }
 
   async addPlayerToTournament(player: InsertTournamentPlayer): Promise<TournamentPlayer> {
