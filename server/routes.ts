@@ -793,7 +793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const computedRelativeToPar = (h.totalStrokes ?? 0) - (h.totalPar ?? 0);
             await storage.addTournamentHistory({
               universalPlayerId: newPlayer.id,
-              tournamentId: h.tournamentId ?? null,
+              tournamentId: null, // IDs differ across databases; name is preserved
               tournamentName: h.tournamentName,
               courseName: h.courseName || null,
               totalStrokes: h.totalStrokes,
@@ -862,7 +862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const computedRelativeToPar = (h.totalStrokes ?? 0) - (h.totalPar ?? 0);
               await storage.addTournamentHistory({
                 universalPlayerId: newPlayer.id,
-                tournamentId: h.tournamentId ?? null,
+                tournamentId: null, // IDs differ across databases; name is preserved
                 tournamentName: h.tournamentName,
                 courseName: h.courseName || null,
                 totalStrokes: h.totalStrokes,
@@ -902,13 +902,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const playerIdMap: Record<number, number> = {};
           if (entry.players) {
             for (const player of entry.players) {
+              // Resolve universalPlayerId by the text code (universalId), not the raw
+              // integer from the source DB which may not exist in this database.
+              let resolvedUniversalPlayerId: number | null = null;
+              if (player.universalId) {
+                const up = await storage.getUniversalPlayerByCode(player.universalId);
+                resolvedUniversalPlayerId = up?.id ?? null;
+              }
               const newPlayer = await storage.addPlayerToTournament({
                 tournamentId: newTournament.id,
                 playerName: player.playerName,
                 deviceId: null,
                 groupName: player.groupName || null,
                 universalId: player.universalId || null,
-                universalPlayerId: player.universalPlayerId || null,
+                universalPlayerId: resolvedUniversalPlayerId,
                 contactInfo: player.contactInfo || null,
               });
               playerIdMap[player.id] = newPlayer.id;
