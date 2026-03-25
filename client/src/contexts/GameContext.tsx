@@ -21,6 +21,7 @@ interface GameContextValue extends GameState {
   movePlayer: (id: string, direction: "up" | "down") => void;
   startGame: (startingHole?: number) => void;
   updateScore: (playerId: string, hole: number, score: Partial<HoleScore>) => void;
+  updateStartingHole: (hole: number) => void;
   nextCard: () => void;
   previousPlayer: () => void;
   nextPlayer: () => void;
@@ -194,6 +195,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       startingHole,
       isComplete: false,
     }));
+  };
+
+  const updateStartingHole = (hole: number) => {
+    setGameState((prev) => ({ ...prev, currentHole: hole, startingHole: hole }));
   };
 
   const updateScore = (playerId: string, hole: number, scoreUpdate: Partial<HoleScore>) => {
@@ -428,6 +433,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         movePlayer,
         startGame,
         updateScore,
+        updateStartingHole,
         nextCard,
         previousPlayer,
         nextPlayer,
