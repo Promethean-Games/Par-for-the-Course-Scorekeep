@@ -438,60 +438,6 @@ export function SettingsPanel({ settings, players, onUpdateSettings, onAddPlayer
             </Card>
           )}
 
-          {!viewOnly && (
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <User className="w-4 h-4" />
-                My Profile
-              </h3>
-              {loggedInPlayer ? (
-                <div className="space-y-2">
-                  <p className="text-sm">
-                    Signed in as <span className="font-semibold">{loggedInPlayer.name}</span>
-                    <span className="text-muted-foreground ml-1">({loggedInPlayer.uniqueCode})</span>
-                  </p>
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      onClick={() => setShowProfile(true)}
-                      data-testid="button-view-profile"
-                    >
-                      View Profile
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={handlePlayerLogout}
-                      data-testid="button-player-signout"
-                    >
-                      Sign Out
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Sign in with your player code to view your stats and handicap.
-                  </p>
-                  <Button
-                    className="w-full"
-                    variant="outline"
-                    onClick={() => setShowPlayerLogin(true)}
-                    data-testid="button-player-signin"
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    Player Sign In
-                  </Button>
-                </div>
-              )}
-            </Card>
-          )}
-
-          <Card className="p-4">
-            <h3 className="font-semibold mb-3">About</h3>
-            <p className="text-sm text-muted-foreground mb-2">Par for the Course</p>
-            <p className="text-xs text-muted-foreground">Version 2.1.0</p>
-          </Card>
-
           <div className="pt-4 space-y-3">
             {onHome && (
               <Button
