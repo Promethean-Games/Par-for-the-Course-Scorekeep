@@ -25,7 +25,10 @@ import {
   Wand2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   UserPlus,
+  Bug,
   AlertCircle,
   Play,
   Search,
@@ -163,6 +166,16 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
   }, [tournament.tournamentInfo?.startedAt, tournament.tournamentInfo?.completedAt]);
   const [leaderboardSortAsc, setLeaderboardSortAsc] = useState(true);
   const [universalPlayersMap, setUniversalPlayersMap] = useState<Map<number, UniversalPlayer>>(new Map());
+
+  // Mobile carousel state
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
+  const [mobileCardIndex, setMobileCardIndex] = useState(0);
+  const touchStartX = useRef<number>(0);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
 
   const handleSearchUniversalPlayers = async (query: string) => {
     setUniversalSearchQuery(query);

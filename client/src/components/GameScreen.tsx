@@ -49,7 +49,6 @@ export function GameScreen({
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [pendingPar, setPendingPar] = useState<number | null>(null);
   const [drawConfirmTime, setDrawConfirmTime] = useState<number | null>(null);
-  const [lastHole, setLastHole] = useState(currentHole);
   const isInitialMount = useRef(true);
   const lastPlayerId = useRef(currentPlayer.id);
   const tournament = useTournament();
@@ -98,24 +97,19 @@ export function GameScreen({
   const [scratches, setScratches] = useState(currentScore.scratches || 0);
   const [penalties, setPenalties] = useState(currentScore.penalties || 0);
 
-  // Show DRAW dialog when hole changes
+  // Show DRAW dialog whenever the current hole has no par set.
+  // Fires on: initial mount, every hole change, and every player change.
+  // par is shared across all players via onSetParForAll, so checking the
+  // current player's score is a reliable proxy for whether par was drawn.
+  // scores is intentionally omitted from deps: we only want this to fire
+  // on hole/player transitions, not on every individual score keystroke.
   useEffect(() => {
-    if (currentHole !== lastHole) {
-      setLastHole(currentHole);
-      // Check if par is already set for this hole
-      const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
-      if (!existingPar || existingPar === 0) {
-        setShowDrawDialog(true);
-      }
-    }
-  }, [currentHole, lastHole, scores, currentPlayer.id]);
-
-  // Show DRAW dialog on initial load if no par set
-  useEffect(() => {
-    if (currentScore.par === 0) {
+    const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
+    if (!existingPar || existingPar === 0) {
       setShowDrawDialog(true);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentHole, currentPlayer.id]);
 
   useEffect(() => {
     // Track player changes to avoid updating score during player switch
