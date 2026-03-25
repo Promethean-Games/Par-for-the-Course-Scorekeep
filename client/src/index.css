@@ -349,3 +349,16 @@
     flex-direction: row-reverse;
   }
 }
+
+@keyframes par-pulse {
+  0%   { opacity: 0; transform: scale(0.7); }
+  15%  { opacity: 1; transform: scale(1.08); }
+  35%  { opacity: 1; transform: scale(0.96); }
+  55%  { opacity: 1; transform: scale(1.03); }
+  75%  { opacity: 0.85; transform: scale(0.99); }
+  100% { opacity: 0; transform: scale(0.95); }
+}
+
+.par-overlay-anim {
+  animation: par-pulse 2s ease-in-out forwards;
+}

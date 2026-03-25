@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
 import type { Player, HoleScore, SetupTime } from "@shared/schema";
-import { PAR_OPTIONS, LEADER_ICON_URL, MAX_HOLES } from "@/lib/constants";
+import { HOLE_PARS, LEADER_ICON_URL, MAX_HOLES } from "@/lib/constants";
 import { getScoreCallout } from "@/lib/game-utils";
 import { cn } from "@/lib/utils";
 import { DrawDialog } from "./DrawDialog";
@@ -51,6 +50,7 @@ export function GameScreen({
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
   const [pendingPar, setPendingPar] = useState<number | null>(null);
   const [drawConfirmTime, setDrawConfirmTime] = useState<number | null>(null);
+  const [parOverlay, setParOverlay] = useState<number | null>(null);
   const isInitialMount = useRef(true);
   const lastPlayerId = useRef(currentPlayer.id);
   const tournament = useTournament();
@@ -108,7 +108,23 @@ export function GameScreen({
   useEffect(() => {
     const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
     if (!existingPar || existingPar === 0) {
-      setShowDrawDialog(true);
+      if (holesCompleted === 0 && !tournament.isConnected) {
+        // First local draw — show hole selection dialog
+        setShowDrawDialog(true);
+      } else {
+        // Auto-assign par from fixed table, show overlay
+        const autoPar = HOLE_PARS[currentHole - 1];
+        setPendingPar(autoPar);
+        setDrawConfirmTime(Date.now());
+        setParOverlay(autoPar);
+        setTimeout(() => setParOverlay(null), 2000);
+        if (holesCompleted === 0) {
+          onSetParForAll(autoPar);
+          setPar(autoPar);
+        } else {
+          setShowTableSetupDialog(true);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentHole, currentPlayer.id]);
@@ -179,17 +195,16 @@ export function GameScreen({
   };
 
   const handleDrawPar = (selectedPar: number) => {
-    // Store the selected par and start timing
     setPendingPar(selectedPar);
     setDrawConfirmTime(Date.now());
     setShowDrawDialog(false);
-    // Show table setup dialog (except for the very first hole of the game)
+    // Show the par overlay for 2 seconds
+    setParOverlay(selectedPar);
+    setTimeout(() => setParOverlay(null), 2000);
     if (holesCompleted === 0) {
-      // First hole of game - apply par immediately without table setup confirmation
       onSetParForAll(selectedPar);
       setPar(selectedPar);
     } else {
-      // Subsequent holes - show table setup confirmation
       setShowTableSetupDialog(true);
     }
   };
@@ -300,41 +315,23 @@ export function GameScreen({
         <div className="text-sm text-muted-foreground" data-testid="text-shooters-remaining">{shooterInfo}</div>
       </div>
 
-      {/* Par Selection */}
-      {par === 0 ? (
-        <button
-          className="w-full mb-3 p-4 rounded-md border-2 border-dashed border-primary text-center"
-          onClick={() => setShowDrawDialog(true)}
-          data-testid="button-set-par-banner"
-        >
-          <span className="text-lg font-bold text-primary">Tap to Set Par</span>
-          <span className="block text-sm text-muted-foreground mt-1">Par must be set before scoring</span>
-        </button>
-      ) : (
-        <div className={cn("flex items-center gap-3 mb-3", leftHandedMode && "flex-row-reverse")}>
-          <label htmlFor="par-select" className="text-base font-medium">Par:</label>
-          <Select value={par.toString()} onValueChange={(v) => setPar(parseInt(v))}>
-            <SelectTrigger className="w-32 h-11" id="par-select" data-testid="select-par">
-              <SelectValue placeholder="--" />
-            </SelectTrigger>
-            <SelectContent>
-              {(tournament.isConnected ? [1, 2, 3, 4] : PAR_OPTIONS).map((p) => (
-                <SelectItem key={p} value={p.toString()}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {strokes >= par + 5 && (
-            <Button
-              variant="outline"
-              onClick={handleMercy}
-              className="h-11 px-4"
-              data-testid="button-mercy"
-            >
-              Mercy (+5)
-            </Button>
-          )}
-        </div>
-      )}
+      {/* Par display */}
+      <div className={cn("flex items-center gap-3 mb-3", leftHandedMode && "flex-row-reverse")}>
+        <span className="text-base font-medium">Par:</span>
+        <span className="text-base font-bold w-32 h-11 flex items-center px-3 rounded-md bg-muted" data-testid="text-par-display">
+          {par > 0 ? par : HOLE_PARS[currentHole - 1]}
+        </span>
+        {strokes >= (par || HOLE_PARS[currentHole - 1]) + 5 && (
+          <Button
+            variant="outline"
+            onClick={handleMercy}
+            className="h-11 px-4"
+            data-testid="button-mercy"
+          >
+            Mercy (+5)
+          </Button>
+        )}
+      </div>
 
       {/* Scratch & Penalty */}
       <div className={cn("flex gap-3 mb-4", leftHandedMode && "flex-row-reverse")}>
@@ -421,9 +418,6 @@ export function GameScreen({
           >
             {isFinishingGame ? "Finish Game" : "Next Card"}
           </Button>
-          {!canAdvance && par === 0 && (
-            <span className="text-xs text-center text-destructive" data-testid="text-par-required">Set par to continue</span>
-          )}
         </div>
       </div>
 
@@ -431,10 +425,28 @@ export function GameScreen({
         <DrawDialog
           onSelectPar={handleDrawPar}
           onSelectStartingHole={game.updateStartingHole}
-          currentHole={currentHole}
-          isFirstDraw={holesCompleted === 0}
-          isTournament={tournament.isConnected}
         />
+      )}
+
+      {parOverlay !== null && (
+        <div className="fixed inset-0 bg-background/90 z-50 flex flex-col items-center justify-center pointer-events-none">
+          <div className="par-overlay-anim text-center">
+            <div
+              className="font-bold tracking-widest text-muted-foreground uppercase"
+              style={{ fontSize: "2rem", fontFamily: "'Architects Daughter', cursive" }}
+              data-testid="text-par-overlay-label"
+            >
+              Par
+            </div>
+            <div
+              className="font-extrabold leading-none text-foreground"
+              style={{ fontSize: "14rem", fontFamily: "'Architects Daughter', cursive", lineHeight: 1 }}
+              data-testid="text-par-overlay-number"
+            >
+              {parOverlay}
+            </div>
+          </div>
+        </div>
       )}
 
       {showTableSetupDialog && pendingPar !== null && (
