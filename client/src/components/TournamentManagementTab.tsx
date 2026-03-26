@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,6 +66,8 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const { toast } = useToast();
+  const importFullRef = useRef<HTMLInputElement>(null);
+  const importTournamentRef = useRef<HTMLInputElement>(null);
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -208,39 +210,39 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   };
 
   const handleImportTournament = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      setIsImporting(true);
-      try {
-        const text = await file.text();
-        const backup = JSON.parse(text);
-        const response = await fetch("/api/tournaments/import", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ directorPin, backup }),
+    importTournamentRef.current?.click();
+  };
+
+  const onImportTournamentFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const backup = JSON.parse(text);
+      const response = await fetch("/api/tournaments/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directorPin, backup }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        toast({ 
+          title: "Tournament Imported", 
+          description: `${result.playersImported} players, ${result.scoresImported} scores imported` 
         });
-        if (response.ok) {
-          const result = await response.json();
-          toast({ 
-            title: "Tournament Imported", 
-            description: `${result.playersImported} players, ${result.scoresImported} scores imported` 
-          });
-          await fetchTournaments();
-        } else {
-          const err = await response.json();
-          toast({ title: "Import Failed", description: err.error || "Invalid file format", variant: "destructive" });
-        }
-      } catch (err) {
-        toast({ title: "Import Failed", description: "Could not read the file", variant: "destructive" });
-      } finally {
-        setIsImporting(false);
+        await fetchTournaments();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        toast({ title: "Import Failed", description: err.error || "Server error", variant: "destructive" });
       }
-    };
-    input.click();
+    } catch (err: any) {
+      console.error("Tournament import error:", err);
+      toast({ title: "Import Failed", description: err?.message || "Could not read the file", variant: "destructive" });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const handleExportAll = async () => {
@@ -268,39 +270,51 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   };
 
   const handleImportFull = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      setIsImporting(true);
+    importFullRef.current?.click();
+  };
+
+  const onImportFullFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      let data: any;
       try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        const response = await fetch("/api/import/full", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ directorPin, data }),
-        });
-        if (response.ok) {
-          const result = await response.json();
-          toast({ 
-            title: "Import Complete", 
-            description: `${result.playersImported} players, ${result.historyImported} history entries, ${result.tournamentsImported} tournaments imported` 
-          });
-          await fetchTournaments();
-        } else {
-          const err = await response.json();
-          toast({ title: "Import Failed", description: err.error || "Invalid file format", variant: "destructive" });
-        }
-      } catch (err) {
-        toast({ title: "Import Failed", description: "Could not read the file", variant: "destructive" });
-      } finally {
-        setIsImporting(false);
+        data = JSON.parse(text);
+      } catch {
+        toast({ title: "Import Failed", description: "File is not valid JSON", variant: "destructive" });
+        return;
       }
-    };
-    input.click();
+      const response = await fetch("/api/import/full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directorPin, data }),
+      });
+      if (response.ok) {
+        const result = await response.json();
+        const skipped = result.playersSkipped ? ` (${result.playersSkipped} already existed)` : "";
+        const warnings = result.errors?.length ? ` — ${result.errors.length} warning(s)` : "";
+        toast({ 
+          title: "Import Complete", 
+          description: `${result.playersImported} players${skipped}, ${result.historyImported} history entries, ${result.tournamentsImported} tournaments imported${warnings}` 
+        });
+        if (result.errors?.length) {
+          console.warn("Import warnings:", result.errors);
+        }
+        await fetchTournaments();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error("Import server error:", err);
+        toast({ title: "Import Failed", description: err.error || "Server error", variant: "destructive" });
+      }
+    } catch (err: any) {
+      console.error("Import error:", err);
+      toast({ title: "Import Failed", description: err?.message || "Unknown error", variant: "destructive" });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   const activeTournaments = tournaments.filter(t => t.isActive);
@@ -308,6 +322,20 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
 
   return (
     <div className="flex flex-col p-4 space-y-6">
+      <input
+        ref={importFullRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={onImportFullFile}
+      />
+      <input
+        ref={importTournamentRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={onImportTournamentFile}
+      />
       <div className="flex gap-2">
         <Button 
           onClick={() => setShowCreateDialog(true)}
