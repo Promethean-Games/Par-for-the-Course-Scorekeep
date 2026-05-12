@@ -1574,7 +1574,7 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{entry.playerName}</p>
                         <p className="text-xs opacity-60">
-                          {tp?.universalId || ""}{tp?.universalId ? " • " : ""}{entry.groupName || "No group"} • {entry.holesCompleted} holes
+                          {tp?.universalId || ""}{tp?.universalId ? " • " : ""}{entry.groupName || "No group"} • {entry.holesCompleted}/18 holes
                           {up?.handicap != null ? ` • HC: ${up.handicap}` : ""}
                         </p>
                       </div>
