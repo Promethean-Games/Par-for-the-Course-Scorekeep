@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, Undo2 } from "lucide-react";
 import type { Player, HoleScore, SetupTime } from "@shared/schema";
-import { HOLE_PARS, LEADER_ICON_URL, MAX_HOLES } from "@/lib/constants";
+import { LEADER_ICON_URL, MAX_HOLES } from "@/lib/constants";
 import { getScoreCallout } from "@/lib/game-utils";
 import { cn } from "@/lib/utils";
 import { DrawDialog } from "./DrawDialog";
@@ -299,9 +299,9 @@ export function GameScreen({
       <div className={cn("flex items-center gap-3 mb-3", leftHandedMode && "flex-row-reverse")}>
         <span className="text-base font-medium">Par:</span>
         <span className="text-base font-bold w-32 h-11 flex items-center px-3 rounded-md bg-muted" data-testid="text-par-display">
-          {par > 0 ? par : HOLE_PARS[currentHole - 1]}
+          {par > 0 ? par : "—"}
         </span>
-        {strokes >= (par || HOLE_PARS[currentHole - 1]) + 5 && (
+        {par > 0 && strokes >= par + 5 && (
           <Button
             variant="outline"
             onClick={handleMercy}

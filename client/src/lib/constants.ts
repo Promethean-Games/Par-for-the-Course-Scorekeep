@@ -11,8 +11,6 @@ export const PLAYER_COLORS = [
 
 export const PAR_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 
-// Fixed par per hole (index 0 = hole 1)
-export const HOLE_PARS = [1, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4];
 
 export const MAX_PLAYERS = 8;
 

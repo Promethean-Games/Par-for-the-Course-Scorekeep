@@ -200,7 +200,7 @@ function GameApp() {
       const res = await fetch(`/api/tournaments/${tournament.roomCode}/sponsors`);
       if (res.ok) {
         const data = await res.json();
-        const active = (data.sponsors ?? []).filter((s: any) => s.isActive);
+        const active = (data.sponsors ?? []).filter((s: { isActive: boolean }) => s.isActive);
         if (data.sponsorPagesEnabled && active.length > 0) {
           setPendingSponsorFlow(active);
           return;
