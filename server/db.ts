@@ -85,6 +85,25 @@ export async function initializeDatabase() {
         scratches INTEGER NOT NULL DEFAULT 0,
         penalties INTEGER NOT NULL DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS tournament_sponsors (
+        id SERIAL PRIMARY KEY,
+        tournament_id INTEGER NOT NULL REFERENCES tournaments(id) ON DELETE CASCADE,
+        sponsor_name TEXT NOT NULL,
+        donation_type TEXT,
+        blurb TEXT,
+        logo_url TEXT,
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'sponsor_pages_enabled') THEN
+          ALTER TABLE tournaments ADD COLUMN sponsor_pages_enabled BOOLEAN NOT NULL DEFAULT false;
+        END IF;
+      END $$;
     `);
     
     console.log("Database tables ready!");

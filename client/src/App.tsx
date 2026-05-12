@@ -1,4 +1,4 @@
-import { useState, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
+import { useState, useEffect, Component, type ReactNode, type ErrorInfo, useCallback } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -15,6 +15,7 @@ import { SaveLoadDialog } from "@/components/SaveLoadDialog";
 import { BottomNav } from "@/components/BottomNav";
 import { isLeader } from "@/lib/game-utils";
 import { PushPrompt } from "@/components/PushPrompt";
+import { SponsorCardFlow } from "@/components/SponsorCardFlow";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -93,6 +94,13 @@ function GameApp() {
   const [viewOnly, setViewOnly] = useState(() => {
     return localStorage.getItem("appViewOnly") === "true";
   });
+  const [pendingSponsorFlow, setPendingSponsorFlow] = useState<Array<{
+    id: number;
+    sponsorName: string;
+    donationType: string | null;
+    blurb: string | null;
+    logoUrl: string | null;
+  }> | null>(null);
 
   useEffect(() => {
     localStorage.setItem("appScreen", screen);
@@ -183,6 +191,27 @@ function GameApp() {
     setActiveTab("game");
   };
 
+  const handleBeginPlaying = useCallback(async () => {
+    if (!tournament.roomCode) {
+      await handleStartTournamentGame();
+      return;
+    }
+    try {
+      const res = await fetch(`/api/tournaments/${tournament.roomCode}/sponsors`);
+      if (res.ok) {
+        const data = await res.json();
+        const active = (data.sponsors ?? []).filter((s: any) => s.isActive);
+        if (data.sponsorPagesEnabled && active.length > 0) {
+          setPendingSponsorFlow(active);
+          return;
+        }
+      }
+    } catch {
+      // fall through to start game directly
+    }
+    await handleStartTournamentGame();
+  }, [tournament.roomCode, handleStartTournamentGame]);
+
   const handleViewOnly = () => {
     setViewOnly(true);
     setScreen("game");
@@ -235,7 +264,7 @@ function GameApp() {
         <SplashScreen 
           onNewGame={handleNewGame} 
           onLoadGame={handleLoadGame}
-          onStartTournamentGame={handleStartTournamentGame}
+          onStartTournamentGame={handleBeginPlaying}
           onViewOnly={handleViewOnly}
         />
         {showSaveLoad === "load" && (
@@ -246,6 +275,15 @@ function GameApp() {
             onRename={handleRenameSlot}
             onDelete={handleDeleteSlot}
             onClose={() => setShowSaveLoad(null)}
+          />
+        )}
+        {pendingSponsorFlow && (
+          <SponsorCardFlow
+            sponsors={pendingSponsorFlow}
+            onComplete={() => {
+              setPendingSponsorFlow(null);
+              handleStartTournamentGame();
+            }}
           />
         )}
       </>

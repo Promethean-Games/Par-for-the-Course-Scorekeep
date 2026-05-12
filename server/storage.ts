@@ -6,6 +6,7 @@ import {
   playerTournamentHistory,
   pushSubscriptions,
   tournamentPayouts,
+  tournamentSponsors,
   type Tournament,
   type InsertTournament,
   type TournamentPlayer,
@@ -20,6 +21,8 @@ import {
   type PushSubscription,
   type InsertPushSubscription,
   type TournamentPayout,
+  type TournamentSponsor,
+  type InsertTournamentSponsor,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql, desc, ilike, or } from "drizzle-orm";
@@ -97,6 +100,14 @@ export interface IStorage {
   getSubscriptionsForPlayer(universalPlayerId: number): Promise<PushSubscription[]>;
   getSubscriptionsForDevices(deviceIds: string[], tournamentRoomCode: string): Promise<PushSubscription[]>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
+
+  // Sponsor operations
+  getSponsorsForTournament(tournamentId: number): Promise<TournamentSponsor[]>;
+  createSponsor(data: InsertTournamentSponsor): Promise<TournamentSponsor>;
+  updateSponsor(id: number, data: Partial<Omit<TournamentSponsor, "id" | "createdAt" | "tournamentId">>): Promise<TournamentSponsor>;
+  deleteSponsor(id: number): Promise<void>;
+  reorderSponsors(tournamentId: number, orderedIds: number[]): Promise<void>;
+  setSponsorPagesEnabled(tournamentId: number, enabled: boolean): Promise<void>;
 }
 
 export interface LiveTournamentStat {
@@ -712,6 +723,42 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTournamentPayout(tournamentId: number): Promise<void> {
     await db.delete(tournamentPayouts).where(eq(tournamentPayouts.tournamentId, tournamentId));
+  }
+
+  async getSponsorsForTournament(tournamentId: number): Promise<TournamentSponsor[]> {
+    return db
+      .select()
+      .from(tournamentSponsors)
+      .where(eq(tournamentSponsors.tournamentId, tournamentId))
+      .orderBy(tournamentSponsors.displayOrder, tournamentSponsors.createdAt);
+  }
+
+  async createSponsor(data: InsertTournamentSponsor): Promise<TournamentSponsor> {
+    const existing = await db.select().from(tournamentSponsors).where(eq(tournamentSponsors.tournamentId, data.tournamentId));
+    const maxOrder = existing.length > 0 ? Math.max(...existing.map(s => s.displayOrder)) : -1;
+    const [created] = await db.insert(tournamentSponsors).values({ ...data, displayOrder: maxOrder + 1 }).returning();
+    return created;
+  }
+
+  async updateSponsor(id: number, data: Partial<Omit<TournamentSponsor, "id" | "createdAt" | "tournamentId">>): Promise<TournamentSponsor> {
+    const [updated] = await db.update(tournamentSponsors).set(data).where(eq(tournamentSponsors.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSponsor(id: number): Promise<void> {
+    await db.delete(tournamentSponsors).where(eq(tournamentSponsors.id, id));
+  }
+
+  async reorderSponsors(tournamentId: number, orderedIds: number[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.update(tournamentSponsors).set({ displayOrder: i }).where(
+        and(eq(tournamentSponsors.id, orderedIds[i]), eq(tournamentSponsors.tournamentId, tournamentId))
+      );
+    }
+  }
+
+  async setSponsorPagesEnabled(tournamentId: number, enabled: boolean): Promise<void> {
+    await db.update(tournaments).set({ sponsorPagesEnabled: enabled }).where(eq(tournaments.id, tournamentId));
   }
 }
 

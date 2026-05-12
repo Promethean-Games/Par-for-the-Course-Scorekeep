@@ -42,11 +42,13 @@ import {
   Clock,
   DollarSign,
   GripHorizontal,
+  Megaphone,
 } from "lucide-react";
 import { useTournament } from "@/contexts/TournamentContext";
 import { apiRequest } from "@/lib/queryClient";
 import { NotificationsTab } from "./NotificationsTab";
 import { PayoutCalculator } from "./PayoutCalculator";
+import { SponsorSettingsPanel } from "./SponsorSettingsPanel";
 
 interface UniversalPlayer {
   id: number;
@@ -657,6 +659,7 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
     { id: "addplayer" as const,  label: "Add Player" },
     { id: "players" as const,    label: `Players (${tournament.allPlayers.length})` },
     { id: "payout" as const,     label: "Payout" },
+    { id: "sponsors" as const,   label: "Sponsors" },
   ];
   type MobilePanelId = typeof MOBILE_PANELS[number]["id"];
 
@@ -972,6 +975,18 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
             directorPin={localStorage.getItem("directorPin") || "3141"}
             linkedRoomCode={tournament.roomCode || undefined}
           />
+        </div>
+      );
+      case "sponsors": return (
+        <div className="p-3">
+          {tournament.roomCode ? (
+            <SponsorSettingsPanel
+              roomCode={tournament.roomCode}
+              directorPin={localStorage.getItem("directorPin") || "3141"}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No tournament connected</p>
+          )}
         </div>
       );
       default: return null;
@@ -1483,6 +1498,28 @@ export function DirectorPortal({ onClose }: DirectorPortalProps) {
                     directorPin={localStorage.getItem("directorPin") || "3141"}
                     linkedRoomCode={tournament.roomCode || undefined}
                   />
+                </div>
+              </Card>
+            </div>
+
+            {/* Sponsors Panel */}
+            <div key="sponsors" className="h-full">
+              <Card className="h-full flex flex-col overflow-hidden">
+                <div className="drag-handle flex items-center justify-between px-2 py-1 border-b bg-muted/30 cursor-grab active:cursor-grabbing select-none shrink-0">
+                  <span className="text-xs font-semibold opacity-60 flex items-center gap-1">
+                    <Megaphone className="w-3 h-3" />Sponsors
+                  </span>
+                  <GripHorizontal className="w-3 h-3 opacity-30" />
+                </div>
+                <div className="flex-1 overflow-y-auto p-2">
+                  {tournament.roomCode ? (
+                    <SponsorSettingsPanel
+                      roomCode={tournament.roomCode}
+                      directorPin={localStorage.getItem("directorPin") || "3141"}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-4">No tournament connected</p>
+                  )}
                 </div>
               </Card>
             </div>

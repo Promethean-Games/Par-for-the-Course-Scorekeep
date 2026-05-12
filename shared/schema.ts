@@ -67,10 +67,12 @@ export const tournaments = pgTable("tournaments", {
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   groupStartingHoles: jsonb("group_starting_holes").$type<Record<string, number>>(),
+  sponsorPagesEnabled: boolean("sponsor_pages_enabled").notNull().default(false),
 });
 
 export const tournamentsRelations = relations(tournaments, ({ many }) => ({
   players: many(tournamentPlayers),
+  sponsors: many(tournamentSponsors),
 }));
 
 // Tournament players - players registered to a tournament
@@ -119,6 +121,26 @@ export const tournamentScoresRelations = relations(tournamentScores, ({ one }) =
   }),
 }));
 
+// Tournament sponsors - sponsor cards shown to players on join
+export const tournamentSponsors = pgTable("tournament_sponsors", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").notNull().references(() => tournaments.id, { onDelete: "cascade" }),
+  sponsorName: text("sponsor_name").notNull(),
+  donationType: text("donation_type"), // e.g. "Gold Sponsor", "Hole Sponsor", "Prize Donor"
+  blurb: text("blurb"),
+  logoUrl: text("logo_url"), // base64 data URL or external URL
+  isActive: boolean("is_active").notNull().default(true),
+  displayOrder: integer("display_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const tournamentSponsorsRelations = relations(tournamentSponsors, ({ one }) => ({
+  tournament: one(tournaments, {
+    fields: [tournamentSponsors.tournamentId],
+    references: [tournaments.id],
+  }),
+}));
+
 // Tournament payouts - payout calculations linked to tournaments
 export const tournamentPayouts = pgTable("tournament_payouts", {
   id: serial("id").primaryKey(),
@@ -160,6 +182,7 @@ export const insertTournamentPlayerSchema = createInsertSchema(tournamentPlayers
 export const insertTournamentScoreSchema = createInsertSchema(tournamentScores).omit({ id: true });
 export const insertTournamentPayoutSchema = createInsertSchema(tournamentPayouts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
+export const insertTournamentSponsorSchema = createInsertSchema(tournamentSponsors).omit({ id: true, createdAt: true });
 
 // Types from database
 export type UniversalPlayer = typeof universalPlayers.$inferSelect;
@@ -176,6 +199,8 @@ export type TournamentPayout = typeof tournamentPayouts.$inferSelect;
 export type InsertTournamentPayout = z.infer<typeof insertTournamentPayoutSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type TournamentSponsor = typeof tournamentSponsors.$inferSelect;
+export type InsertTournamentSponsor = z.infer<typeof insertTournamentSponsorSchema>;
 
 // Zod schemas for local game state (not stored in DB - kept in localStorage)
 export const playerSchema = z.object({

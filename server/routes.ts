@@ -2439,6 +2439,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─── Sponsor routes ────────────────────────────────────────────────────────
+
+  // GET /api/tournaments/:roomCode/sponsors — public, returns sponsorPagesEnabled + sponsors
+  app.get("/api/tournaments/:roomCode/sponsors", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+      const sponsors = await storage.getSponsorsForTournament(tournament.id);
+      res.json({ sponsorPagesEnabled: tournament.sponsorPagesEnabled ?? false, sponsors });
+    } catch (error) {
+      console.error("Error fetching sponsors:", error);
+      res.status(500).json({ error: "Failed to fetch sponsors" });
+    }
+  });
+
+  // POST /api/tournaments/:roomCode/sponsors — create a sponsor (TD auth)
+  app.post("/api/tournaments/:roomCode/sponsors", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+      const { directorPin, sponsorName, donationType, blurb, logoUrl } = req.body;
+      if (!isValidDirectorPin(directorPin) && directorPin !== tournament.directorPin) {
+        return res.status(403).json({ error: "Invalid director PIN" });
+      }
+      if (!sponsorName?.trim()) return res.status(400).json({ error: "sponsorName is required" });
+      const sponsor = await storage.createSponsor({
+        tournamentId: tournament.id,
+        sponsorName: sponsorName.trim(),
+        donationType: donationType || null,
+        blurb: blurb || null,
+        logoUrl: logoUrl || null,
+        isActive: true,
+        displayOrder: 0,
+      });
+      res.json({ sponsor });
+    } catch (error) {
+      console.error("Error creating sponsor:", error);
+      res.status(500).json({ error: "Failed to create sponsor" });
+    }
+  });
+
+  // PUT /api/tournaments/:roomCode/sponsors/:id — update a sponsor (TD auth)
+  app.put("/api/tournaments/:roomCode/sponsors/:id", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+      const { directorPin, sponsorName, donationType, blurb, logoUrl, isActive } = req.body;
+      if (!isValidDirectorPin(directorPin) && directorPin !== tournament.directorPin) {
+        return res.status(403).json({ error: "Invalid director PIN" });
+      }
+      const updateData: Record<string, unknown> = {};
+      if (sponsorName !== undefined) updateData.sponsorName = sponsorName?.trim() || undefined;
+      if (donationType !== undefined) updateData.donationType = donationType || null;
+      if (blurb !== undefined) updateData.blurb = blurb || null;
+      if (logoUrl !== undefined) updateData.logoUrl = logoUrl || null;
+      if (isActive !== undefined) updateData.isActive = isActive;
+      const sponsor = await storage.updateSponsor(parseInt(req.params.id), updateData as any);
+      res.json({ sponsor });
+    } catch (error) {
+      console.error("Error updating sponsor:", error);
+      res.status(500).json({ error: "Failed to update sponsor" });
+    }
+  });
+
+  // DELETE /api/tournaments/:roomCode/sponsors/:id — delete a sponsor (TD auth)
+  app.delete("/api/tournaments/:roomCode/sponsors/:id", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+      const { directorPin } = req.body;
+      if (!isValidDirectorPin(directorPin) && directorPin !== tournament.directorPin) {
+        return res.status(403).json({ error: "Invalid director PIN" });
+      }
+      await storage.deleteSponsor(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting sponsor:", error);
+      res.status(500).json({ error: "Failed to delete sponsor" });
+    }
+  });
+
+  // PATCH /api/tournaments/:roomCode/sponsor-pages — enable/disable sponsor pages (TD auth)
+  app.patch("/api/tournaments/:roomCode/sponsor-pages", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+      const { directorPin, enabled } = req.body;
+      if (!isValidDirectorPin(directorPin) && directorPin !== tournament.directorPin) {
+        return res.status(403).json({ error: "Invalid director PIN" });
+      }
+      await storage.setSponsorPagesEnabled(tournament.id, Boolean(enabled));
+      res.json({ success: true, sponsorPagesEnabled: Boolean(enabled) });
+    } catch (error) {
+      console.error("Error updating sponsor pages:", error);
+      res.status(500).json({ error: "Failed to update sponsor pages setting" });
+    }
+  });
+
+  // POST /api/tournaments/:roomCode/sponsors/reorder — reorder sponsors (TD auth)
+  app.post("/api/tournaments/:roomCode/sponsors/reorder", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) return res.status(404).json({ error: "Tournament not found" });
+      const { directorPin, orderedIds } = req.body;
+      if (!isValidDirectorPin(directorPin) && directorPin !== tournament.directorPin) {
+        return res.status(403).json({ error: "Invalid director PIN" });
+      }
+      if (!Array.isArray(orderedIds)) return res.status(400).json({ error: "orderedIds must be an array" });
+      await storage.reorderSponsors(tournament.id, orderedIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering sponsors:", error);
+      res.status(500).json({ error: "Failed to reorder sponsors" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
