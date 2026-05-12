@@ -189,7 +189,7 @@ export function SummaryScreen({ players, scores, onNewGame, onSubmitToSheets, is
                         {isMyPlayer && " (You)"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {entry.groupName || "No group"} • {entry.holesCompleted} holes
+                        {entry.groupName || "No group"} • {entry.holesCompleted}/18 holes
                       </p>
                     </div>
                     <div className="text-right">
@@ -533,7 +533,7 @@ export function SummaryScreen({ players, scores, onNewGame, onSubmitToSheets, is
                     {selectedPlayer.playerName}
                   </DialogTitle>
                   <DialogDescription>
-                    {selectedPlayer.groupName || "No group"} • {selectedPlayer.holesCompleted} holes played
+                    {selectedPlayer.groupName || "No group"} • {selectedPlayer.holesCompleted}/18 holes played
                   </DialogDescription>
                 </DialogHeader>
 

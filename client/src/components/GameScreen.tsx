@@ -107,21 +107,7 @@ export function GameScreen({
   useEffect(() => {
     const existingPar = scores[currentPlayer.id]?.find((s) => s.hole === currentHole)?.par;
     if (!existingPar || existingPar === 0) {
-      if (holesCompleted === 0 && !tournament.isConnected) {
-        // First local draw — show hole selection dialog
-        setShowDrawDialog(true);
-      } else {
-        // Auto-assign par from fixed table
-        const autoPar = HOLE_PARS[currentHole - 1];
-        setPendingPar(autoPar);
-        setDrawConfirmTime(Date.now());
-        if (holesCompleted === 0) {
-          onSetParForAll(autoPar);
-          setPar(autoPar);
-        } else {
-          setShowTableSetupDialog(true);
-        }
-      }
+      setShowDrawDialog(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentHole, currentPlayer.id]);
@@ -427,7 +413,6 @@ export function GameScreen({
       {showDrawDialog && (
         <DrawDialog
           onSelectPar={handleDrawPar}
-          onSelectStartingHole={game.updateStartingHole}
         />
       )}
 
