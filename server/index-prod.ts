@@ -29,6 +29,14 @@ export async function serveStatic(app: Express, _server: Server) {
   
   console.log(`Serving static files from: ${distPath}`);
 
+  // Enforce HTTPS in production
+  app.use((req, res, next) => {
+    if (process.env.NODE_ENV === "production" && !req.secure && req.get("x-forwarded-proto") !== "https") {
+      return res.redirect("https://" + req.get("host") + req.url);
+    }
+    next();
+  });
+
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
