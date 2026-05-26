@@ -27,7 +27,10 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # Copy built assets from builder stage
+# Copy built assets from builder stage
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder /app/shared ./shared
 
 # Expose port (Render uses dynamic PORT env)
 EXPOSE 5000
