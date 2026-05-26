@@ -1,0 +1,39 @@
+VERDICT: APPROVED_WITH_COMMENTS
+The round-robin starting-hole feature is functionally implemented end-to-end and meets the core task requirements, with a few non-blocking caveats.
+
+Critical findings / analysis:
+- Local game state: `startingHole` anVERDICT: APPROVED_WITH_COMMENTS
+d `holesCompleted` were added to `GameContext`/schema, local setup exposesThe round-robin starting-hole feature is functionally implemented end-to-end and meets the core task requirements, with a few non-blocking caveats.
+ a 1–18 selector, and `startGame(startingHol
+e)` correctly initializes `currentHole`.
+- Critical findings / analysis:
+Hole progression logic: `nextCard` now wraps (`18 - Local game state: `startingHole` and `holesCompleted` were added to `GameContext`/schema, local setup exposes a 1–18 selector, and `startGame(startingHole)` correctly initializes `currentHole`.
+-> 1`) and advances completion by counted holes (`holesCompleted`), with game completion based on 18 completed holes rather than reaching hole 18.
+- Tournament group support: Director Portal can view/update per-group starting holes, server endpoints exist (`GET/PUT /group-starting-holes`), storage persists `groupStartingHoles`, and tournament game start reads group-assigned hole.
+- UI progress updates: Game screen now shows hole plus played-count progress (`Hole X` + `Y/18 played`).
+- Leaderboards: live leaderboard surfaces holes completed in both director views and in-game tournament leaderboard; live-standings note appears when groups are on different holes.
+
+Comments (non-blocking):
+1) Director leaderboard wording/format is slightly inconsistent across views (some places show `X/18`, one full leaderboard row shows `X holes`). Functionally acceptable, but inconsistent with the explicit `X/18` requirement phrasing.
+2) Diff includes substantial unrelated changes (sponsor flow, broader UI behavior changes). Not a blocker for this task, but increases regression surface and makes verification harder.
+
+Security: none observed (no serious authz/injection/secret-handling regressions specific to this task).
+
+Next actions:
+1) Normalize leaderboard hole-progress display to `X/18` in all director leaderboard variants for consistency.
+2) If possible, split unrelated sponsor/UI changes into separate PR/task to reduce deployment risk and simplify rollback/testing.
+3) Add one integration test for wrap-around completion path (e.g., start hole 16, verify 16→17→18→1… and completion at 18 holes played).- Hole progression logic: `nextCard` now wraps (`18 -> 1`) and advances completion by counted holes (`holesCompleted`), with game completion based on 18 completed holes rather than reaching hole 18.
+- Tournament group support: Director Portal can view/update per-group starting holes, server endpoints exist (`GET/PUT /group-starting-holes`), storage persists `groupStartingHoles`, and tournament game start reads group-assigned hole.
+- UI progress updates: Game screen now shows hole plus played-count progress (`Hole X` + `Y/18 played`).
+- Leaderboards: live leaderboard surfaces holes completed in both director views and in-game tournament leaderboard; live-standings note appears when groups are on different holes.
+
+Comments (non-blocking):
+1) Director leaderboard wording/format is slightly inconsistent across views (some places show `X/18`, one full leaderboard row shows `X holes`). Functionally acceptable, but inconsistent with the explicit `X/18` requirement phrasing.
+2) Diff includes substantial unrelated changes (sponsor flow, broader UI behavior changes). Not a blocker for this task, but increases regression surface and makes verification harder.
+
+Security: none observed (no serious authz/injection/secret-handling regressions specific to this task).
+
+Next actions:
+1) Normalize leaderboard hole-progress display to `X/18` in all director leaderboard variants for consistency.
+2) If possible, split unrelated sponsor/UI changes into separate PR/task to reduce deployment risk and simplify rollback/testing.
+3) Add one integration test for wrap-around completion path (e.g., start hole 16, verify 16→17→18→1… and completion at 18 holes played).
