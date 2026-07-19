@@ -920,14 +920,14 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
       )}
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-hidden">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
               Create Tournament
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4 overflow-y-auto pr-1" style={{ maxHeight: "calc(92vh - 9rem)" }}>
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="tournament-name">Tournament Name</Label>
               <Input
@@ -965,7 +965,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 </p>
               </div>
             )}
-            <div className="sticky bottom-0 bg-background pt-2 border-t flex gap-2">
+            <div className="flex gap-2">
               <Button
                 variant="outline" 
                 onClick={() => setShowCreateDialog(false)}
@@ -987,14 +987,15 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
       </Dialog>
 
       <Dialog open={!!showEventDetailsFor} onOpenChange={() => setShowEventDetailsFor(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-2xl h-[92dvh] overflow-hidden p-0 flex flex-col">
+          <DialogHeader className="px-4 pt-6 pr-12 sm:px-6">
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               Event Details
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="space-y-4 pr-1">
             <div className="space-y-2">
               <Label htmlFor="event-start-at">Date & Time</Label>
               <Input
@@ -1251,6 +1252,9 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 </div>
               )}
             </div>
+            </div>
+          </div>
+          <div className="border-t bg-background px-4 py-3 sm:px-6">
             <div className="flex gap-2">
               <Button
                 variant="outline"
