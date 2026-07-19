@@ -920,14 +920,14 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
       )}
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-2xl max-h-[92vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" />
               Create Tournament
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-4 max-h-[75vh] overflow-y-auto pr-1">
+          <div className="space-y-4 py-4 overflow-y-auto pr-1" style={{ maxHeight: "calc(92vh - 9rem)" }}>
             <div className="space-y-2">
               <Label htmlFor="tournament-name">Tournament Name</Label>
               <Input
@@ -965,8 +965,8 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 </p>
               </div>
             )}
-            <div className="flex gap-2">
-              <Button 
+            <div className="sticky bottom-0 bg-background pt-2 border-t flex gap-2">
+              <Button
                 variant="outline" 
                 onClick={() => setShowCreateDialog(false)}
                 className="flex-1"
