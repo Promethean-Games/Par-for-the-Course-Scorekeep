@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
@@ -44,6 +45,12 @@ interface TournamentSummary {
   id: number;
   roomCode: string;
   name: string;
+  eventVenue?: string | null;
+  eventStartAt?: string | null;
+  eventDetailsUrl?: string | null;
+  eventRegistrationUrl?: string | null;
+  eventHeroImageUrl?: string | null;
+  eventMaxPlayers?: number;
   isActive: boolean;
   isStarted?: boolean;
   isHandicapped?: boolean;
@@ -52,6 +59,38 @@ interface TournamentSummary {
   completedAt: string | null;
   stats?: TournamentStats;
 }
+
+type ImportConflictPolicy = "skip" | "replace" | "keep_both";
+
+type ImportSections = {
+  players: boolean;
+  tournamentHistory: boolean;
+  settings: boolean;
+};
+
+type ImportCounts = {
+  players: number;
+  tournamentHistory: number;
+  settings: number;
+};
+
+type ImportConflict = {
+  key: string;
+  importName: string;
+  importUniqueCode: string | null;
+  existingName: string;
+  existingUniqueCode: string | null;
+  matchReason: "uniqueCode" | "name";
+  differingFields: string[];
+};
+
+type WaitlistEntry = {
+  id: number;
+  name: string;
+  email: string;
+  createdAt: string;
+  status: string;
+};
 
 export function TournamentManagementTab({ directorPin, onTournamentSelected }: TournamentManagementTabProps) {
   const tournament = useTournament();
@@ -62,9 +101,26 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [isCreating, setIsCreating] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
+  const [showEventDetailsFor, setShowEventDetailsFor] = useState<string | null>(null);
+  const [eventVenueInput, setEventVenueInput] = useState("");
+  const [eventStartAtInput, setEventStartAtInput] = useState("");
+  const [eventDetailsUrlInput, setEventDetailsUrlInput] = useState("");
+  const [eventRegistrationUrlInput, setEventRegistrationUrlInput] = useState("");
+  const [eventHeroImageUrlInput, setEventHeroImageUrlInput] = useState("");
+  const [eventMaxPlayersInput, setEventMaxPlayersInput] = useState("24");
+  const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
+  const [isWaitlistLoading, setIsWaitlistLoading] = useState(false);
+  const [isSavingEventDetails, setIsSavingEventDetails] = useState(false);
   const [isHandicapped, setIsHandicapped] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showImportOptions, setShowImportOptions] = useState(false);
+  const [importPayload, setImportPayload] = useState<any | null>(null);
+  const [importCounts, setImportCounts] = useState<ImportCounts>({ players: 0, tournamentHistory: 0, settings: 0 });
+  const [importConflicts, setImportConflicts] = useState<ImportConflict[]>([]);
+  const [selectedSections, setSelectedSections] = useState<ImportSections>({ players: true, tournamentHistory: true, settings: true });
+  const [conflictPolicy, setConflictPolicy] = useState<ImportConflictPolicy>("skip");
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const { toast } = useToast();
   const importFullRef = useRef<HTMLInputElement>(null);
   const importTournamentRef = useRef<HTMLInputElement>(null);
@@ -209,6 +265,118 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     }
   };
 
+  const toDateTimeLocalValue = (iso: string | null | undefined): string => {
+    if (!iso) return "";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return "";
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const fetchWaitlist = async (roomCode: string) => {
+    setIsWaitlistLoading(true);
+    try {
+      const response = await fetch(`/api/tournaments/${roomCode}/waitlist?directorPin=${encodeURIComponent(directorPin)}`);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Could not load waitlist");
+      }
+      const data = await response.json();
+      setWaitlistEntries(Array.isArray(data.entries) ? data.entries : []);
+    } catch (err) {
+      console.error("Failed to load waitlist:", err);
+      toast({ title: "Could not load waitlist", variant: "destructive" });
+      setWaitlistEntries([]);
+    } finally {
+      setIsWaitlistLoading(false);
+    }
+  };
+
+  const handleOpenEventDetails = (tournamentToEdit: TournamentSummary) => {
+    setShowEventDetailsFor(tournamentToEdit.roomCode);
+    setEventVenueInput(tournamentToEdit.eventVenue || "");
+    setEventStartAtInput(toDateTimeLocalValue(tournamentToEdit.eventStartAt));
+    setEventDetailsUrlInput(tournamentToEdit.eventDetailsUrl || "");
+    setEventRegistrationUrlInput(tournamentToEdit.eventRegistrationUrl || "");
+    setEventHeroImageUrlInput(tournamentToEdit.eventHeroImageUrl || "");
+    setEventMaxPlayersInput(String(tournamentToEdit.eventMaxPlayers || 24));
+    void fetchWaitlist(tournamentToEdit.roomCode);
+  };
+
+  const handleRemoveWaitlistEntry = async (roomCode: string, entryId: number) => {
+    try {
+      const response = await fetch(`/api/tournaments/${roomCode}/waitlist/${entryId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ directorPin }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || "Could not remove waitlist entry");
+      }
+      await fetchWaitlist(roomCode);
+      toast({ title: "Waitlist entry removed" });
+    } catch (err) {
+      console.error("Failed to remove waitlist entry:", err);
+      toast({ title: "Could not remove waitlist entry", variant: "destructive" });
+    }
+  };
+
+  const handleExportWaitlist = () => {
+    if (!showEventDetailsFor || waitlistEntries.length === 0) return;
+    const rows = [
+      ["Name", "Email", "Joined At", "Status"],
+      ...waitlistEntries.map((entry) => [entry.name, entry.email, new Date(entry.createdAt).toLocaleString(), entry.status]),
+    ];
+    const csv = rows
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `tournament-${showEventDetailsFor.toLowerCase()}-waitlist.csv`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSaveEventDetails = async () => {
+    if (!showEventDetailsFor) return;
+    setIsSavingEventDetails(true);
+    try {
+      const response = await fetch(`/api/tournaments/${showEventDetailsFor}/event-details`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          directorPin,
+          eventVenue: eventVenueInput.trim() || null,
+          eventStartAt: eventStartAtInput ? new Date(eventStartAtInput).toISOString() : null,
+          eventDetailsUrl: eventDetailsUrlInput.trim() || null,
+          eventRegistrationUrl: eventRegistrationUrlInput.trim() || null,
+          eventHeroImageUrl: eventHeroImageUrlInput.trim() || null,
+          eventMaxPlayers: Math.max(1, Math.min(500, parseInt(eventMaxPlayersInput || "24", 10) || 24)),
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        toast({ title: "Could not save event details", description: err.error || "Server error", variant: "destructive" });
+        return;
+      }
+
+      toast({ title: "Event details saved" });
+      setShowEventDetailsFor(null);
+      await fetchTournaments();
+    } catch (err) {
+      console.error("Failed to save event details:", err);
+      toast({ title: "Could not save event details", variant: "destructive" });
+    } finally {
+      setIsSavingEventDetails(false);
+    }
+  };
+
   const handleImportTournament = () => {
     importTournamentRef.current?.click();
   };
@@ -273,11 +441,26 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     importFullRef.current?.click();
   };
 
+  const calculateImportCounts = (data: any): ImportCounts => {
+    const importedPlayers = Array.isArray(data?.universalPlayers) ? data.universalPlayers : [];
+    const historyCount = importedPlayers.reduce((sum: number, entry: any) => {
+      return sum + (Array.isArray(entry?.history) ? entry.history.length : 0);
+    }, 0);
+    const settingsCount = data?.settings && typeof data.settings === "object" && !Array.isArray(data.settings)
+      ? Object.keys(data.settings).length
+      : 0;
+
+    return {
+      players: importedPlayers.length,
+      tournamentHistory: historyCount,
+      settings: settingsCount,
+    };
+  };
+
   const onImportFullFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-    setIsImporting(true);
     try {
       const text = await file.text();
       let data: any;
@@ -287,30 +470,84 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
         toast({ title: "Import Failed", description: "File is not valid JSON", variant: "destructive" });
         return;
       }
-      const response = await fetch("/api/import/full", {
+
+      if (!Array.isArray(data.universalPlayers)) {
+        toast({ title: "Import Failed", description: "File is missing universalPlayers[]", variant: "destructive" });
+        return;
+      }
+
+      setImportPayload(data);
+      setSelectedSections({ players: true, tournamentHistory: true, settings: true });
+      setConflictPolicy("skip");
+      setImportCounts(calculateImportCounts(data));
+      setImportConflicts([]);
+      setShowImportOptions(true);
+
+      setIsPreviewLoading(true);
+      const previewResponse = await fetch("/api/import/full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ directorPin, data }),
+        body: JSON.stringify({
+          directorPin,
+          data,
+          mode: "preview",
+          selectedSections: { players: true, tournamentHistory: true, settings: true },
+        }),
       });
-      if (response.ok) {
-        const result = await response.json();
-        const skipped = result.playersSkipped ? ` (${result.playersSkipped} already existed)` : "";
-        const warnings = result.errors?.length ? ` — ${result.errors.length} warning(s)` : "";
-        toast({ 
-          title: "Import Complete", 
-          description: `${result.playersImported} players${skipped}, ${result.historyImported} history entries, ${result.tournamentsImported} tournaments imported${warnings}` 
-        });
-        if (result.errors?.length) {
-          console.warn("Import warnings:", result.errors);
-        }
-        await fetchTournaments();
+      if (previewResponse.ok) {
+        const preview = await previewResponse.json();
+        if (preview.counts) setImportCounts(preview.counts);
+        setImportConflicts(Array.isArray(preview.conflicts) ? preview.conflicts : []);
       } else {
-        const err = await response.json().catch(() => ({}));
-        console.error("Import server error:", err);
-        toast({ title: "Import Failed", description: err.error || "Server error", variant: "destructive" });
+        const err = await previewResponse.json().catch(() => ({}));
+        toast({ title: "Preview unavailable", description: err.error || "Could not analyze conflicts", variant: "destructive" });
       }
     } catch (err: any) {
       console.error("Import error:", err);
+      toast({ title: "Import Failed", description: err?.message || "Unknown error", variant: "destructive" });
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!importPayload) return;
+    setIsImporting(true);
+    try {
+      const response = await fetch("/api/import/full", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          directorPin,
+          data: importPayload,
+          mode: "apply",
+          selectedSections,
+          conflictPolicy,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        toast({ title: "Import Failed", description: err.error || "Server error", variant: "destructive" });
+        return;
+      }
+
+      const result = await response.json();
+      const warnings = result.errors?.length ? ` (${result.errors.length} warning(s))` : "";
+      toast({
+        title: "Import Complete",
+        description:
+          `${result.playersImported} created, ${result.playersReplaced || 0} replaced, ${result.playersDuplicated || 0} kept-both, ${result.playersSkipped || 0} skipped, ${result.historyImported || 0} history imported${warnings}`,
+      });
+      if (result.errors?.length) {
+        console.warn("Import warnings:", result.errors);
+      }
+
+      setShowImportOptions(false);
+      setImportPayload(null);
+      await fetchTournaments();
+    } catch (err: any) {
+      console.error("Import apply error:", err);
       toast({ title: "Import Failed", description: err?.message || "Unknown error", variant: "destructive" });
     } finally {
       setIsImporting(false);
@@ -418,6 +655,12 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                           </span>
                         )}
                       </div>
+                      {(t.eventStartAt || t.eventVenue) && (
+                        <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                          {t.eventStartAt && <p>Event time: {new Date(t.eventStartAt).toLocaleString()}</p>}
+                          {t.eventVenue && <p>Location: {t.eventVenue}</p>}
+                        </div>
+                      )}
                       {(t.stats?.playersWithScores ?? 0) > 0 && (
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1" title="Holes completed range">
@@ -442,6 +685,17 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                       )}
                     </div>
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEventDetails(t);
+                        }}
+                        data-testid={`button-event-details-${t.roomCode}`}
+                      >
+                        <Calendar className="w-4 h-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -517,6 +771,12 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                           </span>
                         )}
                       </div>
+                      {(t.eventStartAt || t.eventVenue) && (
+                        <div className="mt-1 text-xs text-muted-foreground space-y-0.5">
+                          {t.eventStartAt && <p>Event time: {new Date(t.eventStartAt).toLocaleString()}</p>}
+                          {t.eventVenue && <p>Location: {t.eventVenue}</p>}
+                        </div>
+                      )}
                       {(t.stats?.playersWithScores ?? 0) > 0 && (
                         <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
@@ -546,6 +806,14 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                         data-testid={`button-unarchive-${t.roomCode}`}
                       >
                         <RotateCcw className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => { e.stopPropagation(); handleOpenEventDetails(t); }}
+                        data-testid={`button-event-details-archived-${t.roomCode}`}
+                      >
+                        <Calendar className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -642,6 +910,270 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 data-testid="button-confirm-create"
               >
                 {isCreating ? "Creating..." : "Create"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!showEventDetailsFor} onOpenChange={() => setShowEventDetailsFor(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5" />
+              Event Details
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="event-start-at">Date & Time</Label>
+              <Input
+                id="event-start-at"
+                type="datetime-local"
+                value={eventStartAtInput}
+                onChange={(e) => setEventStartAtInput(e.target.value)}
+                data-testid="input-event-start-at"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-venue">Location / Venue</Label>
+              <Input
+                id="event-venue"
+                value={eventVenueInput}
+                onChange={(e) => setEventVenueInput(e.target.value)}
+                placeholder="e.g., Sunset Mini Golf - Riverside, CA"
+                data-testid="input-event-venue"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-details-url">Tournament Details URL</Label>
+              <Input
+                id="event-details-url"
+                type="url"
+                value={eventDetailsUrlInput}
+                onChange={(e) => setEventDetailsUrlInput(e.target.value)}
+                placeholder="https://portal.parforthecourse.com/events/..."
+                data-testid="input-event-details-url"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-registration-url">Registration URL Override (optional)</Label>
+              <Input
+                id="event-registration-url"
+                type="url"
+                value={eventRegistrationUrlInput}
+                onChange={(e) => setEventRegistrationUrlInput(e.target.value)}
+                placeholder="https://portal.parforthecourse.com/events/.../register"
+                data-testid="input-event-registration-url"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-hero-image-url">Hero Image URL</Label>
+              <Input
+                id="event-hero-image-url"
+                type="url"
+                value={eventHeroImageUrlInput}
+                onChange={(e) => setEventHeroImageUrlInput(e.target.value)}
+                placeholder="https://images.example.com/tournament-banner.jpg"
+                data-testid="input-event-hero-image-url"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-max-players">Max Players</Label>
+              <Input
+                id="event-max-players"
+                type="number"
+                min={1}
+                max={500}
+                value={eventMaxPlayersInput}
+                onChange={(e) => setEventMaxPlayersInput(e.target.value)}
+                data-testid="input-event-max-players"
+              />
+              <p className="text-xs text-muted-foreground">
+                Online registration stops at this number. TDs can still add players manually beyond the cap.
+              </p>
+            </div>
+            <div className="space-y-2 rounded-lg border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium">Waitlist</p>
+                  <p className="text-xs text-muted-foreground">
+                    Public waitlist capacity is 10. Remove entries after you add players manually.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">{waitlistEntries.length}/10</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportWaitlist}
+                    disabled={waitlistEntries.length === 0}
+                  >
+                    Export CSV
+                  </Button>
+                </div>
+              </div>
+              {isWaitlistLoading ? (
+                <p className="text-sm text-muted-foreground">Loading waitlist...</p>
+              ) : waitlistEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No waitlist entries yet.</p>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {waitlistEntries.map((entry) => (
+                    <div key={entry.id} className="flex items-start justify-between gap-3 rounded border p-2">
+                      <div className="min-w-0 text-sm">
+                        <p className="font-medium truncate">{entry.name}</p>
+                        <p className="text-muted-foreground truncate">{entry.email}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => showEventDetailsFor && handleRemoveWaitlistEntry(showEventDetailsFor, entry.id)}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowEventDetailsFor(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSaveEventDetails}
+                disabled={isSavingEventDetails}
+                data-testid="button-save-event-details"
+              >
+                {isSavingEventDetails ? "Saving..." : "Save"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showImportOptions} onOpenChange={setShowImportOptions}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>import options</DialogTitle>
+            <DialogDescription>
+              Choose what to import and how to handle player conflicts.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-3">
+              <label className="flex items-center justify-between rounded border p-3 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedSections.players}
+                    onCheckedChange={(checked) => setSelectedSections((s) => ({ ...s, players: !!checked }))}
+                  />
+                  <span>Players</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{importCounts.players}</span>
+              </label>
+
+              <label className="flex items-center justify-between rounded border p-3 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedSections.tournamentHistory}
+                    onCheckedChange={(checked) => setSelectedSections((s) => ({ ...s, tournamentHistory: !!checked }))}
+                  />
+                  <span>Tournament History</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{importCounts.tournamentHistory}</span>
+              </label>
+
+              <label className="flex items-center justify-between rounded border p-3 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={selectedSections.settings}
+                    onCheckedChange={(checked) => setSelectedSections((s) => ({ ...s, settings: !!checked }))}
+                  />
+                  <span>Settings</span>
+                </div>
+                <span className="text-sm text-muted-foreground">{importCounts.settings}</span>
+              </label>
+            </div>
+
+            <div className="rounded border p-3 space-y-2">
+              <p className="text-sm font-medium">Conflicts ({importConflicts.length})</p>
+              {isPreviewLoading ? (
+                <p className="text-sm text-muted-foreground">Analyzing import...</p>
+              ) : importConflicts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No player conflicts detected.</p>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    Matches are detected by unique ID first, then player name.
+                  </p>
+                  <div className="max-h-28 overflow-y-auto space-y-1">
+                    {importConflicts.slice(0, 5).map((conflict) => (
+                      <p key={conflict.key} className="text-xs">
+                        {conflict.importName}{" -> "}{conflict.existingName} ({conflict.matchReason})
+                      </p>
+                    ))}
+                    {importConflicts.length > 5 && (
+                      <p className="text-xs text-muted-foreground">+{importConflicts.length - 5} more</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">On conflict</p>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  type="button"
+                  variant={conflictPolicy === "skip" ? "default" : "outline"}
+                  onClick={() => setConflictPolicy("skip")}
+                >
+                  Skip
+                </Button>
+                <Button
+                  type="button"
+                  variant={conflictPolicy === "replace" ? "default" : "outline"}
+                  onClick={() => setConflictPolicy("replace")}
+                >
+                  Replace
+                </Button>
+                <Button
+                  type="button"
+                  variant={conflictPolicy === "keep_both" ? "default" : "outline"}
+                  onClick={() => setConflictPolicy("keep_both")}
+                >
+                  Keep Both
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  setShowImportOptions(false);
+                  setImportPayload(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleConfirmImport}
+                disabled={isImporting || !selectedSections.players && !selectedSections.tournamentHistory && !selectedSections.settings}
+              >
+                {isImporting ? "Importing..." : "Import"}
               </Button>
             </div>
           </div>

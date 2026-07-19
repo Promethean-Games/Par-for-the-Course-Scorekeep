@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Trophy, Settings, Shield, User } from "lucide-react";
+import { Settings, Shield, User } from "lucide-react";
 import { LOGO_URL } from "@/lib/constants";
 import { useTournament } from "@/contexts/TournamentContext";
 import { PlayerSelectionDialog } from "./PlayerSelectionDialog";
@@ -11,6 +10,7 @@ import { TDSignInModal } from "./TDSignInModal";
 import { TDDashboard } from "./TDDashboard";
 import { PlayerLoginDialog, type PlayerProfile, type TournamentHistoryEntry } from "./PlayerLoginDialog";
 import { PlayerProfilePage } from "./PlayerProfilePage";
+import { UpcomingEventCard } from "@/features/events/components/UpcomingEventCard";
 
 interface SplashScreenProps {
   onNewGame: () => void;
@@ -22,7 +22,6 @@ interface SplashScreenProps {
 export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onViewOnly }: SplashScreenProps) {
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
-  const [showJoinInput, setShowJoinInput] = useState(false);
   const [showPlayerSelection, setShowPlayerSelection] = useState(false);
   const [showTDSignIn, setShowTDSignIn] = useState(false);
   const [showTournamentManagement, setShowTournamentManagement] = useState(false);
@@ -136,7 +135,7 @@ export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onV
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 relative">
+    <div className="flex flex-col items-center min-h-screen p-6 pt-16 relative">
       {/* TD Sign-In Gear Icon - Upper Right */}
       <div className="absolute top-4 right-4">
         <DropdownMenu>
@@ -228,58 +227,39 @@ export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onV
           </div>
         ) : (
           <div className="space-y-2 mt-4">
-            {!showJoinInput ? (
-              <Button
-                size="lg"
-                className="w-full text-lg h-14 bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900"
-                onClick={() => setShowJoinInput(true)}
-                data-testid="button-join-tournament"
-              >
-                <Trophy className="w-5 h-5 mr-2" />
-                Join Tournament
-              </Button>
-            ) : (
-              <div className="space-y-2">
-                <div className="flex gap-2">
-                  <Input
-                    value={roomCodeInput}
-                    onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
-                    placeholder="Enter room code"
-                    className="flex-1 font-mono text-center tracking-widest text-lg h-14"
-                    maxLength={6}
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleJoinRoom();
-                    }}
-                    data-testid="input-room-code-splash"
-                  />
-                  <Button
-                    size="lg"
-                    className="h-14 bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900"
-                    onClick={handleJoinRoom}
-                    disabled={tournament.isLoading || !roomCodeInput.trim()}
-                    data-testid="button-join-room-splash"
-                  >
-                    {tournament.isLoading ? "..." : "Join"}
-                  </Button>
-                </div>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={roomCodeInput}
+                  onChange={(e) => setRoomCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Enter room code"
+                  className="flex-1 font-mono text-center tracking-widest text-lg h-14"
+                  maxLength={6}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleJoinRoom();
+                  }}
+                  data-testid="input-room-code-splash"
+                />
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-muted-foreground"
-                  onClick={() => { setShowJoinInput(false); setJoinError(null); setRoomCodeInput(""); }}
-                  data-testid="button-cancel-join"
+                  size="lg"
+                  className="h-14 bg-emerald-800 hover:bg-emerald-900 text-white border-emerald-900"
+                  onClick={handleJoinRoom}
+                  disabled={tournament.isLoading || !roomCodeInput.trim()}
+                  data-testid="button-join-room-splash"
                 >
-                  Cancel
+                  {tournament.isLoading ? "..." : "Join"}
                 </Button>
-                {joinError && (
-                  <p className="text-sm text-destructive text-center">{joinError}</p>
-                )}
               </div>
-            )}
+              {joinError && (
+                <p className="text-sm text-destructive text-center">{joinError}</p>
+              )}
+            </div>
           </div>
         )}
       </div>
+
+      <UpcomingEventCard className="mt-6" />
 
       {showPlayerSelection && tournament.isConnected && (
         <PlayerSelectionDialog

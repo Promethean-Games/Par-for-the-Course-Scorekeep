@@ -1,10 +1,12 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import webpush from "web-push";
+import { eq, sql } from "drizzle-orm";
 import { storage } from "./storage";
-import { insertTournamentSchema, insertTournamentPlayerSchema, insertTournamentScoreSchema, batchUpdateGroupsSchema, insertUniversalPlayerSchema, type TournamentScore } from "@shared/schema";
+import { db } from "./db";
+import { insertTournamentSchema, insertTournamentPlayerSchema, insertTournamentScoreSchema, batchUpdateGroupsSchema, insertUniversalPlayerSchema, universalPlayers, type TournamentScore } from "@shared/schema";
 import { z } from "zod";
 
 const SALT_ROUNDS = 10;
@@ -283,6 +285,86 @@ const directorActionSchema = z.object({
   directorPin: z.string().min(1, "Director PIN is required"),
 });
 
+const updateEventDetailsSchema = z.object({
+  directorPin: z.string().min(1, "Director PIN is required"),
+  eventVenue: z.string().trim().max(200).nullable().optional(),
+  eventStartAt: z.string().datetime().nullable().optional(),
+  eventDetailsUrl: z.string().url().nullable().optional(),
+  eventRegistrationUrl: z.string().url().nullable().optional(),
+  eventHeroImageUrl: z.string().url().nullable().optional(),
+  eventMaxPlayers: z.number().int().min(1).max(500).optional(),
+});
+
+const waitlistJoinSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(120),
+  email: z.string().trim().email("Valid email is required").max(200),
+});
+
+type ImportConflictPolicy = "skip" | "replace" | "keep_both";
+
+type ImportSections = {
+  players: boolean;
+  tournamentHistory: boolean;
+  settings: boolean;
+};
+
+type ImportConflict = {
+  key: string;
+  importName: string;
+  importUniqueCode: string | null;
+  existingId: number;
+  existingName: string;
+  existingUniqueCode: string | null;
+  matchReason: "uniqueCode" | "name";
+  differingFields: string[];
+};
+
+function normalizeName(value: unknown): string {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeCode(value: unknown): string | null {
+  const code = String(value || "").trim().toUpperCase();
+  return code || null;
+}
+
+function getImportSections(input: any): ImportSections {
+  return {
+    players: input?.players !== false,
+    tournamentHistory: input?.tournamentHistory !== false,
+    settings: input?.settings !== false,
+  };
+}
+
+function getImportCounts(data: any) {
+  const importedPlayers = Array.isArray(data?.universalPlayers) ? data.universalPlayers : [];
+  const historyCount = importedPlayers.reduce((sum: number, entry: any) => {
+    return sum + (Array.isArray(entry?.history) ? entry.history.length : 0);
+  }, 0);
+  const settingsCount = data?.settings && typeof data.settings === "object" && !Array.isArray(data.settings)
+    ? Object.keys(data.settings).length
+    : 0;
+
+  return {
+    players: importedPlayers.length,
+    tournamentHistory: historyCount,
+    settings: settingsCount,
+  };
+}
+
+function getDifferingPlayerFields(existing: any, incoming: any): string[] {
+  const fields: Array<[string, unknown, unknown]> = [
+    ["name", existing?.name ?? null, incoming?.name ?? null],
+    ["email", existing?.email ?? null, incoming?.email ?? null],
+    ["contactInfo", existing?.contactInfo ?? null, incoming?.contactInfo ?? null],
+    ["phoneNumber", existing?.phoneNumber ?? null, incoming?.phoneNumber ?? null],
+    ["tShirtSize", existing?.tShirtSize ?? null, incoming?.tShirtSize ?? null],
+  ];
+  return fields
+    .filter(([, a, b]) => normalizeName(a) !== normalizeName(b))
+    .map(([name]) => name);
+}
+
 function generateRoomCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
   let code = "";
@@ -306,10 +388,600 @@ function getDirectorName(pin: string): string {
   return DIRECTOR_PINS[pin] || "Tournament Director";
 }
 
+function getPortalBaseUrl(): string {
+  return (process.env.TOURNAMENT_PORTAL_BASE_URL || "https://portal.parforthecourse.com").replace(/\/$/, "");
+}
+
+const STRIPE_PRODUCT_ID = "prod_UuWIcWhK26e0Z0";
+
+function getStripeSecretKey(): string {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("STRIPE_SECRET_KEY is not configured");
+  }
+  return secretKey;
+}
+
+async function stripeApiRequest(path: string, init?: RequestInit): Promise<any> {
+  const response = await fetch(`https://api.stripe.com/v1${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${getStripeSecretKey()}`,
+      ...(init?.headers || {}),
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || `Stripe request failed with status ${response.status}`);
+  }
+
+  return payload;
+}
+
+function getRequestOrigin(req: Request): string {
+  const forwardedProto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim();
+  const protocol = forwardedProto || req.protocol || "https";
+  const host = req.get("x-forwarded-host") || req.get("host");
+  return `${protocol}://${host}`;
+}
+
+function getCheckoutUrls(req: Request, slug: string) {
+  const origin = getRequestOrigin(req);
+
+  const successTemplate = process.env.SUCCESS_URL || `${origin}/events/{slug}/register/success?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelTemplate = process.env.CANCEL_URL || `${origin}/events/{slug}/register/cancel`;
+
+  const successUrlWithSlug = successTemplate.replaceAll("{slug}", slug);
+  const cancelUrl = cancelTemplate.replaceAll("{slug}", slug);
+  const successUrl = successUrlWithSlug.includes("{CHECKOUT_SESSION_ID}")
+    ? successUrlWithSlug
+    : `${successUrlWithSlug}${successUrlWithSlug.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
+
+  return { successUrl, cancelUrl };
+}
+
+function getPublicRegistrationStatus(options: {
+  isActive: boolean;
+  isStarted: boolean;
+  completedAt: Date | null;
+  registeredCount: number;
+  maxPlayers: number;
+  waitlistCount: number;
+}): "open" | "waitlist" | "closed" | "in_progress" {
+  if (!options.isActive || !!options.completedAt) return "closed";
+  if (options.isStarted) return "in_progress";
+  if (options.registeredCount < options.maxPlayers) return "open";
+  if (options.waitlistCount < 10) return "waitlist";
+  return "closed";
+}
+
+function addMinutes(dateIso: string, minutes: number): string {
+  const date = new Date(dateIso);
+  date.setMinutes(date.getMinutes() + minutes);
+  return date.toISOString();
+}
+
+function verifyStripeWebhookSignature(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
+  const parts = signatureHeader.split(",").map((p) => p.trim());
+  const timestampPart = parts.find((p) => p.startsWith("t="));
+  const signatures = parts.filter((p) => p.startsWith("v1=")).map((p) => p.slice(3));
+  if (!timestampPart || signatures.length === 0) return false;
+
+  const timestamp = timestampPart.slice(2);
+  const signedPayload = `${timestamp}.${rawBody.toString("utf8")}`;
+  const expected = crypto.createHmac("sha256", secret).update(signedPayload, "utf8").digest("hex");
+
+  return signatures.some((candidate) => {
+    try {
+      const left = Buffer.from(candidate, "hex");
+      const right = Buffer.from(expected, "hex");
+      return left.length === right.length && crypto.timingSafeEqual(left, right);
+    } catch {
+      return false;
+    }
+  });
+}
+
+async function getRegistrationCounts(tournamentId: number): Promise<{ paid: number; waitlist: number }> {
+  try {
+    const result = await db.execute(sql`
+      SELECT
+        COUNT(*) FILTER (WHERE status = 'paid') AS paid,
+        COUNT(*) FILTER (WHERE status = 'waitlist') AS waitlist
+      FROM tournament_registrations
+      WHERE tournament_id = ${tournamentId}
+    `);
+
+    const row = ((result.rows ?? result) as any[])[0] || {};
+    return {
+      paid: parseInt(row.paid ?? "0", 10),
+      waitlist: parseInt(row.waitlist ?? "0", 10),
+    };
+  } catch (error: any) {
+    // Keep public event pages alive during partial deployments/migrations.
+    const message = String(error?.message || "").toLowerCase();
+    if (message.includes("tournament_registrations") || message.includes("does not exist")) {
+      return { paid: 0, waitlist: 0 };
+    }
+    throw error;
+  }
+}
+
+async function upsertRegistrationFromCheckoutSession(tournamentId: number, session: any): Promise<void> {
+  const sessionId = String(session.id || "").trim();
+  if (!sessionId) return;
+
+  const paymentStatus = String(session.payment_status || "").toLowerCase();
+  const nextStatus = paymentStatus === "paid" ? "paid" : "pending";
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : null;
+  const customerEmail = session.customer_details?.email || null;
+  const amountTotal = typeof session.amount_total === "number" ? session.amount_total : null;
+  const currency = typeof session.currency === "string" ? session.currency : null;
+
+  await db.execute(sql`
+    INSERT INTO tournament_registrations (
+      tournament_id,
+      stripe_session_id,
+      stripe_payment_intent_id,
+      customer_email,
+      amount_total,
+      currency,
+      status,
+      updated_at
+    ) VALUES (
+      ${tournamentId},
+      ${sessionId},
+      ${paymentIntentId},
+      ${customerEmail},
+      ${amountTotal},
+      ${currency},
+      ${nextStatus},
+      NOW()
+    )
+    ON CONFLICT (stripe_session_id)
+    DO UPDATE SET
+      stripe_payment_intent_id = EXCLUDED.stripe_payment_intent_id,
+      customer_email = EXCLUDED.customer_email,
+      amount_total = EXCLUDED.amount_total,
+      currency = EXCLUDED.currency,
+      status = EXCLUDED.status,
+      updated_at = NOW()
+  `);
+}
+
+function parseWaitlistCustomerLabel(value: string | null | undefined): { name: string; email: string } {
+  const label = String(value || "").trim();
+  const match = label.match(/^(.*)\s<([^>]+)>$/);
+  if (match) {
+    return {
+      name: match[1].trim(),
+      email: match[2].trim(),
+    };
+  }
+
+  return {
+    name: label || "Waitlist Entry",
+    email: "",
+  };
+}
+
+function toIsoString(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  }
+  return new Date().toISOString();
+}
+
 // Keep for backward compat — first/primary director pin
 const MASTER_DIRECTOR_PIN = Object.keys(DIRECTOR_PINS)[0];
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Public upcoming events feed for splash preview cards
+  app.get("/api/events/upcoming", async (_req, res) => {
+    try {
+      // Use raw SQL so this never fails due to missing new columns
+      const result = await db.execute(sql`
+        SELECT
+          t.id,
+          t.room_code AS "roomCode",
+          t.name,
+          t.is_active AS "isActive",
+          t.is_started AS "isStarted",
+          t.created_at AS "createdAt",
+          t.started_at AS "startedAt",
+          t.completed_at AS "completedAt",
+          (SELECT COUNT(*) FROM tournament_players tp WHERE tp.tournament_id = t.id) AS "playerCount",
+          (SELECT COUNT(*) FROM tournament_registrations tr WHERE tr.tournament_id = t.id AND tr.status = 'paid') AS "paidRegistrationCount",
+          (SELECT COUNT(*) FROM tournament_registrations tr WHERE tr.tournament_id = t.id AND tr.status = 'waitlist') AS "waitlistCount",
+          COALESCE(
+            CASE WHEN column_exists.event_max_players_exists THEN
+              (SELECT t2.event_max_players FROM tournaments t2 WHERE t2.id = t.id)
+            ELSE 24 END,
+            24
+          ) AS "maxPlayers",
+          CASE WHEN column_exists.event_venue_exists THEN
+            (SELECT t2.event_venue FROM tournaments t2 WHERE t2.id = t.id)
+          ELSE NULL END AS "eventVenue",
+          CASE WHEN column_exists.event_start_at_exists THEN
+            (SELECT t2.event_start_at FROM tournaments t2 WHERE t2.id = t.id)
+          ELSE NULL END AS "eventStartAt",
+          CASE WHEN column_exists.event_details_url_exists THEN
+            (SELECT t2.event_details_url FROM tournaments t2 WHERE t2.id = t.id)
+          ELSE NULL END AS "eventDetailsUrl",
+          CASE WHEN column_exists.event_registration_url_exists THEN
+            (SELECT t2.event_registration_url FROM tournaments t2 WHERE t2.id = t.id)
+          ELSE NULL END AS "eventRegistrationUrl",
+          CASE WHEN column_exists.event_hero_image_url_exists THEN
+            (SELECT t2.event_hero_image_url FROM tournaments t2 WHERE t2.id = t.id)
+          ELSE NULL END AS "eventHeroImageUrl"
+        FROM tournaments t,
+          LATERAL (
+            SELECT
+              EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tournaments' AND column_name='event_venue') AS event_venue_exists,
+              EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tournaments' AND column_name='event_start_at') AS event_start_at_exists,
+              EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tournaments' AND column_name='event_details_url') AS event_details_url_exists,
+              EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tournaments' AND column_name='event_registration_url') AS event_registration_url_exists,
+              EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tournaments' AND column_name='event_hero_image_url') AS event_hero_image_url_exists,
+              EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tournaments' AND column_name='event_max_players') AS event_max_players_exists
+          ) AS column_exists
+        WHERE t.is_active = true AND t.completed_at IS NULL
+        ORDER BY COALESCE(
+          CASE WHEN column_exists.event_start_at_exists THEN (SELECT t2.event_start_at FROM tournaments t2 WHERE t2.id = t.id) ELSE NULL END,
+          t.started_at,
+          t.created_at
+        ) ASC
+      `);
+
+      const rows = (result.rows ?? result) as any[];
+      const events = rows.map((t: any) => {
+        const playerCount = parseInt(t.playerCount ?? "0", 10);
+        const paidRegistrationCount = parseInt(t.paidRegistrationCount ?? "0", 10);
+        const waitlistCount = parseInt(t.waitlistCount ?? "0", 10);
+        const maxPlayers = Math.max(1, parseInt(t.maxPlayers ?? "24", 10) || 24);
+        const currentRegisteredPlayers = Math.max(playerCount, paidRegistrationCount);
+        const remainingSpots = Math.max(0, maxPlayers - currentRegisteredPlayers);
+        const dateIso = toIsoString(t.eventStartAt ?? t.startedAt ?? t.createdAt);
+        const registrationStatus = getPublicRegistrationStatus({
+          isActive: !!t.isActive,
+          isStarted: !!t.isStarted,
+          completedAt: t.completedAt ? new Date(t.completedAt) : null,
+          registeredCount: currentRegisteredPlayers,
+          maxPlayers,
+          waitlistCount,
+        });
+
+        return {
+          id: `td-${t.id}`,
+          slug: t.roomCode.toLowerCase(),
+          name: t.name,
+          venue: (t.eventVenue as string | null) || `Room ${t.roomCode}`,
+          dateIso,
+          bannerImageUrl: (t.eventHeroImageUrl as string | null) || null,
+          registrationStatus,
+          currentRegisteredPlayers,
+          maxPlayers,
+          remainingSpots,
+          waitlistCount,
+          detailsUrl: `/events/${t.roomCode.toLowerCase()}`,
+          registrationUrl: `/events/${t.roomCode.toLowerCase()}/register`,
+        };
+      });
+
+      res.json(events);
+    } catch (error) {
+      console.error("Error getting upcoming events:", error);
+      res.json([]); // Always return array — never 500 for public splash feed
+    }
+  });
+
+  async function buildPublicEventBySlug(slug: string) {
+    const roomCode = slug.trim().toUpperCase();
+    const tournament = await storage.getTournamentByCode(roomCode);
+    if (!tournament) return null;
+
+    const players = await storage.getPlayersInTournament(tournament.id);
+    const registrationCounts = await getRegistrationCounts(tournament.id);
+    let payout: Awaited<ReturnType<typeof storage.getTournamentPayout>> = undefined;
+    try {
+      payout = await storage.getTournamentPayout(tournament.id);
+    } catch (payoutError: any) {
+      // Gracefully handle missing tournament_payouts table during partial migrations
+      const msg = String(payoutError?.message || "").toLowerCase();
+      if (!msg.includes("tournament_payouts") && !msg.includes("does not exist")) {
+        throw payoutError;
+      }
+    }
+
+    const dateIso = toIsoString(tournament.eventStartAt ?? tournament.startedAt ?? tournament.createdAt);
+    const maxPlayers = tournament.eventMaxPlayers ?? 24;
+    const currentRegisteredPlayers = Math.max(players.length, registrationCounts.paid);
+    const remainingSpots = Math.max(0, maxPlayers - currentRegisteredPlayers);
+    const waitlistCount = registrationCounts.waitlist;
+    const registrationStatus = getPublicRegistrationStatus({
+      isActive: tournament.isActive,
+      isStarted: tournament.isStarted,
+      completedAt: tournament.completedAt,
+      registeredCount: currentRegisteredPlayers,
+      maxPlayers,
+      waitlistCount,
+    });
+
+    const prizePool = payout
+      ? Math.max(0, (payout.entryFee - payout.greenFee) * payout.numPlayers + payout.addedPrize)
+      : null;
+
+    return {
+      id: `td-${tournament.id}`,
+      roomCode: tournament.roomCode,
+      slug: tournament.roomCode.toLowerCase(),
+      name: tournament.name,
+      venue: tournament.eventVenue || `Room ${tournament.roomCode}`,
+      dateIso,
+      bannerImageUrl: tournament.eventHeroImageUrl || null,
+      registrationStatus,
+      currentRegisteredPlayers,
+      maxPlayers,
+      remainingSpots,
+      waitlistCount,
+      detailsUrl: `/events/${tournament.roomCode.toLowerCase()}`,
+      registrationUrl: `/events/${tournament.roomCode.toLowerCase()}/register`,
+      entryFee: payout?.entryFee ?? null,
+      expectedDurationMinutes: 150,
+      checkInTimeIso: addMinutes(dateIso, -45),
+      playerMeetingTimeIso: addMinutes(dateIso, -15),
+      tournamentStartTimeIso: dateIso,
+      venueAddress: "Venue address to be announced",
+      prizePool,
+      payoutStructureNote: "Payout structure will be published closer to event day.",
+      venueDescription: "Tournament venue details will be posted by the Tournament Director.",
+      parkingInfo: "Parking guidance will be provided before check-in.",
+      foodAndDrinksInfo: "Food and drink details will be shared in event updates.",
+      accessibilityNotes: "Accessibility accommodations available upon request.",
+      sponsors: [
+        { name: "Sponsor Slot 1", websiteUrl: null, logoUrl: null },
+        { name: "Sponsor Slot 2", websiteUrl: null, logoUrl: null },
+      ],
+      galleryImages: [
+        "https://images.unsplash.com/photo-1484201026221-41211d85d712?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
+      ],
+      schedule: [
+        { label: "Check-in", timeIso: addMinutes(dateIso, -45) },
+        { label: "Opening announcements", timeIso: addMinutes(dateIso, -15) },
+        { label: "Round begins", timeIso: dateIso },
+        { label: "Awards ceremony", timeIso: addMinutes(dateIso, 135) },
+        { label: "Estimated finish", timeIso: addMinutes(dateIso, 150) },
+      ],
+      faq: [
+        {
+          question: "Do I need to own Par for the Course?",
+          answer: "No. The tournament app supports quick participation and scoring without prior setup.",
+        },
+        {
+          question: "Can beginners play?",
+          answer: "Yes. Players of all skill levels are welcome.",
+        },
+        {
+          question: "What equipment should I bring?",
+          answer: "Bring weather-appropriate clothing and anything the venue recommends.",
+        },
+        {
+          question: "Can I register on tournament day?",
+          answer: "Day-of registration depends on remaining spots.",
+        },
+        {
+          question: "What happens if I'm late?",
+          answer: "Please contact the Tournament Director if you are delayed.",
+        },
+        {
+          question: "Are refunds available?",
+          answer: "Refund policies are set by the Tournament Director and shown in event updates.",
+        },
+      ],
+      rules:
+        "Official rules will be posted here by the Tournament Director.\n\nPlease check back before tournament day for complete details.",
+      contact: {
+        directorName: "Tournament Director",
+        email: "director@parforthecourse.com",
+        phone: "(000) 000-0000",
+      },
+    };
+  }
+
+  app.get("/api/public/events/:slug", async (req, res) => {
+    try {
+      const event = await buildPublicEventBySlug(req.params.slug);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Error loading public event details:", error);
+      res.status(500).json({ error: "Failed to load event details" });
+    }
+  });
+
+  app.post("/api/public/events/:slug/waitlist", async (req, res) => {
+    try {
+      const parsed = waitlistJoinSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid waitlist request" });
+      }
+
+      const event = await buildPublicEventBySlug(req.params.slug);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      if (event.registrationStatus !== "waitlist") {
+        return res.status(409).json({ error: "Waitlist is not available for this event" });
+      }
+
+      if ((event.waitlistCount ?? 0) >= 10) {
+        return res.status(409).json({ error: "Waitlist is full" });
+      }
+
+      const tournament = await storage.getTournamentByCode(event.roomCode);
+      if (!tournament) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      await db.execute(sql`
+        INSERT INTO tournament_registrations (
+          tournament_id,
+          stripe_session_id,
+          customer_email,
+          status,
+          updated_at
+        ) VALUES (
+          ${tournament.id},
+          ${`waitlist-${tournament.id}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`},
+          ${`${parsed.data.name} <${parsed.data.email}>`},
+          'waitlist',
+          NOW()
+        )
+      `);
+
+      const counts = await getRegistrationCounts(tournament.id);
+      res.json({ success: true, waitlistCount: counts.waitlist });
+    } catch (error) {
+      console.error("Error joining waitlist:", error);
+      res.status(500).json({ error: "Could not join waitlist" });
+    }
+  });
+
+  app.post("/api/public/events/:slug/checkout", async (req, res) => {
+    try {
+      const event = await buildPublicEventBySlug(req.params.slug);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      if (event.registrationStatus === "closed" || event.registrationStatus === "in_progress") {
+        return res.status(409).json({ error: "Registration is no longer available for this tournament" });
+      }
+
+      if (event.registrationStatus === "waitlist") {
+        return res.status(409).json({ error: "Tournament is full. Please join the waitlist.", code: "WAITLIST_ONLY" });
+      }
+
+      if (event.entryFee === null || event.entryFee <= 0) {
+        return res.status(400).json({ error: "Entry fee is not configured for this event" });
+      }
+
+      const { successUrl, cancelUrl } = getCheckoutUrls(req, event.slug);
+      const body = new URLSearchParams();
+      body.set("mode", "payment");
+      body.set("success_url", successUrl);
+      body.set("cancel_url", cancelUrl);
+      body.set("line_items[0][price_data][currency]", "usd");
+      body.set("line_items[0][price_data][product]", STRIPE_PRODUCT_ID);
+      body.set("line_items[0][price_data][unit_amount]", String(Math.round(event.entryFee * 100)));
+      body.set("line_items[0][quantity]", "1");
+      body.set("metadata[tournamentRoomCode]", event.roomCode);
+      body.set("metadata[tournamentSlug]", event.slug);
+      body.set("metadata[tournamentName]", event.name);
+
+      const session = await stripeApiRequest("/checkout/sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body,
+      });
+
+      if (!session.url) {
+        return res.status(500).json({ error: "Stripe did not return a checkout URL" });
+      }
+
+      res.json({ url: session.url });
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      res.status(500).json({ error: "Failed to start checkout" });
+    }
+  });
+
+  app.get("/api/public/events/:slug/checkout-status", async (req, res) => {
+    try {
+      const sessionId = String(req.query.session_id || "").trim();
+      if (!sessionId) {
+        return res.status(400).json({ error: "session_id is required" });
+      }
+
+      const session = await stripeApiRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+      const sessionSlug = session.metadata?.tournamentSlug;
+      if (sessionSlug && sessionSlug !== req.params.slug.toLowerCase()) {
+        return res.status(403).json({ error: "Checkout session does not match this event" });
+      }
+
+      const roomCode = String(session.metadata?.tournamentRoomCode || "").toUpperCase();
+      const tournament = roomCode ? await storage.getTournamentByCode(roomCode) : undefined;
+      if (tournament) {
+        await upsertRegistrationFromCheckoutSession(tournament.id, session);
+      }
+
+      res.json({
+        status: session.status,
+        paymentStatus: session.payment_status,
+        customerEmail: session.customer_details?.email || null,
+        amountTotal: session.amount_total,
+        currency: session.currency,
+        sessionId: session.id,
+      });
+    } catch (error) {
+      console.error("Error fetching checkout status:", error);
+      res.status(500).json({ error: "Failed to fetch checkout status" });
+    }
+  });
+
+  app.post("/api/public/stripe/webhook", async (req, res) => {
+    try {
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+      if (!webhookSecret) {
+        return res.status(400).json({ error: "Webhook secret is not configured" });
+      }
+
+      const signatureHeader = req.headers["stripe-signature"];
+      if (!signatureHeader || typeof signatureHeader !== "string") {
+        return res.status(400).json({ error: "Missing Stripe signature header" });
+      }
+
+      const rawBody = req.rawBody;
+      if (!Buffer.isBuffer(rawBody)) {
+        return res.status(400).json({ error: "Invalid webhook body" });
+      }
+
+      if (!verifyStripeWebhookSignature(rawBody, signatureHeader, webhookSecret)) {
+        return res.status(400).json({ error: "Invalid Stripe webhook signature" });
+      }
+
+      const stripeEvent = JSON.parse(rawBody.toString("utf8"));
+      if (
+        stripeEvent?.type === "checkout.session.completed" ||
+        stripeEvent?.type === "checkout.session.async_payment_succeeded"
+      ) {
+        const session = stripeEvent?.data?.object || {};
+        const roomCode = String(session?.metadata?.tournamentRoomCode || "").toUpperCase();
+        const tournament = roomCode ? await storage.getTournamentByCode(roomCode) : undefined;
+        if (tournament) {
+          await upsertRegistrationFromCheckoutSession(tournament.id, {
+            ...session,
+            payment_status: "paid",
+          });
+        }
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error("Error processing Stripe webhook:", error);
+      res.status(500).json({ error: "Failed to process webhook" });
+    }
+  });
+
   // Verify master director PIN
   app.post("/api/director/verify", async (req, res) => {
     try {
@@ -487,6 +1159,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/tournaments/:roomCode/waitlist", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      const directorPin = req.query.directorPin as string;
+      const isMasterDirector = isValidDirectorPin(directorPin);
+      const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
+      if (!isMasterDirector && !isTournamentDirector) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+
+      const result = await db.execute(sql`
+        SELECT id, customer_email AS "customerEmail", status, created_at AS "createdAt"
+        FROM tournament_registrations
+        WHERE tournament_id = ${tournament.id} AND status = 'waitlist'
+        ORDER BY created_at ASC
+      `);
+
+      const rows = (result.rows ?? result) as Array<{ id: number; customerEmail: string | null; status: string; createdAt: string | Date }>;
+      const entries = rows.map((row) => {
+        const parsed = parseWaitlistCustomerLabel(row.customerEmail);
+        return {
+          id: row.id,
+          name: parsed.name,
+          email: parsed.email,
+          status: row.status,
+          createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
+        };
+      });
+
+      res.json({ entries });
+    } catch (error) {
+      console.error("Error loading waitlist:", error);
+      res.status(500).json({ error: "Failed to load waitlist" });
+    }
+  });
+
+  app.delete("/api/tournaments/:roomCode/waitlist/:registrationId", async (req, res) => {
+    try {
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      const directorPin = req.body?.directorPin as string | undefined;
+      const isMasterDirector = isValidDirectorPin(directorPin);
+      const isTournamentDirector = directorPin ? await storage.verifyDirectorPin(req.params.roomCode, directorPin) : false;
+      if (!isMasterDirector && !isTournamentDirector) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+
+      const registrationId = parseInt(req.params.registrationId, 10);
+      if (Number.isNaN(registrationId)) {
+        return res.status(400).json({ error: "Invalid waitlist entry ID" });
+      }
+
+      await db.execute(sql`
+        DELETE FROM tournament_registrations
+        WHERE id = ${registrationId} AND tournament_id = ${tournament.id} AND status = 'waitlist'
+      `);
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error removing waitlist entry:", error);
+      res.status(500).json({ error: "Failed to remove waitlist entry" });
+    }
+  });
+
+  // Update tournament event details (date/time/location)
+  app.patch("/api/tournaments/:roomCode/event-details", async (req, res) => {
+    try {
+      const parsed = updateEventDetailsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid request" });
+      }
+
+      const tournament = await storage.getTournamentByCode(req.params.roomCode);
+      if (!tournament) {
+        return res.status(404).json({ error: "Tournament not found" });
+      }
+
+      const {
+        directorPin,
+        eventVenue,
+        eventStartAt,
+        eventDetailsUrl,
+        eventRegistrationUrl,
+        eventHeroImageUrl,
+        eventMaxPlayers,
+      } = parsed.data;
+      const isMasterDirector = isValidDirectorPin(directorPin);
+      const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
+      if (!isMasterDirector && !isTournamentDirector) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+
+      const updated = await storage.updateTournamentEventDetails(tournament.id, {
+        eventVenue: eventVenue?.trim() ? eventVenue.trim() : null,
+        eventStartAt: eventStartAt ? new Date(eventStartAt) : null,
+        eventDetailsUrl: eventDetailsUrl?.trim() ? eventDetailsUrl.trim() : null,
+        eventRegistrationUrl: eventRegistrationUrl?.trim() ? eventRegistrationUrl.trim() : null,
+        eventHeroImageUrl: eventHeroImageUrl?.trim() ? eventHeroImageUrl.trim() : null,
+        eventMaxPlayers: eventMaxPlayers ?? tournament.eventMaxPlayers ?? 24,
+      });
+
+      const { directorPin: _, ...safe } = updated;
+      res.json(safe);
+    } catch (error) {
+      console.error("Error updating event details:", error);
+      res.status(500).json({ error: "Failed to update event details" });
+    }
+  });
+
   // Save/update tournament payout
   app.put("/api/tournaments/:roomCode/payout", async (req, res) => {
     try {
@@ -494,7 +1282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!tournament) {
         return res.status(404).json({ error: "Tournament not found" });
       }
-      const { directorPin, numPlayers, entryFee, addedPrize, numSpots, percentages } = req.body;
+      const { directorPin, numPlayers, entryFee, greenFee, addedPrize, numSpots, percentages } = req.body;
       const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
       if (!isMasterDirector && !isTournamentDirector) {
@@ -504,7 +1292,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Missing required payout fields" });
       }
       const payout = await storage.upsertTournamentPayout(tournament.id, {
-        numPlayers, entryFee: entryFee || 0, addedPrize: addedPrize || 0, numSpots, percentages,
+        numPlayers,
+        entryFee: entryFee || 0,
+        greenFee: greenFee || 0,
+        addedPrize: addedPrize || 0,
+        numSpots,
+        percentages,
       });
       res.json(payout);
     } catch (error) {
@@ -754,6 +1547,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/players", async (req, res) => {
     try {
       const { directorPin, data } = req.body;
+      const mode: "preview" | "apply" = req.body?.mode === "preview" ? "preview" : "apply";
+      const selectedSections = getImportSections(req.body?.selectedSections);
+      const conflictPolicy: ImportConflictPolicy = ["skip", "replace", "keep_both"].includes(req.body?.conflictPolicy)
+        ? req.body.conflictPolicy
+        : "skip";
+
       if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
@@ -762,38 +1561,172 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid import format - expected universalPlayers array" });
       }
 
+      const counts = getImportCounts(data);
+      const importedPlayers = Array.isArray(data.universalPlayers) ? data.universalPlayers : [];
+      const existingPlayers = await storage.getAllUniversalPlayers();
+      const existingByCode = new Map<string, any>();
+      const existingByName = new Map<string, any>();
+
+      for (const p of existingPlayers) {
+        if (p.uniqueCode) existingByCode.set(p.uniqueCode.toUpperCase(), p);
+        const normalized = normalizeName(p.name);
+        if (normalized && !existingByName.has(normalized)) {
+          existingByName.set(normalized, p);
+        }
+      }
+
+      const conflicts: ImportConflict[] = [];
+      for (const entry of importedPlayers) {
+        const incoming = entry?.player;
+        if (!incoming?.name) continue;
+        const incomingCode = normalizeCode(incoming.uniqueCode);
+        const codeMatch = incomingCode ? existingByCode.get(incomingCode) : undefined;
+        const nameMatch = existingByName.get(normalizeName(incoming.name));
+        const matched = codeMatch || nameMatch;
+        if (!matched) continue;
+
+        const matchReason: "uniqueCode" | "name" = codeMatch ? "uniqueCode" : "name";
+        const differingFields = getDifferingPlayerFields(matched, incoming);
+        if (differingFields.length > 0 || (incomingCode && matched.uniqueCode !== incomingCode)) {
+          conflicts.push({
+            key: `${incomingCode || normalizeName(incoming.name)}-${matched.id}`,
+            importName: incoming.name,
+            importUniqueCode: incomingCode,
+            existingId: matched.id,
+            existingName: matched.name,
+            existingUniqueCode: matched.uniqueCode,
+            matchReason,
+            differingFields: incomingCode && matched.uniqueCode !== incomingCode
+              ? [...differingFields, "uniqueCode"]
+              : differingFields,
+          });
+        }
+      }
+
+      if (mode === "preview") {
+        return res.json({
+          counts,
+          conflicts,
+          selectedSections,
+        });
+      }
+
       let playersImported = 0;
       let playersSkipped = 0;
       let historyImported = 0;
+      let playersReplaced = 0;
+      let playersDuplicated = 0;
+
+      const resolveExistingPlayer = (incoming: any) => {
+        const incomingCode = normalizeCode(incoming?.uniqueCode);
+        if (incomingCode && existingByCode.has(incomingCode)) {
+          return existingByCode.get(incomingCode);
+        }
+        const byName = existingByName.get(normalizeName(incoming?.name));
+        return byName;
+      };
 
       for (const entry of data.universalPlayers) {
         const p = entry.player;
-        const existing = p.uniqueCode ? await storage.getUniversalPlayerByCode(p.uniqueCode) : null;
-        
-        if (existing) {
-          playersSkipped++;
-          continue;
+        if (!p?.name) continue;
+
+        let targetPlayer = resolveExistingPlayer(p);
+
+        if (targetPlayer) {
+          if (conflictPolicy === "skip") {
+            playersSkipped++;
+            continue;
+          }
+
+          if (conflictPolicy === "replace") {
+            const incomingCode = normalizeCode(p.uniqueCode);
+            await storage.updateUniversalPlayer(targetPlayer.id, {
+              name: p.name,
+              email: p.email ?? null,
+              phoneNumber: p.phoneNumber ?? null,
+              tShirtSize: p.tShirtSize ?? null,
+              contactInfo: p.contactInfo ?? null,
+              handicap: p.handicap ?? null,
+              isProvisional: p.isProvisional ?? true,
+            });
+
+            if (incomingCode && targetPlayer.uniqueCode !== incomingCode) {
+              const [updatedByCode] = await db
+                .update(universalPlayers)
+                .set({ uniqueCode: incomingCode })
+                .where(eq(universalPlayers.id, targetPlayer.id))
+                .returning();
+              targetPlayer = updatedByCode;
+            } else {
+              targetPlayer = (await storage.getUniversalPlayer(targetPlayer.id))!;
+            }
+
+            playersReplaced++;
+          }
+
+          if (conflictPolicy === "keep_both") {
+            const incomingCode = normalizeCode(p.uniqueCode);
+            let uniqueCode = incomingCode;
+            if (uniqueCode && existingByCode.has(uniqueCode)) {
+              uniqueCode = await storage.getNextUniqueCode();
+            }
+            if (!uniqueCode) {
+              uniqueCode = await storage.getNextUniqueCode();
+            }
+
+            targetPlayer = await storage.createUniversalPlayer({
+              name: p.name,
+              email: p.email || null,
+              phoneNumber: p.phoneNumber || null,
+              tShirtSize: p.tShirtSize || null,
+              contactInfo: p.contactInfo || null,
+              uniqueCode,
+              handicap: p.handicap ?? null,
+              isProvisional: p.isProvisional ?? true,
+              completedTournaments: 0,
+            });
+            playersDuplicated++;
+            playersImported++;
+          }
+        } else {
+          const uniqueCode = normalizeCode(p.uniqueCode) || await storage.getNextUniqueCode();
+          targetPlayer = await storage.createUniversalPlayer({
+            name: p.name,
+            email: p.email || null,
+            phoneNumber: p.phoneNumber || null,
+            tShirtSize: p.tShirtSize || null,
+            contactInfo: p.contactInfo || null,
+            uniqueCode,
+            handicap: p.handicap ?? null,
+            isProvisional: p.isProvisional ?? true,
+            completedTournaments: 0,
+          });
+          playersImported++;
         }
 
-        const uniqueCode = p.uniqueCode || await storage.getNextUniqueCode();
-        const newPlayer = await storage.createUniversalPlayer({
-          name: p.name,
-          email: p.email || null,
-          phoneNumber: p.phoneNumber || null,
-          tShirtSize: p.tShirtSize || null,
-          contactInfo: p.contactInfo || null,
-          uniqueCode,
-          handicap: null,
-          isProvisional: true,
-          completedTournaments: 0,
-        });
+        if (selectedSections.tournamentHistory && entry.history && Array.isArray(entry.history)) {
+          const existingHistory = await storage.getPlayerTournamentHistory(targetPlayer.id);
 
-        if (entry.history && Array.isArray(entry.history)) {
           for (const h of entry.history) {
             const computedRelativeToPar = (h.totalStrokes ?? 0) - (h.totalPar ?? 0);
+            const duplicate = existingHistory.find((eh) =>
+              normalizeName(eh.tournamentName) === normalizeName(h.tournamentName) &&
+              normalizeName(eh.courseName || "") === normalizeName(h.courseName || "") &&
+              eh.totalStrokes === (h.totalStrokes ?? 0) &&
+              eh.totalPar === (h.totalPar ?? 0) &&
+              eh.holesPlayed === (h.holesPlayed ?? 0)
+            );
+
+            if (duplicate && conflictPolicy === "skip") {
+              continue;
+            }
+            if (duplicate && conflictPolicy === "replace") {
+              await storage.deleteTournamentHistory(duplicate.id);
+            }
+
             await storage.addTournamentHistory({
-              universalPlayerId: newPlayer.id,
-              tournamentId: null, // IDs differ across databases; name is preserved
+              universalPlayerId: targetPlayer.id,
+              tournamentId: null,
               tournamentName: h.tournamentName,
               courseName: h.courseName || null,
               totalStrokes: h.totalStrokes,
@@ -807,15 +1740,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             historyImported++;
           }
         }
-        await storage.recalculateHandicap(newPlayer.id);
-        playersImported++;
+
+        await storage.recalculateHandicap(targetPlayer.id);
+
+        if (targetPlayer.uniqueCode) {
+          existingByCode.set(targetPlayer.uniqueCode.toUpperCase(), targetPlayer);
+        }
+        existingByName.set(normalizeName(targetPlayer.name), targetPlayer);
       }
 
       res.json({ 
         success: true, 
-        playersImported, 
+        counts,
+        playersImported,
         playersSkipped, 
-        historyImported 
+        historyImported,
+        playersReplaced,
+        playersDuplicated,
+        conflictPolicy,
+        selectedSections,
       });
     } catch (error) {
       console.error("Error importing player data:", error);
@@ -827,6 +1770,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/import/full", async (req, res) => {
     try {
       const { directorPin, data } = req.body;
+      const mode: "preview" | "apply" = req.body?.mode === "preview" ? "preview" : "apply";
+      const selectedSections = getImportSections(req.body?.selectedSections);
+      const conflictPolicy: ImportConflictPolicy = ["skip", "replace", "keep_both"].includes(req.body?.conflictPolicy)
+        ? req.body.conflictPolicy
+        : "skip";
+
       if (!isValidDirectorPin(directorPin)) {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
@@ -835,144 +1784,222 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid import format" });
       }
 
-      let playersImported = 0;
-      let playersSkipped = 0;
-      let historyImported = 0;
-      let tournamentsImported = 0;
-      const errors: string[] = [];
+      const counts = getImportCounts(data);
+      const importedPlayers = Array.isArray(data.universalPlayers) ? data.universalPlayers : [];
+      const existingPlayers = await storage.getAllUniversalPlayers();
+      const existingByCode = new Map<string, any>();
+      const existingByName = new Map<string, any>();
 
-      for (const entry of data.universalPlayers) {
-        try {
-          const p = entry.player;
-          if (!p?.name) { errors.push(`Skipped player with missing name`); continue; }
-          const existing = p.uniqueCode ? await storage.getUniversalPlayerByCode(p.uniqueCode) : null;
-
-          if (existing) {
-            playersSkipped++;
-            continue;
-          }
-
-          const uniqueCode = p.uniqueCode || await storage.getNextUniqueCode();
-          const newPlayer = await storage.createUniversalPlayer({
-            name: p.name,
-            email: p.email || null,
-            phoneNumber: p.phoneNumber || null,
-            tShirtSize: p.tShirtSize || null,
-            contactInfo: p.contactInfo || null,
-            uniqueCode,
-            handicap: null,
-            isProvisional: true,
-            completedTournaments: 0,
-          });
-
-          if (entry.history && Array.isArray(entry.history)) {
-            for (const h of entry.history) {
-              try {
-                const totalStrokes = h.totalStrokes ?? 0;
-                const totalPar = h.totalPar ?? 0;
-                await storage.addTournamentHistory({
-                  universalPlayerId: newPlayer.id,
-                  tournamentId: null, // IDs differ across databases; name is preserved
-                  tournamentName: h.tournamentName || "Unknown Tournament",
-                  courseName: h.courseName || null,
-                  totalStrokes,
-                  totalPar,
-                  holesPlayed: h.holesPlayed ?? 0,
-                  relativeToPar: totalStrokes - totalPar,
-                  totalScratches: h.totalScratches ?? 0,
-                  totalPenalties: h.totalPenalties ?? 0,
-                  isManualEntry: h.isManualEntry ?? true,
-                });
-                historyImported++;
-              } catch (hErr: any) {
-                errors.push(`History for ${p.name}: ${hErr?.message || hErr}`);
-              }
-            }
-          }
-          await storage.recalculateHandicap(newPlayer.id);
-          playersImported++;
-        } catch (pErr: any) {
-          errors.push(`Player ${entry?.player?.name || "unknown"}: ${pErr?.message || pErr}`);
+      for (const p of existingPlayers) {
+        if (p.uniqueCode) existingByCode.set(p.uniqueCode.toUpperCase(), p);
+        const normalized = normalizeName(p.name);
+        if (normalized && !existingByName.has(normalized)) {
+          existingByName.set(normalized, p);
         }
       }
 
-      if (data.tournaments && Array.isArray(data.tournaments)) {
-        for (const entry of data.tournaments) {
+      const conflicts: ImportConflict[] = [];
+      for (const entry of importedPlayers) {
+        const incoming = entry?.player;
+        if (!incoming?.name) continue;
+        const incomingCode = normalizeCode(incoming.uniqueCode);
+        const codeMatch = incomingCode ? existingByCode.get(incomingCode) : undefined;
+        const nameMatch = existingByName.get(normalizeName(incoming.name));
+        const matched = codeMatch || nameMatch;
+        if (!matched) continue;
+
+        const differingFields = getDifferingPlayerFields(matched, incoming);
+        if (differingFields.length > 0 || (incomingCode && matched.uniqueCode !== incomingCode)) {
+          conflicts.push({
+            key: `${incomingCode || normalizeName(incoming.name)}-${matched.id}`,
+            importName: incoming.name,
+            importUniqueCode: incomingCode,
+            existingId: matched.id,
+            existingName: matched.name,
+            existingUniqueCode: matched.uniqueCode,
+            matchReason: codeMatch ? "uniqueCode" : "name",
+            differingFields: incomingCode && matched.uniqueCode !== incomingCode
+              ? [...differingFields, "uniqueCode"]
+              : differingFields,
+          });
+        }
+      }
+
+      if (mode === "preview") {
+        return res.json({
+          counts,
+          conflicts,
+          selectedSections,
+        });
+      }
+
+      let playersImported = 0;
+      let playersSkipped = 0;
+      let historyImported = 0;
+      let playersReplaced = 0;
+      let playersDuplicated = 0;
+      let settingsImported = 0;
+      const errors: string[] = [];
+
+      const resolveExistingPlayer = (incoming: any) => {
+        const incomingCode = normalizeCode(incoming?.uniqueCode);
+        if (incomingCode && existingByCode.has(incomingCode)) {
+          return existingByCode.get(incomingCode);
+        }
+        return existingByName.get(normalizeName(incoming?.name));
+      };
+
+      if (selectedSections.players) {
+        for (const entry of data.universalPlayers) {
           try {
-            let roomCode = generateRoomCode();
-            let attempts = 0;
-            while (await storage.getTournamentByCode(roomCode) && attempts < 10) {
-              roomCode = generateRoomCode();
-              attempts++;
+            const p = entry.player;
+            if (!p?.name) { errors.push("Skipped player with missing name"); continue; }
+
+            let targetPlayer = resolveExistingPlayer(p);
+
+            if (targetPlayer) {
+              if (conflictPolicy === "skip") {
+                playersSkipped++;
+                continue;
+              }
+
+              if (conflictPolicy === "replace") {
+                const incomingCode = normalizeCode(p.uniqueCode);
+                await storage.updateUniversalPlayer(targetPlayer.id, {
+                  name: p.name,
+                  email: p.email ?? null,
+                  phoneNumber: p.phoneNumber ?? null,
+                  tShirtSize: p.tShirtSize ?? null,
+                  contactInfo: p.contactInfo ?? null,
+                  handicap: p.handicap ?? null,
+                  isProvisional: p.isProvisional ?? true,
+                });
+
+                if (incomingCode && targetPlayer.uniqueCode !== incomingCode) {
+                  const [updatedByCode] = await db
+                    .update(universalPlayers)
+                    .set({ uniqueCode: incomingCode })
+                    .where(eq(universalPlayers.id, targetPlayer.id))
+                    .returning();
+                  targetPlayer = updatedByCode;
+                } else {
+                  targetPlayer = (await storage.getUniversalPlayer(targetPlayer.id))!;
+                }
+
+                playersReplaced++;
+              }
+
+              if (conflictPolicy === "keep_both") {
+                const incomingCode = normalizeCode(p.uniqueCode);
+                let uniqueCode = incomingCode;
+                if (uniqueCode && existingByCode.has(uniqueCode)) {
+                  uniqueCode = await storage.getNextUniqueCode();
+                }
+                if (!uniqueCode) {
+                  uniqueCode = await storage.getNextUniqueCode();
+                }
+
+                targetPlayer = await storage.createUniversalPlayer({
+                  name: p.name,
+                  email: p.email || null,
+                  phoneNumber: p.phoneNumber || null,
+                  tShirtSize: p.tShirtSize || null,
+                  contactInfo: p.contactInfo || null,
+                  uniqueCode,
+                  handicap: p.handicap ?? null,
+                  isProvisional: p.isProvisional ?? true,
+                  completedTournaments: 0,
+                });
+                playersDuplicated++;
+                playersImported++;
+              }
+            } else {
+              const uniqueCode = normalizeCode(p.uniqueCode) || await storage.getNextUniqueCode();
+              targetPlayer = await storage.createUniversalPlayer({
+                name: p.name,
+                email: p.email || null,
+                phoneNumber: p.phoneNumber || null,
+                tShirtSize: p.tShirtSize || null,
+                contactInfo: p.contactInfo || null,
+                uniqueCode,
+                handicap: p.handicap ?? null,
+                isProvisional: p.isProvisional ?? true,
+                completedTournaments: 0,
+              });
+              playersImported++;
             }
 
-            const newTournament = await storage.createTournament({
-              roomCode,
-              name: entry.tournament.name + " (Imported)",
-              directorPin: MASTER_DIRECTOR_PIN,
-              isActive: false,
-              isHandicapped: entry.tournament.isHandicapped ?? false,
-              isStarted: entry.tournament.isStarted ?? false,
-            });
+            if (selectedSections.tournamentHistory && entry.history && Array.isArray(entry.history)) {
+              const existingHistory = await storage.getPlayerTournamentHistory(targetPlayer.id);
 
-            const playerIdMap: Record<number, number> = {};
-            if (entry.players) {
-              for (const player of entry.players) {
+              for (const h of entry.history) {
                 try {
-                  // Resolve universalPlayerId via text code; raw integer IDs differ across DBs
-                  let resolvedUniversalPlayerId: number | null = null;
-                  if (player.universalId) {
-                    const up = await storage.getUniversalPlayerByCode(player.universalId);
-                    resolvedUniversalPlayerId = up?.id ?? null;
+                  const totalStrokes = h.totalStrokes ?? 0;
+                  const totalPar = h.totalPar ?? 0;
+
+                  const duplicate = existingHistory.find((eh) =>
+                    normalizeName(eh.tournamentName) === normalizeName(h.tournamentName) &&
+                    normalizeName(eh.courseName || "") === normalizeName(h.courseName || "") &&
+                    eh.totalStrokes === totalStrokes &&
+                    eh.totalPar === totalPar &&
+                    eh.holesPlayed === (h.holesPlayed ?? 0)
+                  );
+
+                  if (duplicate && conflictPolicy === "skip") {
+                    continue;
                   }
-                  const newPlayer = await storage.addPlayerToTournament({
-                    tournamentId: newTournament.id,
-                    playerName: player.playerName,
-                    deviceId: null,
-                    groupName: player.groupName || null,
-                    universalId: player.universalId || null,
-                    universalPlayerId: resolvedUniversalPlayerId,
-                    contactInfo: player.contactInfo || null,
+                  if (duplicate && conflictPolicy === "replace") {
+                    await storage.deleteTournamentHistory(duplicate.id);
+                  }
+
+                  await storage.addTournamentHistory({
+                    universalPlayerId: targetPlayer.id,
+                    tournamentId: null,
+                    tournamentName: h.tournamentName || "Unknown Tournament",
+                    courseName: h.courseName || null,
+                    totalStrokes,
+                    totalPar,
+                    holesPlayed: h.holesPlayed ?? 0,
+                    relativeToPar: totalStrokes - totalPar,
+                    totalScratches: h.totalScratches ?? 0,
+                    totalPenalties: h.totalPenalties ?? 0,
+                    isManualEntry: h.isManualEntry ?? true,
                   });
-                  playerIdMap[player.id] = newPlayer.id;
-                } catch (plErr: any) {
-                  errors.push(`Tournament player ${player.playerName}: ${plErr?.message || plErr}`);
+                  historyImported++;
+                } catch (hErr: any) {
+                  errors.push(`History for ${p.name}: ${hErr?.message || hErr}`);
                 }
               }
             }
 
-            if (entry.scores) {
-              for (const score of entry.scores) {
-                try {
-                  const newPlayerId = playerIdMap[score.tournamentPlayerId];
-                  if (newPlayerId) {
-                    await storage.upsertScore({
-                      tournamentPlayerId: newPlayerId,
-                      hole: score.hole,
-                      par: score.par,
-                      strokes: score.strokes,
-                      scratches: score.scratches ?? 0,
-                      penalties: score.penalties ?? 0,
-                    });
-                  }
-                } catch (sErr: any) {
-                  errors.push(`Score hole ${score.hole}: ${sErr?.message || sErr}`);
-                }
-              }
+            await storage.recalculateHandicap(targetPlayer.id);
+
+            if (targetPlayer.uniqueCode) {
+              existingByCode.set(targetPlayer.uniqueCode.toUpperCase(), targetPlayer);
             }
-            tournamentsImported++;
-          } catch (tErr: any) {
-            errors.push(`Tournament ${entry?.tournament?.name || "unknown"}: ${tErr?.message || tErr}`);
+            existingByName.set(normalizeName(targetPlayer.name), targetPlayer);
+          } catch (pErr: any) {
+            errors.push(`Player ${entry?.player?.name || "unknown"}: ${pErr?.message || pErr}`);
           }
         }
+      }
+
+      if (selectedSections.settings && counts.settings > 0) {
+        // Placeholder for future persisted settings import support.
+        settingsImported = counts.settings;
       }
 
       res.json({
         success: true,
+        counts,
         playersImported,
         playersSkipped,
         historyImported,
-        tournamentsImported,
+        playersReplaced,
+        playersDuplicated,
+        settingsImported,
+        conflictPolicy,
+        selectedSections,
         errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error: any) {

@@ -45,6 +45,12 @@ export async function initializeDatabase() {
         id SERIAL PRIMARY KEY,
         room_code TEXT NOT NULL UNIQUE,
         name TEXT NOT NULL,
+        event_venue TEXT,
+        event_start_at TIMESTAMP,
+        event_details_url TEXT,
+        event_registration_url TEXT,
+        event_hero_image_url TEXT,
+        event_max_players INTEGER NOT NULL DEFAULT 24,
         is_active BOOLEAN NOT NULL DEFAULT true,
         is_started BOOLEAN NOT NULL DEFAULT false,
         is_handicapped BOOLEAN NOT NULL DEFAULT false,
@@ -98,11 +104,103 @@ export async function initializeDatabase() {
         created_at TIMESTAMP DEFAULT NOW() NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS tournament_registrations (
+        id SERIAL PRIMARY KEY,
+        tournament_id INTEGER NOT NULL REFERENCES tournaments(id),
+        stripe_session_id TEXT UNIQUE,
+        stripe_payment_intent_id TEXT,
+        customer_email TEXT,
+        amount_total INTEGER,
+        currency TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS tournament_payouts (
+        id SERIAL PRIMARY KEY,
+        tournament_id INTEGER NOT NULL UNIQUE REFERENCES tournaments(id),
+        num_players INTEGER NOT NULL,
+        entry_fee REAL NOT NULL,
+        green_fee REAL NOT NULL DEFAULT 0,
+        added_prize REAL NOT NULL DEFAULT 0,
+        num_spots INTEGER NOT NULL,
+        percentages JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id SERIAL PRIMARY KEY,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        device_id TEXT,
+        tournament_room_code TEXT,
+        universal_player_id INTEGER REFERENCES universal_players(id),
+        is_director BOOLEAN NOT NULL DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+
       DO $$
       BEGIN
+        -- tournaments columns
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'sponsor_pages_enabled') THEN
           ALTER TABLE tournaments ADD COLUMN sponsor_pages_enabled BOOLEAN NOT NULL DEFAULT false;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_venue') THEN
+          ALTER TABLE tournaments ADD COLUMN event_venue TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_start_at') THEN
+          ALTER TABLE tournaments ADD COLUMN event_start_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_details_url') THEN
+          ALTER TABLE tournaments ADD COLUMN event_details_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_registration_url') THEN
+          ALTER TABLE tournaments ADD COLUMN event_registration_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_hero_image_url') THEN
+          ALTER TABLE tournaments ADD COLUMN event_hero_image_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_max_players') THEN
+          ALTER TABLE tournaments ADD COLUMN event_max_players INTEGER NOT NULL DEFAULT 24;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'started_at') THEN
+          ALTER TABLE tournaments ADD COLUMN started_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'completed_at') THEN
+          ALTER TABLE tournaments ADD COLUMN completed_at TIMESTAMP;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'group_starting_holes') THEN
+          ALTER TABLE tournaments ADD COLUMN group_starting_holes JSONB;
+        END IF;
+        -- tournament_players columns
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournament_players' AND column_name = 'is_dnf') THEN
+          ALTER TABLE tournament_players ADD COLUMN is_dnf BOOLEAN NOT NULL DEFAULT false;
+        END IF;
+        -- player_tournament_history columns
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'player_tournament_history' AND column_name = 'course_name') THEN
+          ALTER TABLE player_tournament_history ADD COLUMN course_name TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'player_tournament_history' AND column_name = 'total_scratches') THEN
+          ALTER TABLE player_tournament_history ADD COLUMN total_scratches INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'player_tournament_history' AND column_name = 'total_penalties') THEN
+          ALTER TABLE player_tournament_history ADD COLUMN total_penalties INTEGER DEFAULT 0;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'player_tournament_history' AND column_name = 'is_manual_entry') THEN
+          ALTER TABLE player_tournament_history ADD COLUMN is_manual_entry BOOLEAN DEFAULT false;
+        END IF;
+        -- universal_players columns
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'universal_players' AND column_name = 'phone_number') THEN
+          ALTER TABLE universal_players ADD COLUMN phone_number TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'universal_players' AND column_name = 't_shirt_size') THEN
+          ALTER TABLE universal_players ADD COLUMN t_shirt_size TEXT;
+        END IF;
+        -- Make player_tournament_history.tournament_id nullable for manual entries
+        ALTER TABLE player_tournament_history ALTER COLUMN tournament_id DROP NOT NULL;
       END $$;
     `);
     

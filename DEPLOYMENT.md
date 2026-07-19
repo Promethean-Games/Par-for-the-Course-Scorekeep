@@ -24,6 +24,10 @@ That's it! Your app will be live in a few minutes.
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `SESSION_SECRET` | Secret for session encryption (32+ chars) | Yes |
+| `STRIPE_SECRET_KEY` | Stripe secret API key for server-side checkout session creation | Yes (for public registration) |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret for paid-registration confirmation | Recommended |
+| `SUCCESS_URL` | Full success URL template (supports `{slug}` and `{CHECKOUT_SESSION_ID}` placeholders) | Yes (for public registration) |
+| `CANCEL_URL` | Full cancel URL template (supports `{slug}` placeholder) | Yes (for public registration) |
 | `NODE_ENV` | Set to `production` for deployment | Yes |
 | `PORT` | Server port (default: 5000) | No |
 

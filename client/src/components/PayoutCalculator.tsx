@@ -172,6 +172,7 @@ interface PayoutCalculatorProps {
 export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onClose }: PayoutCalculatorProps) {
   const [numPlayers, setNumPlayers] = useState(16);
   const [entryFee, setEntryFee] = useState(20);
+  const [greenFee, setGreenFee] = useState(0);
   const [addedPrize, setAddedPrize] = useState(0);
   const [numSpots, setNumSpots] = useState(3);
   const [percentages, setPercentages] = useState<number[]>([50, 30, 20]);
@@ -180,7 +181,9 @@ export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onC
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const totalPrizePool = numPlayers * entryFee + addedPrize;
+  const netEntryPerPlayer = Math.max(0, entryFee - greenFee);
+  const totalGreenFee = numPlayers * greenFee;
+  const totalPrizePool = numPlayers * netEntryPerPlayer + addedPrize;
 
   useEffect(() => {
     if (linkedRoomCode) {
@@ -197,6 +200,7 @@ export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onC
         if (data && data.numPlayers) {
           setNumPlayers(data.numPlayers);
           setEntryFee(data.entryFee);
+          setGreenFee(data.greenFee || 0);
           setAddedPrize(data.addedPrize || 0);
           setNumSpots(data.numSpots);
           setPercentages(data.percentages);
@@ -230,6 +234,7 @@ export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onC
           directorPin,
           numPlayers,
           entryFee,
+          greenFee,
           addedPrize,
           numSpots,
           percentages,
@@ -308,7 +313,7 @@ export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onC
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label htmlFor="numPlayers" className="text-xs">Number of Players</Label>
               <Input
@@ -332,6 +337,20 @@ export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onC
                 value={entryFee}
                 onChange={(e) => setEntryFee(Math.max(0, parseFloat(e.target.value) || 0))}
                 data-testid="input-entry-fee"
+              />
+            </div>
+            <div>
+              <Label htmlFor="greenFee" className="text-xs">Green Fee Per Player ($)</Label>
+              <Input
+                id="greenFee"
+                type="number"
+                inputMode="decimal"
+                min={0}
+                step={1}
+                value={greenFee}
+                onChange={(e) => setGreenFee(Math.max(0, parseFloat(e.target.value) || 0))}
+                placeholder="e.g. 2"
+                data-testid="input-green-fee"
               />
             </div>
             <div>
@@ -373,14 +392,27 @@ export function PayoutCalculator({ directorPin, tournaments, linkedRoomCode, onC
             </div>
           </div>
 
-          <div className="bg-muted/50 rounded-lg p-3 text-center">
-            <p className="text-xs text-muted-foreground">Total Prize Pool</p>
-            <p className="text-2xl font-bold" data-testid="text-total-prize-pool">
-              ${totalPrizePool.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-            </p>
+          <div className="bg-muted/50 rounded-lg p-3 text-center space-y-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Prize Money</p>
+              <p className="text-2xl font-bold" data-testid="text-total-prize-pool">
+                ${totalPrizePool.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+            </div>
+            <div className="rounded-md border bg-background/70 py-2" data-testid="text-total-green-fee">
+              <p className="text-xs text-muted-foreground">Total Green Fee</p>
+              <p className="text-lg font-semibold">
+                ${totalGreenFee.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+              </p>
+            </div>
             {addedPrize > 0 && (
               <p className="text-xs text-muted-foreground">
-                ({numPlayers} x ${entryFee} + ${addedPrize} added)
+                ({numPlayers} x ${entryFee} - ${greenFee} + ${addedPrize} added)
+              </p>
+            )}
+            {addedPrize === 0 && (
+              <p className="text-xs text-muted-foreground">
+                ({numPlayers} x ${entryFee} - ${greenFee})
               </p>
             )}
           </div>

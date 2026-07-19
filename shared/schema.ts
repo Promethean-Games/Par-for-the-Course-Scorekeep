@@ -59,6 +59,12 @@ export const tournaments = pgTable("tournaments", {
   id: serial("id").primaryKey(),
   roomCode: text("room_code").notNull().unique(),
   name: text("name").notNull(),
+  eventVenue: text("event_venue"),
+  eventStartAt: timestamp("event_start_at"),
+  eventDetailsUrl: text("event_details_url"),
+  eventRegistrationUrl: text("event_registration_url"),
+  eventHeroImageUrl: text("event_hero_image_url"),
+  eventMaxPlayers: integer("event_max_players").notNull().default(24),
   isActive: boolean("is_active").notNull().default(true),
   isStarted: boolean("is_started").notNull().default(false),
   isHandicapped: boolean("is_handicapped").notNull().default(false),
@@ -100,6 +106,19 @@ export const tournamentPlayersRelations = relations(tournamentPlayers, ({ one, m
   }),
   scores: many(tournamentScores),
 }));
+
+export const tournamentRegistrations = pgTable("tournament_registrations", {
+  id: serial("id").primaryKey(),
+  tournamentId: integer("tournament_id").notNull().references(() => tournaments.id),
+  stripeSessionId: text("stripe_session_id").unique(),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  customerEmail: text("customer_email"),
+  amountTotal: integer("amount_total"),
+  currency: text("currency"),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 // Tournament scores - synced scores for leaderboard
 export const tournamentScores = pgTable("tournament_scores", {
@@ -147,6 +166,7 @@ export const tournamentPayouts = pgTable("tournament_payouts", {
   tournamentId: integer("tournament_id").notNull().references(() => tournaments.id).unique(),
   numPlayers: integer("num_players").notNull(),
   entryFee: real("entry_fee").notNull(),
+  greenFee: real("green_fee").notNull().default(0),
   addedPrize: real("added_prize").notNull().default(0),
   numSpots: integer("num_spots").notNull(),
   percentages: jsonb("percentages").notNull().$type<number[]>(),
@@ -183,6 +203,7 @@ export const insertTournamentScoreSchema = createInsertSchema(tournamentScores).
 export const insertTournamentPayoutSchema = createInsertSchema(tournamentPayouts).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
 export const insertTournamentSponsorSchema = createInsertSchema(tournamentSponsors).omit({ id: true, createdAt: true });
+export const insertTournamentRegistrationSchema = createInsertSchema(tournamentRegistrations).omit({ id: true, createdAt: true, updatedAt: true });
 
 // Types from database
 export type UniversalPlayer = typeof universalPlayers.$inferSelect;
@@ -197,6 +218,8 @@ export type TournamentScore = typeof tournamentScores.$inferSelect;
 export type InsertTournamentScore = z.infer<typeof insertTournamentScoreSchema>;
 export type TournamentPayout = typeof tournamentPayouts.$inferSelect;
 export type InsertTournamentPayout = z.infer<typeof insertTournamentPayoutSchema>;
+export type TournamentRegistration = typeof tournamentRegistrations.$inferSelect;
+export type InsertTournamentRegistration = z.infer<typeof insertTournamentRegistrationSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type TournamentSponsor = typeof tournamentSponsors.$inferSelect;

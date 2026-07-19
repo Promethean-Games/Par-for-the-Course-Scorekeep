@@ -49,6 +49,14 @@ export interface IStorage {
   startTournament(id: number): Promise<void>;
   deleteTournament(id: number): Promise<void>;
   verifyDirectorPin(roomCode: string, pin: string): Promise<boolean>;
+  updateTournamentEventDetails(id: number, data: {
+    eventVenue: string | null;
+    eventStartAt: Date | null;
+    eventDetailsUrl: string | null;
+    eventRegistrationUrl: string | null;
+    eventHeroImageUrl: string | null;
+    eventMaxPlayers: number;
+  }): Promise<Tournament>;
   getTournamentBackup(tournamentId: number): Promise<{ tournament: Tournament; players: TournamentPlayer[]; scores: TournamentScore[] }>;
   setTournamentStartingHoles(roomCode: string, holes: Record<string, number>): Promise<void>;
   getTournamentStartingHoles(roomCode: string): Promise<Record<string, number>>;
@@ -88,7 +96,7 @@ export interface IStorage {
   getLiveTournamentStats(universalPlayerId: number): Promise<LiveTournamentStat[]>;
 
   // Payout operations
-  upsertTournamentPayout(tournamentId: number, data: { numPlayers: number; entryFee: number; addedPrize: number; numSpots: number; percentages: number[] }): Promise<TournamentPayout>;
+  upsertTournamentPayout(tournamentId: number, data: { numPlayers: number; entryFee: number; greenFee: number; addedPrize: number; numSpots: number; percentages: number[] }): Promise<TournamentPayout>;
   getTournamentPayout(tournamentId: number): Promise<TournamentPayout | undefined>;
   deleteTournamentPayout(tournamentId: number): Promise<void>;
 
@@ -256,6 +264,29 @@ export class DatabaseStorage implements IStorage {
   async verifyDirectorPin(roomCode: string, pin: string): Promise<boolean> {
     const tournament = await this.getTournamentByCode(roomCode);
     return tournament?.directorPin === pin;
+  }
+
+  async updateTournamentEventDetails(id: number, data: {
+    eventVenue: string | null;
+    eventStartAt: Date | null;
+    eventDetailsUrl: string | null;
+    eventRegistrationUrl: string | null;
+    eventHeroImageUrl: string | null;
+    eventMaxPlayers: number;
+  }): Promise<Tournament> {
+    const [updated] = await db
+      .update(tournaments)
+      .set({
+        eventVenue: data.eventVenue,
+        eventStartAt: data.eventStartAt,
+        eventDetailsUrl: data.eventDetailsUrl,
+        eventRegistrationUrl: data.eventRegistrationUrl,
+        eventHeroImageUrl: data.eventHeroImageUrl,
+        eventMaxPlayers: data.eventMaxPlayers,
+      })
+      .where(eq(tournaments.id, id))
+      .returning();
+    return updated;
   }
 
   async getTournamentBackup(tournamentId: number): Promise<{ tournament: Tournament; players: TournamentPlayer[]; scores: TournamentScore[] }> {
@@ -703,7 +734,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(pushSubscriptions);
   }
 
-  async upsertTournamentPayout(tournamentId: number, data: { numPlayers: number; entryFee: number; addedPrize: number; numSpots: number; percentages: number[] }): Promise<TournamentPayout> {
+  async upsertTournamentPayout(tournamentId: number, data: { numPlayers: number; entryFee: number; greenFee: number; addedPrize: number; numSpots: number; percentages: number[] }): Promise<TournamentPayout> {
     const existing = await db.select().from(tournamentPayouts).where(eq(tournamentPayouts.tournamentId, tournamentId));
     if (existing.length > 0) {
       const [updated] = await db.update(tournamentPayouts)

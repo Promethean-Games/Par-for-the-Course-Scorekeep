@@ -140,6 +140,10 @@ This app is fully portable and can be deployed outside of Replit.
 ### Environment Variables Required
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key
+- `STRIPE_SECRET_KEY` - Stripe secret key for server-side checkout session creation
+- `STRIPE_WEBHOOK_SECRET` - Stripe webhook signing secret for payment confirmation sync
+- `SUCCESS_URL` - Full success URL template for Stripe checkout redirects
+- `CANCEL_URL` - Full cancel URL template for Stripe checkout redirects
 - `NODE_ENV=production`
 
 ### Build Commands
