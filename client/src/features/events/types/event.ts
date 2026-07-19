@@ -41,6 +41,8 @@ export interface EventFaqItem {
 export interface PublicTournamentEvent extends EventSummary {
   roomCode: string;
   entryFee: number | null;
+  entryFeeDetails?: string | null;
+  youtubeVideoUrl?: string | null;
   maxPlayers: number;
   currentRegisteredPlayers: number;
   remainingSpots: number | null;

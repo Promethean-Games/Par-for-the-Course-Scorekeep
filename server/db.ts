@@ -51,6 +51,15 @@ export async function initializeDatabase() {
         event_registration_url TEXT,
         event_hero_image_url TEXT,
         event_max_players INTEGER NOT NULL DEFAULT 24,
+        event_director_name TEXT,
+        event_director_email TEXT,
+        event_director_phone TEXT,
+        event_rules_text TEXT,
+        event_rules_url TEXT,
+        event_youtube_url TEXT,
+        event_gallery_images JSONB,
+        event_entry_fee REAL,
+        event_entry_fee_details TEXT,
         is_active BOOLEAN NOT NULL DEFAULT true,
         is_started BOOLEAN NOT NULL DEFAULT false,
         is_handicapped BOOLEAN NOT NULL DEFAULT false,
@@ -165,6 +174,33 @@ export async function initializeDatabase() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_max_players') THEN
           ALTER TABLE tournaments ADD COLUMN event_max_players INTEGER NOT NULL DEFAULT 24;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_director_name') THEN
+          ALTER TABLE tournaments ADD COLUMN event_director_name TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_director_email') THEN
+          ALTER TABLE tournaments ADD COLUMN event_director_email TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_director_phone') THEN
+          ALTER TABLE tournaments ADD COLUMN event_director_phone TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_rules_text') THEN
+          ALTER TABLE tournaments ADD COLUMN event_rules_text TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_rules_url') THEN
+          ALTER TABLE tournaments ADD COLUMN event_rules_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_youtube_url') THEN
+          ALTER TABLE tournaments ADD COLUMN event_youtube_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_gallery_images') THEN
+          ALTER TABLE tournaments ADD COLUMN event_gallery_images JSONB;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_entry_fee') THEN
+          ALTER TABLE tournaments ADD COLUMN event_entry_fee REAL;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_entry_fee_details') THEN
+          ALTER TABLE tournaments ADD COLUMN event_entry_fee_details TEXT;
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'started_at') THEN
           ALTER TABLE tournaments ADD COLUMN started_at TIMESTAMP;

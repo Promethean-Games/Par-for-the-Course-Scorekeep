@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { CalendarDays, Clock3, Trophy, Users, MapPin, Award, Phone, Mail } from "lucide-react";
+import { CalendarDays, Clock3, Trophy, Users, MapPin, Award, Phone, Mail, PlayCircle } from "lucide-react";
 import { LOGO_URL } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useEventCountdown } from "../hooks/useEventCountdown";
@@ -66,6 +66,23 @@ function formatCountdown(targetIso: string): string {
   const hours = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   return `${days}d ${hours}h ${minutes}m`;
+}
+
+function toYoutubeEmbedUrl(input: string | null | undefined): string | null {
+  if (!input) return null;
+  const value = input.trim();
+  if (!value) return null;
+
+  const idMatch = value.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);
+  if (idMatch?.[1]) {
+    return `https://www.youtube.com/embed/${idMatch[1]}`;
+  }
+
+  if (/^[A-Za-z0-9_-]{11}$/.test(value)) {
+    return `https://www.youtube.com/embed/${value}`;
+  }
+
+  return null;
 }
 
 export function HeroSection({ event, onRegister, isRegistering }: SectionProps & RegisterProps) {
@@ -159,6 +176,7 @@ export function TournamentFormatSection({ event }: SectionProps) {
       <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
         <p><strong>Format:</strong> 18 Holes, Par for the Course Stroke Play</p>
         <p><strong>Entry fee:</strong> {formatCurrency(event.entryFee)}</p>
+        <p><strong>Entry fee details:</strong> {event.entryFeeDetails || "Details will be posted by the Tournament Director."}</p>
         <p><strong>Maximum players:</strong> {event.maxPlayers ?? "TBD"}</p>
         <p><strong>Current registered players:</strong> {event.currentRegisteredPlayers}</p>
         <p><strong>Remaining spots:</strong> {event.remainingSpots ?? "TBD"}</p>
@@ -209,15 +227,38 @@ export function VenueSection({ event }: SectionProps) {
   );
 }
 
+export function VideoSection({ event }: SectionProps) {
+  const embedUrl = toYoutubeEmbedUrl(event.youtubeVideoUrl);
+  if (!embedUrl) return null;
+
+  return (
+    <SectionCard title="Event Video" icon={<PlayCircle className="h-5 w-5" />}>
+      <div className="overflow-hidden rounded-md border">
+        <iframe
+          src={embedUrl}
+          title={`${event.name} preview video`}
+          className="aspect-video w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
+        />
+      </div>
+    </SectionCard>
+  );
+}
+
 export function SponsorsSection({ event }: SectionProps) {
+  if (!event.sponsors.length) return null;
+
   return (
     <SectionCard title="Sponsors" icon={<Users className="h-5 w-5" />}>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {event.sponsors.map((sponsor) => (
           <Card key={sponsor.name} className="p-3 text-center text-sm">
-            <div className="h-12 rounded bg-muted mb-2" />
+            <div className="h-12 rounded bg-muted mb-2 flex items-center justify-center overflow-hidden">
+              {sponsor.logoUrl ? <img src={sponsor.logoUrl} alt={`${sponsor.name} logo`} className="h-full w-full object-contain" /> : null}
+            </div>
             <p className="font-medium">{sponsor.name}</p>
-            <p className="text-muted-foreground text-xs">Sponsor link coming soon</p>
           </Card>
         ))}
       </div>
@@ -226,6 +267,8 @@ export function SponsorsSection({ event }: SectionProps) {
 }
 
 export function GallerySection({ event }: SectionProps) {
+  if (!event.galleryImages.length) return null;
+
   return (
     <SectionCard title="Gallery">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">

@@ -18,6 +18,7 @@ import {
   StickyRegistrationFooter,
   TournamentFormatSection,
   VenueSection,
+  VideoSection,
 } from "../components/TournamentDetailsSections";
 
 interface TournamentDetailsPageProps {
@@ -139,6 +140,7 @@ export function TournamentDetailsPage({ slug }: TournamentDetailsPageProps) {
       <PrizeInformationSection event={event} />
       <ScheduleSection event={event} />
       <VenueSection event={event} />
+      <VideoSection event={event} />
       <SponsorsSection event={event} />
       <GallerySection event={event} />
       <FAQSection event={event} />

@@ -56,6 +56,14 @@ export interface IStorage {
     eventRegistrationUrl: string | null;
     eventHeroImageUrl: string | null;
     eventMaxPlayers: number;
+    eventDirectorName: string | null;
+    eventDirectorEmail: string | null;
+    eventDirectorPhone: string | null;
+    eventRulesText: string | null;
+    eventYoutubeUrl: string | null;
+    eventGalleryImages: string[] | null;
+    eventEntryFee: number | null;
+    eventEntryFeeDetails: string | null;
   }): Promise<Tournament>;
   getTournamentBackup(tournamentId: number): Promise<{ tournament: Tournament; players: TournamentPlayer[]; scores: TournamentScore[] }>;
   setTournamentStartingHoles(roomCode: string, holes: Record<string, number>): Promise<void>;
@@ -273,6 +281,14 @@ export class DatabaseStorage implements IStorage {
     eventRegistrationUrl: string | null;
     eventHeroImageUrl: string | null;
     eventMaxPlayers: number;
+    eventDirectorName: string | null;
+    eventDirectorEmail: string | null;
+    eventDirectorPhone: string | null;
+    eventRulesText: string | null;
+    eventYoutubeUrl: string | null;
+    eventGalleryImages: string[] | null;
+    eventEntryFee: number | null;
+    eventEntryFeeDetails: string | null;
   }): Promise<Tournament> {
     const [updated] = await db
       .update(tournaments)
@@ -283,6 +299,14 @@ export class DatabaseStorage implements IStorage {
         eventRegistrationUrl: data.eventRegistrationUrl,
         eventHeroImageUrl: data.eventHeroImageUrl,
         eventMaxPlayers: data.eventMaxPlayers,
+        eventDirectorName: data.eventDirectorName,
+        eventDirectorEmail: data.eventDirectorEmail,
+        eventDirectorPhone: data.eventDirectorPhone,
+        eventRulesText: data.eventRulesText,
+        eventYoutubeUrl: data.eventYoutubeUrl,
+        eventGalleryImages: data.eventGalleryImages,
+        eventEntryFee: data.eventEntryFee,
+        eventEntryFeeDetails: data.eventEntryFeeDetails,
       })
       .where(eq(tournaments.id, id))
       .returning();

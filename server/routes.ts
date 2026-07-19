@@ -293,6 +293,14 @@ const updateEventDetailsSchema = z.object({
   eventRegistrationUrl: z.string().url().nullable().optional(),
   eventHeroImageUrl: z.string().url().nullable().optional(),
   eventMaxPlayers: z.number().int().min(1).max(500).optional(),
+  eventDirectorName: z.string().trim().max(120).nullable().optional(),
+  eventDirectorEmail: z.string().trim().email().nullable().optional(),
+  eventDirectorPhone: z.string().trim().max(40).nullable().optional(),
+  eventRulesText: z.string().trim().max(12000).nullable().optional(),
+  eventYoutubeUrl: z.string().trim().url().nullable().optional(),
+  eventGalleryImages: z.array(z.string().trim().url()).max(20).nullable().optional(),
+  eventEntryFee: z.number().min(0).max(10000).nullable().optional(),
+  eventEntryFeeDetails: z.string().trim().max(500).nullable().optional(),
 });
 
 const waitlistJoinSchema = z.object({
@@ -508,6 +516,14 @@ async function getRegistrationCounts(tournamentId: number): Promise<{ paid: numb
   }
 }
 
+function sanitizeGalleryImages(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter((url) => !!url)
+    .slice(0, 20);
+}
+
 async function upsertRegistrationFromCheckoutSession(tournamentId: number, session: any): Promise<void> {
   const sessionId = String(session.id || "").trim();
   if (!sessionId) return;
@@ -684,6 +700,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const players = await storage.getPlayersInTournament(tournament.id);
     const registrationCounts = await getRegistrationCounts(tournament.id);
+    const sponsors = await storage.getSponsorsForTournament(tournament.id);
     let payout: Awaited<ReturnType<typeof storage.getTournamentPayout>> = undefined;
     try {
       payout = await storage.getTournamentPayout(tournament.id);
@@ -709,6 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       waitlistCount,
     });
 
+    const displayEntryFee = tournament.eventEntryFee ?? payout?.entryFee ?? null;
     const prizePool = payout
       ? Math.max(0, (payout.entryFee - payout.greenFee) * payout.numPlayers + payout.addedPrize)
       : null;
@@ -728,7 +746,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       waitlistCount,
       detailsUrl: `/events/${tournament.roomCode.toLowerCase()}`,
       registrationUrl: `/events/${tournament.roomCode.toLowerCase()}/register`,
-      entryFee: payout?.entryFee ?? null,
+      entryFee: displayEntryFee,
+      entryFeeDetails: tournament.eventEntryFeeDetails || null,
+      youtubeVideoUrl: tournament.eventYoutubeUrl || null,
       expectedDurationMinutes: 150,
       checkInTimeIso: addMinutes(dateIso, -45),
       playerMeetingTimeIso: addMinutes(dateIso, -15),
@@ -740,15 +760,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       parkingInfo: "Parking guidance will be provided before check-in.",
       foodAndDrinksInfo: "Food and drink details will be shared in event updates.",
       accessibilityNotes: "Accessibility accommodations available upon request.",
-      sponsors: [
-        { name: "Sponsor Slot 1", websiteUrl: null, logoUrl: null },
-        { name: "Sponsor Slot 2", websiteUrl: null, logoUrl: null },
-      ],
-      galleryImages: [
-        "https://images.unsplash.com/photo-1484201026221-41211d85d712?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=1200&q=80",
-      ],
+      sponsors: sponsors
+        .filter((s) => s.isActive)
+        .map((s) => ({ name: s.sponsorName, websiteUrl: null, logoUrl: s.logoUrl || null })),
+      galleryImages: sanitizeGalleryImages(tournament.eventGalleryImages),
       schedule: [
         { label: "Check-in", timeIso: addMinutes(dateIso, -45) },
         { label: "Opening announcements", timeIso: addMinutes(dateIso, -15) },
@@ -783,11 +798,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       ],
       rules:
+        tournament.eventRulesText ||
         "Official rules will be posted here by the Tournament Director.\n\nPlease check back before tournament day for complete details.",
       contact: {
-        directorName: "Tournament Director",
-        email: "director@parforthecourse.com",
-        phone: "(000) 000-0000",
+        directorName: tournament.eventDirectorName || "Tournament Director",
+        email: tournament.eventDirectorEmail || "director@parforthecourse.com",
+        phone: tournament.eventDirectorPhone || "(000) 000-0000",
       },
     };
   }
@@ -1251,6 +1267,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventRegistrationUrl,
         eventHeroImageUrl,
         eventMaxPlayers,
+        eventDirectorName,
+        eventDirectorEmail,
+        eventDirectorPhone,
+        eventRulesText,
+        eventYoutubeUrl,
+        eventGalleryImages,
+        eventEntryFee,
+        eventEntryFeeDetails,
       } = parsed.data;
       const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
@@ -1265,6 +1289,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventRegistrationUrl: eventRegistrationUrl?.trim() ? eventRegistrationUrl.trim() : null,
         eventHeroImageUrl: eventHeroImageUrl?.trim() ? eventHeroImageUrl.trim() : null,
         eventMaxPlayers: eventMaxPlayers ?? tournament.eventMaxPlayers ?? 24,
+        eventDirectorName: eventDirectorName?.trim() ? eventDirectorName.trim() : null,
+        eventDirectorEmail: eventDirectorEmail?.trim() ? eventDirectorEmail.trim() : null,
+        eventDirectorPhone: eventDirectorPhone?.trim() ? eventDirectorPhone.trim() : null,
+        eventRulesText: eventRulesText?.trim() ? eventRulesText.trim() : null,
+        eventYoutubeUrl: eventYoutubeUrl?.trim() ? eventYoutubeUrl.trim() : null,
+        eventGalleryImages: Array.isArray(eventGalleryImages) ? sanitizeGalleryImages(eventGalleryImages) : null,
+        eventEntryFee: typeof eventEntryFee === "number" ? eventEntryFee : null,
+        eventEntryFeeDetails: eventEntryFeeDetails?.trim() ? eventEntryFeeDetails.trim() : null,
       });
 
       const { directorPin: _, ...safe } = updated;
