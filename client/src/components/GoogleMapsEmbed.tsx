@@ -24,7 +24,8 @@ interface GoogleMapsEmbedProps {
 function buildEmbedFromQuery(query: string | null | undefined): string | null {
   const value = query?.trim();
   if (!value) return null;
-  return `https://www.google.com/maps?q=${encodeURIComponent(value)}&output=embed`;
+  // Use the search query format with output=embed which is more reliably supported
+  return `https://maps.google.com/maps?q=${encodeURIComponent(value)}&output=embed`;
 }
 
 function buildOpenMapsUrl(query: string | null | undefined): string | null {

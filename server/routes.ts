@@ -959,7 +959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       body.set("success_url", successUrl);
       body.set("cancel_url", cancelUrl);
       body.set("line_items[0][price_data][currency]", "usd");
-      body.set("line_items[0][price_data][product]", STRIPE_PRODUCT_ID);
+      body.set("line_items[0][price_data][product_data][name]", `${event.name} - Tournament Entry`);
+      body.set("line_items[0][price_data][product_data][type]", "service");
       body.set("line_items[0][price_data][unit_amount]", String(Math.round(event.entryFee * 100)));
       body.set("line_items[0][quantity]", "1");
       body.set("metadata[tournamentRoomCode]", event.roomCode);
@@ -975,13 +976,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       if (!session.url) {
+        console.error("Stripe session response missing URL:", session);
         return res.status(500).json({ error: "Stripe did not return a checkout URL" });
       }
 
       res.json({ url: session.url });
     } catch (error) {
-      console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: "Failed to start checkout" });
+      console.error("Error creating checkout session:", error instanceof Error ? error.message : error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to start checkout";
+      res.status(500).json({ error: errorMessage });
     }
   });
 
