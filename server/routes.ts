@@ -294,7 +294,40 @@ const directorContentDefaultsSchema = z.object({
   directorPin: z.string().min(1, "Director PIN is required"),
   rulesText: z.string().trim().max(12000).nullable().optional(),
   faqItems: z.array(faqItemSchema).max(25).optional().default([]),
+  directorName: z.string().trim().max(120).nullable().optional(),
+  directorEmail: z.string().trim().email().nullable().optional(),
+  directorPhone: z.string().trim().max(40).nullable().optional(),
+  heroImageUrl: z.string().trim().url().nullable().optional(),
+  youtubeUrl: z.string().trim().url().nullable().optional(),
+  galleryImages: z.array(z.string().trim().url()).max(20).optional().default([]),
 });
+
+const DEFAULT_DIRECTOR_FAQ_ITEMS = [
+  {
+    question: "Do I need to own Par for the Course?",
+    answer: "No. The tournament app supports quick participation and scoring without prior setup.",
+  },
+  {
+    question: "Can beginners play?",
+    answer: "Yes. Players of all skill levels are welcome.",
+  },
+  {
+    question: "What equipment should I bring?",
+    answer: "Bring weather-appropriate clothing and anything the venue recommends.",
+  },
+  {
+    question: "Can I register on tournament day?",
+    answer: "Day-of registration depends on remaining spots.",
+  },
+  {
+    question: "What happens if I'm late?",
+    answer: "Please contact the Tournament Director if you are delayed.",
+  },
+  {
+    question: "Are refunds available?",
+    answer: "Refund policies are set by the Tournament Director and shown in event updates.",
+  },
+];
 
 const updateEventDetailsSchema = z.object({
   directorPin: z.string().min(1, "Director PIN is required"),
@@ -535,6 +568,24 @@ function sanitizeGalleryImages(value: unknown): string[] {
     .slice(0, 20);
 }
 
+function getEffectiveDirectorFaqItems(
+  faqItems: unknown,
+  hasSavedDefaults: boolean,
+): Array<{ question: string; answer: string }> {
+  const items = Array.isArray(faqItems)
+    ? faqItems
+        .map((item) => ({
+          question: typeof item?.question === "string" ? item.question.trim() : "",
+          answer: typeof item?.answer === "string" ? item.answer.trim() : "",
+        }))
+        .filter((item) => item.question && item.answer)
+        .slice(0, 25)
+    : [];
+
+  if (items.length) return items;
+  return hasSavedDefaults ? [] : DEFAULT_DIRECTOR_FAQ_ITEMS;
+}
+
 async function upsertRegistrationFromCheckoutSession(tournamentId: number, session: any): Promise<void> {
   const sessionId = String(session.id || "").trim();
   if (!sessionId) return;
@@ -743,14 +794,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ? Math.max(0, (payout.entryFee - payout.greenFee) * payout.numPlayers + payout.addedPrize)
       : null;
 
-    return {
+      const effectiveFaqItems = getEffectiveDirectorFaqItems(directorDefaults?.faqItems, !!directorDefaults);
+      const effectiveGalleryImages = sanitizeGalleryImages(
+        directorDefaults?.galleryImages?.length ? directorDefaults.galleryImages : tournament.eventGalleryImages,
+      );
+
+      return {
       id: `td-${tournament.id}`,
       roomCode: tournament.roomCode,
       slug: tournament.roomCode.toLowerCase(),
       name: tournament.name,
       venue: tournament.eventVenue || `Room ${tournament.roomCode}`,
       dateIso,
-      bannerImageUrl: tournament.eventHeroImageUrl || null,
+        bannerImageUrl: directorDefaults?.heroImageUrl || tournament.eventHeroImageUrl || null,
       registrationStatus,
       currentRegisteredPlayers,
       maxPlayers,
@@ -760,7 +816,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       registrationUrl: `/events/${tournament.roomCode.toLowerCase()}/register`,
       entryFee: displayEntryFee,
       entryFeeDetails: tournament.eventEntryFeeDetails || null,
-      youtubeVideoUrl: tournament.eventYoutubeUrl || null,
+        youtubeVideoUrl: directorDefaults?.youtubeUrl || tournament.eventYoutubeUrl || null,
       expectedDurationMinutes: 150,
       checkInTimeIso: addMinutes(dateIso, -45),
       playerMeetingTimeIso: addMinutes(dateIso, -15),
@@ -775,7 +831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sponsors: sponsors
         .filter((s) => s.isActive)
         .map((s) => ({ name: s.sponsorName, websiteUrl: null, logoUrl: s.logoUrl || null })),
-      galleryImages: sanitizeGalleryImages(tournament.eventGalleryImages),
+        galleryImages: effectiveGalleryImages,
       schedule: [
         { label: "Check-in", timeIso: addMinutes(dateIso, -45) },
         { label: "Opening announcements", timeIso: addMinutes(dateIso, -15) },
@@ -783,42 +839,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { label: "Awards ceremony", timeIso: addMinutes(dateIso, 135) },
         { label: "Estimated finish", timeIso: addMinutes(dateIso, 150) },
       ],
-      faq: directorDefaults?.faqItems?.length
-        ? directorDefaults.faqItems
-        : [
-            {
-              question: "Do I need to own Par for the Course?",
-              answer: "No. The tournament app supports quick participation and scoring without prior setup.",
-            },
-            {
-              question: "Can beginners play?",
-              answer: "Yes. Players of all skill levels are welcome.",
-            },
-            {
-              question: "What equipment should I bring?",
-              answer: "Bring weather-appropriate clothing and anything the venue recommends.",
-            },
-            {
-              question: "Can I register on tournament day?",
-              answer: "Day-of registration depends on remaining spots.",
-            },
-            {
-              question: "What happens if I'm late?",
-              answer: "Please contact the Tournament Director if you are delayed.",
-            },
-            {
-              question: "Are refunds available?",
-              answer: "Refund policies are set by the Tournament Director and shown in event updates.",
-            },
-          ],
+        faq: effectiveFaqItems,
       rules:
         directorDefaults?.rulesText ||
-                tournament.eventRulesText ||
+          tournament.eventRulesText ||
         "Official rules will be posted here by the Tournament Director.\n\nPlease check back before tournament day for complete details.",
       contact: {
-        directorName: tournament.eventDirectorName || "Tournament Director",
-        email: tournament.eventDirectorEmail || "director@parforthecourse.com",
-        phone: tournament.eventDirectorPhone || "(000) 000-0000",
+        directorName: directorDefaults?.directorName || tournament.eventDirectorName || "Tournament Director",
+        email: directorDefaults?.directorEmail || tournament.eventDirectorEmail || "director@parforthecourse.com",
+        phone: directorDefaults?.directorPhone || tournament.eventDirectorPhone || "(000) 000-0000",
       },
     };
   }
@@ -1058,7 +1087,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const defaults = await storage.getDirectorContentDefaults(directorPin);
       res.json({
         rulesText: defaults?.rulesText || "",
-        faqItems: Array.isArray(defaults?.faqItems) ? defaults!.faqItems : [],
+        faqItems: getEffectiveDirectorFaqItems(defaults?.faqItems, !!defaults),
+        directorName: defaults?.directorName || "",
+        directorEmail: defaults?.directorEmail || "",
+        directorPhone: defaults?.directorPhone || "",
+        heroImageUrl: defaults?.heroImageUrl || "",
+        youtubeUrl: defaults?.youtubeUrl || "",
+        galleryImages: sanitizeGalleryImages(defaults?.galleryImages),
       });
     } catch (error) {
       console.error("Error getting director content defaults:", error);
@@ -1083,15 +1118,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
           answer: item.answer.trim(),
         }))
         .filter((item) => item.question && item.answer);
+      const sanitizedGalleryImages = sanitizeGalleryImages(parsed.data.galleryImages);
 
       const defaults = await storage.upsertDirectorContentDefaults(parsed.data.directorPin, {
         rulesText: parsed.data.rulesText?.trim() ? parsed.data.rulesText.trim() : null,
         faqItems: sanitizedFaqItems,
+        directorName: parsed.data.directorName?.trim() ? parsed.data.directorName.trim() : null,
+        directorEmail: parsed.data.directorEmail?.trim() ? parsed.data.directorEmail.trim() : null,
+        directorPhone: parsed.data.directorPhone?.trim() ? parsed.data.directorPhone.trim() : null,
+        heroImageUrl: parsed.data.heroImageUrl?.trim() ? parsed.data.heroImageUrl.trim() : null,
+        youtubeUrl: parsed.data.youtubeUrl?.trim() ? parsed.data.youtubeUrl.trim() : null,
+        galleryImages: sanitizedGalleryImages,
+      });
+
+      await storage.syncDirectorManagedEventContent(parsed.data.directorPin, {
+        eventDirectorName: defaults.directorName || null,
+        eventDirectorEmail: defaults.directorEmail || null,
+        eventDirectorPhone: defaults.directorPhone || null,
+        eventRulesText: defaults.rulesText || null,
+        eventHeroImageUrl: defaults.heroImageUrl || null,
+        eventYoutubeUrl: defaults.youtubeUrl || null,
+        eventGalleryImages: defaults.galleryImages?.length ? defaults.galleryImages : null,
       });
 
       res.json({
         rulesText: defaults.rulesText || "",
-        faqItems: defaults.faqItems || [],
+        faqItems: getEffectiveDirectorFaqItems(defaults.faqItems, true),
+        directorName: defaults.directorName || "",
+        directorEmail: defaults.directorEmail || "",
+        directorPhone: defaults.directorPhone || "",
+        heroImageUrl: defaults.heroImageUrl || "",
+        youtubeUrl: defaults.youtubeUrl || "",
+        galleryImages: sanitizeGalleryImages(defaults.galleryImages),
       });
     } catch (error) {
       console.error("Error saving director content defaults:", error);
@@ -1132,20 +1190,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Auto-populate event details from director's global defaults
       const directorDefaults = await storage.getDirectorContentDefaults(parsed.data.directorPin);
-      if (directorDefaults && (directorDefaults.directorName || directorDefaults.directorEmail || directorDefaults.directorPhone || directorDefaults.rulesText)) {
+      if (directorDefaults && (
+        directorDefaults.directorName ||
+        directorDefaults.directorEmail ||
+        directorDefaults.directorPhone ||
+        directorDefaults.rulesText ||
+        directorDefaults.heroImageUrl ||
+        directorDefaults.youtubeUrl ||
+        directorDefaults.galleryImages?.length
+      )) {
         await storage.updateTournamentEventDetails(tournament.id, {
           eventVenue: null,
           eventStartAt: null,
           eventDetailsUrl: null,
           eventRegistrationUrl: null,
-          eventHeroImageUrl: null,
+          eventHeroImageUrl: directorDefaults.heroImageUrl || null,
           eventMaxPlayers: 24,
           eventDirectorName: directorDefaults.directorName || null,
           eventDirectorEmail: directorDefaults.directorEmail || null,
           eventDirectorPhone: directorDefaults.directorPhone || null,
           eventRulesText: directorDefaults.rulesText || null,
-          eventYoutubeUrl: null,
-          eventGalleryImages: null,
+          eventYoutubeUrl: directorDefaults.youtubeUrl || null,
+          eventGalleryImages: directorDefaults.galleryImages?.length ? directorDefaults.galleryImages : null,
           eventEntryFee: null,
           eventEntryFeeDetails: null,
         });
@@ -1354,14 +1420,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventStartAt,
         eventDetailsUrl,
         eventRegistrationUrl,
-        eventHeroImageUrl,
         eventMaxPlayers,
-        eventDirectorName,
-        eventDirectorEmail,
-        eventDirectorPhone,
-        eventRulesText,
-        eventYoutubeUrl,
-        eventGalleryImages,
         eventEntryFee,
         eventEntryFeeDetails,
       } = parsed.data;
@@ -1371,22 +1430,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
-      // Preserve director contact info and rules from global defaults when not supplied in this request
-      // (these are owned by the Settings tab, not the Edit Live Event dialog)
+      const directorDefaults = await storage.getDirectorContentDefaults(tournament.directorPin);
+
+      // Public contact info, rules, and shared media are owned by the Settings tab.
+      // Ignore any duplicate event-detail payload for those fields and keep the Settings-managed values.
       const updated = await storage.updateTournamentEventDetails(tournament.id, {
         eventVenue: eventVenue?.trim() ? eventVenue.trim() : null,
         eventStartAt: eventStartAt ? new Date(eventStartAt) : null,
         eventDetailsUrl: eventDetailsUrl?.trim() ? eventDetailsUrl.trim() : null,
         eventRegistrationUrl: eventRegistrationUrl?.trim() ? eventRegistrationUrl.trim() : null,
-        eventHeroImageUrl: eventHeroImageUrl?.trim() ? eventHeroImageUrl.trim() : null,
+        eventHeroImageUrl: directorDefaults?.heroImageUrl || tournament.eventHeroImageUrl,
         eventMaxPlayers: eventMaxPlayers ?? tournament.eventMaxPlayers ?? 24,
-        // Preserve existing values for fields managed by the Settings tab
-        eventDirectorName: eventDirectorName !== undefined ? (eventDirectorName?.trim() || null) : tournament.eventDirectorName,
-        eventDirectorEmail: eventDirectorEmail !== undefined ? (eventDirectorEmail?.trim() || null) : tournament.eventDirectorEmail,
-        eventDirectorPhone: eventDirectorPhone !== undefined ? (eventDirectorPhone?.trim() || null) : tournament.eventDirectorPhone,
-        eventRulesText: eventRulesText !== undefined ? (eventRulesText?.trim() || null) : tournament.eventRulesText,
-        eventYoutubeUrl: eventYoutubeUrl?.trim() ? eventYoutubeUrl.trim() : null,
-        eventGalleryImages: Array.isArray(eventGalleryImages) ? sanitizeGalleryImages(eventGalleryImages) : null,
+        eventDirectorName: directorDefaults?.directorName || tournament.eventDirectorName,
+        eventDirectorEmail: directorDefaults?.directorEmail || tournament.eventDirectorEmail,
+        eventDirectorPhone: directorDefaults?.directorPhone || tournament.eventDirectorPhone,
+        eventRulesText: directorDefaults?.rulesText || tournament.eventRulesText,
+        eventYoutubeUrl: directorDefaults?.youtubeUrl || tournament.eventYoutubeUrl,
+        eventGalleryImages: directorDefaults?.galleryImages?.length ? sanitizeGalleryImages(directorDefaults.galleryImages) : tournament.eventGalleryImages,
         eventEntryFee: typeof eventEntryFee === "number" ? eventEntryFee : null,
         eventEntryFeeDetails: eventEntryFeeDetails?.trim() ? eventEntryFeeDetails.trim() : null,
       });

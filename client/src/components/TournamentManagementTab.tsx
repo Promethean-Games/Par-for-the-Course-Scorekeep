@@ -25,7 +25,6 @@ import {
   FileDown,
   FileUp,
   Clock,
-  GripVertical,
 } from "lucide-react";
 import { useTournament } from "@/contexts/TournamentContext";
 import { SponsorSettingsPanel } from "@/components/SponsorSettingsPanel";
@@ -117,16 +116,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [eventStartAtInput, setEventStartAtInput] = useState("");
   const [eventDetailsUrlInput, setEventDetailsUrlInput] = useState("");
   const [eventRegistrationUrlInput, setEventRegistrationUrlInput] = useState("");
-  const [eventHeroImageUrlInput, setEventHeroImageUrlInput] = useState("");
   const [eventMaxPlayersInput, setEventMaxPlayersInput] = useState("24");
-  const [eventDirectorNameInput, setEventDirectorNameInput] = useState("");
-  const [eventDirectorEmailInput, setEventDirectorEmailInput] = useState("");
-  const [eventDirectorPhoneInput, setEventDirectorPhoneInput] = useState("");
-  const [eventRulesTextInput, setEventRulesTextInput] = useState("");
-  const [eventYoutubeUrlInput, setEventYoutubeUrlInput] = useState("");
-  const [eventGalleryImages, setEventGalleryImages] = useState<string[]>([]);
-  const [newGalleryImageUrl, setNewGalleryImageUrl] = useState("");
-  const [draggedGalleryIndex, setDraggedGalleryIndex] = useState<number | null>(null);
   const [eventEntryFeeInput, setEventEntryFeeInput] = useState("");
   const [eventEntryFeeDetailsInput, setEventEntryFeeDetailsInput] = useState("");
   const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
@@ -319,16 +309,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     setEventStartAtInput(toDateTimeLocalValue(tournamentToEdit.eventStartAt));
     setEventDetailsUrlInput(tournamentToEdit.eventDetailsUrl || "");
     setEventRegistrationUrlInput(tournamentToEdit.eventRegistrationUrl || "");
-    setEventHeroImageUrlInput(tournamentToEdit.eventHeroImageUrl || "");
     setEventMaxPlayersInput(String(tournamentToEdit.eventMaxPlayers || 24));
-    setEventDirectorNameInput(tournamentToEdit.eventDirectorName || "");
-    setEventDirectorEmailInput(tournamentToEdit.eventDirectorEmail || "");
-    setEventDirectorPhoneInput(tournamentToEdit.eventDirectorPhone || "");
-    setEventRulesTextInput(tournamentToEdit.eventRulesText || "");
-    setEventYoutubeUrlInput(tournamentToEdit.eventYoutubeUrl || "");
-    setEventGalleryImages(Array.isArray(tournamentToEdit.eventGalleryImages) ? tournamentToEdit.eventGalleryImages : []);
-    setNewGalleryImageUrl("");
-    setDraggedGalleryIndex(null);
     setEventEntryFeeInput(
       typeof tournamentToEdit.eventEntryFee === "number" ? String(tournamentToEdit.eventEntryFee) : "",
     );
@@ -394,14 +375,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
           eventStartAt: eventStartAtInput ? new Date(eventStartAtInput).toISOString() : null,
           eventDetailsUrl: eventDetailsUrlInput.trim() || null,
           eventRegistrationUrl: eventRegistrationUrlInput.trim() || null,
-          eventHeroImageUrl: eventHeroImageUrlInput.trim() || null,
           eventMaxPlayers: Math.max(1, Math.min(500, parseInt(eventMaxPlayersInput || "24", 10) || 24)),
-          eventDirectorName: eventDirectorNameInput.trim() || null,
-          eventDirectorEmail: eventDirectorEmailInput.trim() || null,
-          eventDirectorPhone: eventDirectorPhoneInput.trim() || null,
-          eventRulesText: eventRulesTextInput.trim() || null,
-          eventYoutubeUrl: eventYoutubeUrlInput.trim() || null,
-          eventGalleryImages,
           eventEntryFee: parsedEntryFee,
           eventEntryFeeDetails: eventEntryFeeDetailsInput.trim() || null,
         }),
@@ -422,28 +396,6 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     } finally {
       setIsSavingEventDetails(false);
     }
-  };
-
-  const handleAddGalleryImage = () => {
-    const url = newGalleryImageUrl.trim();
-    if (!url) return;
-    setEventGalleryImages((prev) => [...prev, url]);
-    setNewGalleryImageUrl("");
-  };
-
-  const handleRemoveGalleryImage = (indexToRemove: number) => {
-    setEventGalleryImages((prev) => prev.filter((_, index) => index !== indexToRemove));
-  };
-
-  const handleDropGalleryImage = (toIndex: number) => {
-    if (draggedGalleryIndex === null || draggedGalleryIndex === toIndex) return;
-    setEventGalleryImages((prev) => {
-      const next = [...prev];
-      const [moved] = next.splice(draggedGalleryIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
-    setDraggedGalleryIndex(null);
   };
 
   const handleImportTournament = () => {
@@ -1039,17 +991,6 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="event-hero-image-url">Hero Image URL</Label>
-              <Input
-                id="event-hero-image-url"
-                type="url"
-                value={eventHeroImageUrlInput}
-                onChange={(e) => setEventHeroImageUrlInput(e.target.value)}
-                placeholder="https://images.example.com/tournament-banner.jpg"
-                data-testid="input-event-hero-image-url"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="event-max-players">Max Players</Label>
               <Input
                 id="event-max-players"
@@ -1064,27 +1005,10 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 Online registration stops at this number. TDs can still add players manually beyond the cap.
               </p>
             </div>
+            <div className="rounded-lg border px-3 py-3 bg-muted/30 text-sm text-muted-foreground">
+              Public FAQ, rules, director contact info, and shared media are managed from the <strong>Settings</strong> tab and automatically apply to your live event pages.
+            </div>
             <Accordion type="multiple" className="w-full space-y-3">
-              <AccordionItem value="contact" className="rounded-lg border px-3">
-                <AccordionTrigger className="text-sm font-medium hover:no-underline">Public Contact Details</AccordionTrigger>
-                <AccordionContent>
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div className="space-y-2 sm:col-span-2">
-                      <Label htmlFor="event-director-name">Director Name</Label>
-                      <Input id="event-director-name" value={eventDirectorNameInput} onChange={(e) => setEventDirectorNameInput(e.target.value)} placeholder="Tournament Director" data-testid="input-event-director-name" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="event-director-email">Director Email</Label>
-                      <Input id="event-director-email" type="email" value={eventDirectorEmailInput} onChange={(e) => setEventDirectorEmailInput(e.target.value)} placeholder="director@example.com" data-testid="input-event-director-email" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="event-director-phone">Director Phone</Label>
-                      <Input id="event-director-phone" value={eventDirectorPhoneInput} onChange={(e) => setEventDirectorPhoneInput(e.target.value)} placeholder="(000) 000-0000" data-testid="input-event-director-phone" />
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
               <AccordionItem value="entry-fee" className="rounded-lg border px-3">
                 <AccordionTrigger className="text-sm font-medium hover:no-underline">Entry Fee Details</AccordionTrigger>
                 <AccordionContent>
@@ -1097,40 +1021,6 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                       <Label htmlFor="event-entry-fee-details">Fee Details</Label>
                       <Input id="event-entry-fee-details" value={eventEntryFeeDetailsInput} onChange={(e) => setEventEntryFeeDetailsInput(e.target.value)} placeholder="Includes green fee and prize pool contribution" data-testid="input-event-entry-fee-details" />
                     </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              <AccordionItem value="media" className="rounded-lg border px-3">
-                <AccordionTrigger className="text-sm font-medium hover:no-underline">Media</AccordionTrigger>
-                <AccordionContent>
-                  <div className="space-y-2">
-                    <Label htmlFor="event-youtube-url">YouTube Video URL (optional)</Label>
-                    <Input id="event-youtube-url" type="url" value={eventYoutubeUrlInput} onChange={(e) => setEventYoutubeUrlInput(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." data-testid="input-event-youtube-url" />
-                  </div>
-                  <div className="space-y-2 mt-4">
-                    <Label htmlFor="event-gallery-image-url">Gallery Images</Label>
-                    <div className="flex gap-2">
-                      <Input id="event-gallery-image-url" type="url" value={newGalleryImageUrl} onChange={(e) => setNewGalleryImageUrl(e.target.value)} placeholder="https://.../image.jpg" data-testid="input-event-gallery-image-url" />
-                      <Button type="button" variant="outline" onClick={handleAddGalleryImage}>Add</Button>
-                    </div>
-                    <p className="text-xs text-muted-foreground">Drag and drop to reorder gallery images.</p>
-                    {eventGalleryImages.length === 0 ? (
-                      <p className="text-xs text-muted-foreground">No gallery images added yet.</p>
-                    ) : (
-                      <div className="space-y-2 max-h-56 overflow-y-auto rounded-md border p-2">
-                        {eventGalleryImages.map((url, index) => (
-                          <div key={`${url}-${index}`} draggable onDragStart={() => setDraggedGalleryIndex(index)} onDragOver={(e) => e.preventDefault()} onDrop={() => handleDropGalleryImage(index)} className="flex items-center gap-2 rounded border bg-background p-2" data-testid={`gallery-item-${index + 1}`}>
-                            <GripVertical className="h-4 w-4 text-muted-foreground" />
-                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                              <img src={url} alt={`Gallery ${index + 1}`} className="h-full w-full object-cover" />
-                            </div>
-                            <p className="min-w-0 flex-1 truncate text-xs">#{index + 1} {url}</p>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveGalleryImage(index)}>Remove</Button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>

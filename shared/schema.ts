@@ -136,6 +136,9 @@ export const directorContentDefaults = pgTable("director_content_defaults", {
   directorName: text("director_name"),
   directorEmail: text("director_email"),
   directorPhone: text("director_phone"),
+  heroImageUrl: text("hero_image_url"),
+  youtubeUrl: text("youtube_url"),
+  galleryImages: jsonb("gallery_images").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 

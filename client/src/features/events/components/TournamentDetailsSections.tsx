@@ -283,6 +283,8 @@ export function GallerySection({ event }: SectionProps) {
 }
 
 export function FAQSection({ event }: SectionProps) {
+  if (!event.faq.length) return null;
+
   return (
     <SectionCard title="Frequently Asked Questions">
       <div className="space-y-3">

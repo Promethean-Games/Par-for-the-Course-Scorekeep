@@ -135,7 +135,19 @@ export interface IStorage {
     directorName: string | null;
     directorEmail: string | null;
     directorPhone: string | null;
+    heroImageUrl: string | null;
+    youtubeUrl: string | null;
+    galleryImages: string[];
   }): Promise<DirectorContentDefaults>;
+  syncDirectorManagedEventContent(directorPin: string, data: {
+    eventDirectorName: string | null;
+    eventDirectorEmail: string | null;
+    eventDirectorPhone: string | null;
+    eventRulesText: string | null;
+    eventHeroImageUrl: string | null;
+    eventYoutubeUrl: string | null;
+    eventGalleryImages: string[] | null;
+  }): Promise<void>;
 }
 
 export interface LiveTournamentStat {
@@ -842,6 +854,9 @@ export class DatabaseStorage implements IStorage {
     directorName: string | null;
     directorEmail: string | null;
     directorPhone: string | null;
+    heroImageUrl: string | null;
+    youtubeUrl: string | null;
+    galleryImages: string[];
   }): Promise<DirectorContentDefaults> {
     const [result] = await db
       .insert(directorContentDefaults)
@@ -852,6 +867,9 @@ export class DatabaseStorage implements IStorage {
         directorName: data.directorName,
         directorEmail: data.directorEmail,
         directorPhone: data.directorPhone,
+        heroImageUrl: data.heroImageUrl,
+        youtubeUrl: data.youtubeUrl,
+        galleryImages: data.galleryImages,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -862,11 +880,37 @@ export class DatabaseStorage implements IStorage {
           directorName: data.directorName,
           directorEmail: data.directorEmail,
           directorPhone: data.directorPhone,
+          heroImageUrl: data.heroImageUrl,
+          youtubeUrl: data.youtubeUrl,
+          galleryImages: data.galleryImages,
           updatedAt: new Date(),
         },
       })
       .returning();
     return result;
+  }
+
+  async syncDirectorManagedEventContent(directorPin: string, data: {
+    eventDirectorName: string | null;
+    eventDirectorEmail: string | null;
+    eventDirectorPhone: string | null;
+    eventRulesText: string | null;
+    eventHeroImageUrl: string | null;
+    eventYoutubeUrl: string | null;
+    eventGalleryImages: string[] | null;
+  }): Promise<void> {
+    await db
+      .update(tournaments)
+      .set({
+        eventDirectorName: data.eventDirectorName,
+        eventDirectorEmail: data.eventDirectorEmail,
+        eventDirectorPhone: data.eventDirectorPhone,
+        eventRulesText: data.eventRulesText,
+        eventHeroImageUrl: data.eventHeroImageUrl,
+        eventYoutubeUrl: data.eventYoutubeUrl,
+        eventGalleryImages: data.eventGalleryImages,
+      })
+      .where(eq(tournaments.directorPin, directorPin));
   }
 }
 
