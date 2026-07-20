@@ -40,6 +40,7 @@ export interface EventFaqItem {
 
 export interface PublicTournamentEvent extends EventSummary {
   roomCode: string;
+  formatDescription: string;
   entryFee: number | null;
   entryFeeDetails?: string | null;
   youtubeVideoUrl?: string | null;

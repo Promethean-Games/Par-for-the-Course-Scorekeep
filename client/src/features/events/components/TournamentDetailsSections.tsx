@@ -174,7 +174,7 @@ export function TournamentFormatSection({ event }: SectionProps) {
   return (
     <SectionCard title="Tournament Format" icon={<Trophy className="h-5 w-5" />}>
       <div className="grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
-        <p><strong>Format:</strong> 18 Holes, Par for the Course Stroke Play</p>
+        <p><strong>Format:</strong> {event.formatDescription}</p>
         <p><strong>Entry fee:</strong> {formatCurrency(event.entryFee)}</p>
         <p><strong>Entry fee details:</strong> {event.entryFeeDetails || "Details will be posted by the Tournament Director."}</p>
         <p><strong>Maximum players:</strong> {event.maxPlayers ?? "TBD"}</p>

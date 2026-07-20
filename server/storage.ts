@@ -64,6 +64,14 @@ export interface IStorage {
     eventRulesText: string | null;
     eventYoutubeUrl: string | null;
     eventGalleryImages: string[] | null;
+    eventFormatText: string | null;
+    eventExpectedDurationMinutes: number | null;
+    eventVenueAddress: string | null;
+    eventPayoutStructureNote: string | null;
+    eventVenueDescription: string | null;
+    eventParkingInfo: string | null;
+    eventFoodAndDrinksInfo: string | null;
+    eventAccessibilityNotes: string | null;
     eventEntryFee: number | null;
     eventEntryFeeDetails: string | null;
   }): Promise<Tournament>;
@@ -145,7 +153,6 @@ export interface IStorage {
     eventDirectorEmail: string | null;
     eventDirectorPhone: string | null;
     eventRulesText: string | null;
-    eventHeroImageUrl: string | null;
     eventYoutubeUrl: string | null;
     eventGalleryImages: string[] | null;
   }): Promise<void>;
@@ -312,6 +319,14 @@ export class DatabaseStorage implements IStorage {
     eventRulesText: string | null;
     eventYoutubeUrl: string | null;
     eventGalleryImages: string[] | null;
+    eventFormatText: string | null;
+    eventExpectedDurationMinutes: number | null;
+    eventVenueAddress: string | null;
+    eventPayoutStructureNote: string | null;
+    eventVenueDescription: string | null;
+    eventParkingInfo: string | null;
+    eventFoodAndDrinksInfo: string | null;
+    eventAccessibilityNotes: string | null;
     eventEntryFee: number | null;
     eventEntryFeeDetails: string | null;
   }): Promise<Tournament> {
@@ -330,6 +345,14 @@ export class DatabaseStorage implements IStorage {
         eventRulesText: data.eventRulesText,
         eventYoutubeUrl: data.eventYoutubeUrl,
         eventGalleryImages: data.eventGalleryImages,
+        eventFormatText: data.eventFormatText,
+        eventExpectedDurationMinutes: data.eventExpectedDurationMinutes,
+        eventVenueAddress: data.eventVenueAddress,
+        eventPayoutStructureNote: data.eventPayoutStructureNote,
+        eventVenueDescription: data.eventVenueDescription,
+        eventParkingInfo: data.eventParkingInfo,
+        eventFoodAndDrinksInfo: data.eventFoodAndDrinksInfo,
+        eventAccessibilityNotes: data.eventAccessibilityNotes,
         eventEntryFee: data.eventEntryFee,
         eventEntryFeeDetails: data.eventEntryFeeDetails,
       })
@@ -899,7 +922,6 @@ export class DatabaseStorage implements IStorage {
     eventDirectorEmail: string | null;
     eventDirectorPhone: string | null;
     eventRulesText: string | null;
-    eventHeroImageUrl: string | null;
     eventYoutubeUrl: string | null;
     eventGalleryImages: string[] | null;
   }): Promise<void> {
@@ -910,7 +932,6 @@ export class DatabaseStorage implements IStorage {
         eventDirectorEmail: data.eventDirectorEmail,
         eventDirectorPhone: data.eventDirectorPhone,
         eventRulesText: data.eventRulesText,
-        eventHeroImageUrl: data.eventHeroImageUrl,
         eventYoutubeUrl: data.eventYoutubeUrl,
         eventGalleryImages: data.eventGalleryImages,
       })

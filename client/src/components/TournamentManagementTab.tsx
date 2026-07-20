@@ -51,7 +51,16 @@ interface TournamentSummary {
   eventStartAt?: string | null;
   eventDetailsUrl?: string | null;
   eventRegistrationUrl?: string | null;
+  eventHeroImageUrl?: string | null;
   eventMaxPlayers?: number;
+  eventFormatText?: string | null;
+  eventExpectedDurationMinutes?: number | null;
+  eventVenueAddress?: string | null;
+  eventPayoutStructureNote?: string | null;
+  eventVenueDescription?: string | null;
+  eventParkingInfo?: string | null;
+  eventFoodAndDrinksInfo?: string | null;
+  eventAccessibilityNotes?: string | null;
   eventEntryFee?: number | null;
   eventEntryFeeDetails?: string | null;
   isActive: boolean;
@@ -109,7 +118,16 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [eventStartAtInput, setEventStartAtInput] = useState("");
   const [eventDetailsUrlInput, setEventDetailsUrlInput] = useState("");
   const [eventRegistrationUrlInput, setEventRegistrationUrlInput] = useState("");
+  const [eventHeroImageUrlInput, setEventHeroImageUrlInput] = useState("");
   const [eventMaxPlayersInput, setEventMaxPlayersInput] = useState("24");
+  const [eventFormatTextInput, setEventFormatTextInput] = useState("");
+  const [eventExpectedDurationMinutesInput, setEventExpectedDurationMinutesInput] = useState("150");
+  const [eventVenueAddressInput, setEventVenueAddressInput] = useState("");
+  const [eventPayoutStructureNoteInput, setEventPayoutStructureNoteInput] = useState("");
+  const [eventVenueDescriptionInput, setEventVenueDescriptionInput] = useState("");
+  const [eventParkingInfoInput, setEventParkingInfoInput] = useState("");
+  const [eventFoodAndDrinksInfoInput, setEventFoodAndDrinksInfoInput] = useState("");
+  const [eventAccessibilityNotesInput, setEventAccessibilityNotesInput] = useState("");
   const [eventEntryFeeInput, setEventEntryFeeInput] = useState("");
   const [eventEntryFeeDetailsInput, setEventEntryFeeDetailsInput] = useState("");
   const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
@@ -302,7 +320,16 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     setEventStartAtInput(toDateTimeLocalValue(tournamentToEdit.eventStartAt));
     setEventDetailsUrlInput(tournamentToEdit.eventDetailsUrl || "");
     setEventRegistrationUrlInput(tournamentToEdit.eventRegistrationUrl || "");
+    setEventHeroImageUrlInput(tournamentToEdit.eventHeroImageUrl || "");
     setEventMaxPlayersInput(String(tournamentToEdit.eventMaxPlayers || 24));
+    setEventFormatTextInput(tournamentToEdit.eventFormatText || "");
+    setEventExpectedDurationMinutesInput(String(tournamentToEdit.eventExpectedDurationMinutes || 150));
+    setEventVenueAddressInput(tournamentToEdit.eventVenueAddress || "");
+    setEventPayoutStructureNoteInput(tournamentToEdit.eventPayoutStructureNote || "");
+    setEventVenueDescriptionInput(tournamentToEdit.eventVenueDescription || "");
+    setEventParkingInfoInput(tournamentToEdit.eventParkingInfo || "");
+    setEventFoodAndDrinksInfoInput(tournamentToEdit.eventFoodAndDrinksInfo || "");
+    setEventAccessibilityNotesInput(tournamentToEdit.eventAccessibilityNotes || "");
     setEventEntryFeeInput(
       typeof tournamentToEdit.eventEntryFee === "number" ? String(tournamentToEdit.eventEntryFee) : "",
     );
@@ -356,6 +383,11 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
       toast({ title: "Entry fee must be a valid number", variant: "destructive" });
       return;
     }
+    const parsedExpectedDuration = eventExpectedDurationMinutesInput.trim() === "" ? null : Number(eventExpectedDurationMinutesInput);
+    if (parsedExpectedDuration !== null && (!Number.isFinite(parsedExpectedDuration) || parsedExpectedDuration < 30 || parsedExpectedDuration > 1440)) {
+      toast({ title: "Expected duration must be between 30 and 1440 minutes", variant: "destructive" });
+      return;
+    }
 
     setIsSavingEventDetails(true);
     try {
@@ -368,7 +400,16 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
           eventStartAt: eventStartAtInput ? new Date(eventStartAtInput).toISOString() : null,
           eventDetailsUrl: eventDetailsUrlInput.trim() || null,
           eventRegistrationUrl: eventRegistrationUrlInput.trim() || null,
+          eventHeroImageUrl: eventHeroImageUrlInput.trim() || null,
           eventMaxPlayers: Math.max(1, Math.min(500, parseInt(eventMaxPlayersInput || "24", 10) || 24)),
+          eventFormatText: eventFormatTextInput.trim() || null,
+          eventExpectedDurationMinutes: parsedExpectedDuration,
+          eventVenueAddress: eventVenueAddressInput.trim() || null,
+          eventPayoutStructureNote: eventPayoutStructureNoteInput.trim() || null,
+          eventVenueDescription: eventVenueDescriptionInput.trim() || null,
+          eventParkingInfo: eventParkingInfoInput.trim() || null,
+          eventFoodAndDrinksInfo: eventFoodAndDrinksInfoInput.trim() || null,
+          eventAccessibilityNotes: eventAccessibilityNotesInput.trim() || null,
           eventEntryFee: parsedEntryFee,
           eventEntryFeeDetails: eventEntryFeeDetailsInput.trim() || null,
         }),
@@ -984,6 +1025,17 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="event-hero-image-url">Hero Image URL</Label>
+              <Input
+                id="event-hero-image-url"
+                type="url"
+                value={eventHeroImageUrlInput}
+                onChange={(e) => setEventHeroImageUrlInput(e.target.value)}
+                placeholder="https://images.example.com/tournament-banner.jpg"
+                data-testid="input-event-hero-image-url"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="event-max-players">Max Players</Label>
               <Input
                 id="event-max-players"
@@ -998,10 +1050,112 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 Online registration stops at this number. TDs can still add players manually beyond the cap.
               </p>
             </div>
-            <div className="rounded-lg border px-3 py-3 bg-muted/30 text-sm text-muted-foreground">
-              Public FAQ, rules, director contact info, and shared media are managed from the <strong>Settings</strong> tab and automatically apply to your live event pages.
-            </div>
             <Accordion type="multiple" className="w-full space-y-3">
+              <AccordionItem value="format" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Tournament Format</AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-format-text">Format Description</Label>
+                      <Input
+                        id="event-format-text"
+                        value={eventFormatTextInput}
+                        onChange={(e) => setEventFormatTextInput(e.target.value)}
+                        placeholder="18 Holes, Par for the Course Stroke Play"
+                        data-testid="input-event-format-text"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-expected-duration">Expected Duration (minutes)</Label>
+                      <Input
+                        id="event-expected-duration"
+                        type="number"
+                        min={30}
+                        max={1440}
+                        value={eventExpectedDurationMinutesInput}
+                        onChange={(e) => setEventExpectedDurationMinutesInput(e.target.value)}
+                        placeholder="150"
+                        data-testid="input-event-expected-duration"
+                      />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="venue-details" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Venue Details</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-venue-address">Address</Label>
+                      <Input
+                        id="event-venue-address"
+                        value={eventVenueAddressInput}
+                        onChange={(e) => setEventVenueAddressInput(e.target.value)}
+                        placeholder="123 Main Street, City, State"
+                        data-testid="input-event-venue-address"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-venue-description">Venue Description</Label>
+                      <Input
+                        id="event-venue-description"
+                        value={eventVenueDescriptionInput}
+                        onChange={(e) => setEventVenueDescriptionInput(e.target.value)}
+                        placeholder="Brief venue description"
+                        data-testid="input-event-venue-description"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-parking-info">Parking Info</Label>
+                      <Input
+                        id="event-parking-info"
+                        value={eventParkingInfoInput}
+                        onChange={(e) => setEventParkingInfoInput(e.target.value)}
+                        placeholder="Parking guidance"
+                        data-testid="input-event-parking-info"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-food-and-drinks">Food & Drinks Info</Label>
+                      <Input
+                        id="event-food-and-drinks"
+                        value={eventFoodAndDrinksInfoInput}
+                        onChange={(e) => setEventFoodAndDrinksInfoInput(e.target.value)}
+                        placeholder="Food and drink details"
+                        data-testid="input-event-food-and-drinks"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-accessibility-notes">Accessibility Notes</Label>
+                      <Input
+                        id="event-accessibility-notes"
+                        value={eventAccessibilityNotesInput}
+                        onChange={(e) => setEventAccessibilityNotesInput(e.target.value)}
+                        placeholder="Accessibility accommodations"
+                        data-testid="input-event-accessibility-notes"
+                      />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="prize-info" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Prize Information</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="event-payout-structure-note">Payout Structure Note</Label>
+                    <Input
+                      id="event-payout-structure-note"
+                      value={eventPayoutStructureNoteInput}
+                      onChange={(e) => setEventPayoutStructureNoteInput(e.target.value)}
+                      placeholder="How prizes are distributed"
+                      data-testid="input-event-payout-structure-note"
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
               <AccordionItem value="entry-fee" className="rounded-lg border px-3">
                 <AccordionTrigger className="text-sm font-medium hover:no-underline">Entry Fee Details</AccordionTrigger>
                 <AccordionContent>

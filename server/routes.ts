@@ -335,7 +335,16 @@ const updateEventDetailsSchema = z.object({
   eventStartAt: z.string().datetime().nullable().optional(),
   eventDetailsUrl: z.string().url().nullable().optional(),
   eventRegistrationUrl: z.string().url().nullable().optional(),
+  eventHeroImageUrl: z.string().url().nullable().optional(),
   eventMaxPlayers: z.number().int().min(1).max(500).optional(),
+  eventFormatText: z.string().trim().max(240).nullable().optional(),
+  eventExpectedDurationMinutes: z.number().int().min(30).max(1440).nullable().optional(),
+  eventVenueAddress: z.string().trim().max(240).nullable().optional(),
+  eventPayoutStructureNote: z.string().trim().max(1000).nullable().optional(),
+  eventVenueDescription: z.string().trim().max(1000).nullable().optional(),
+  eventParkingInfo: z.string().trim().max(1000).nullable().optional(),
+  eventFoodAndDrinksInfo: z.string().trim().max(1000).nullable().optional(),
+  eventAccessibilityNotes: z.string().trim().max(1000).nullable().optional(),
   eventEntryFee: z.number().min(0).max(10000).nullable().optional(),
   eventEntryFeeDetails: z.string().trim().max(500).nullable().optional(),
 });
@@ -814,7 +823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       name: tournament.name,
       venue: tournament.eventVenue || `Room ${tournament.roomCode}`,
       dateIso,
-        bannerImageUrl: directorDefaults?.heroImageUrl || tournament.eventHeroImageUrl || null,
+        bannerImageUrl: tournament.eventHeroImageUrl || directorDefaults?.heroImageUrl || null,
       registrationStatus,
       currentRegisteredPlayers,
       maxPlayers,
@@ -825,17 +834,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       entryFee: displayEntryFee,
       entryFeeDetails: tournament.eventEntryFeeDetails || null,
         youtubeVideoUrl: directorDefaults?.youtubeUrl || tournament.eventYoutubeUrl || null,
-      expectedDurationMinutes: 150,
+        expectedDurationMinutes: tournament.eventExpectedDurationMinutes || 150,
+        formatDescription: tournament.eventFormatText || "18 Holes, Par for the Course Stroke Play",
       checkInTimeIso: addMinutes(dateIso, -45),
       playerMeetingTimeIso: addMinutes(dateIso, -15),
       tournamentStartTimeIso: dateIso,
-      venueAddress: "Venue address to be announced",
+        venueAddress: tournament.eventVenueAddress || "Venue address to be announced",
       prizePool,
-      payoutStructureNote: "Payout structure will be published closer to event day.",
-      venueDescription: "Tournament venue details will be posted by the Tournament Director.",
-      parkingInfo: "Parking guidance will be provided before check-in.",
-      foodAndDrinksInfo: "Food and drink details will be shared in event updates.",
-      accessibilityNotes: "Accessibility accommodations available upon request.",
+        payoutStructureNote: tournament.eventPayoutStructureNote || "Payout structure will be published closer to event day.",
+        venueDescription: tournament.eventVenueDescription || "Tournament venue details will be posted by the Tournament Director.",
+        parkingInfo: tournament.eventParkingInfo || "Parking guidance will be provided before check-in.",
+        foodAndDrinksInfo: tournament.eventFoodAndDrinksInfo || "Food and drink details will be shared in event updates.",
+        accessibilityNotes: tournament.eventAccessibilityNotes || "Accessibility accommodations available upon request.",
       sponsors: sponsors
         .filter((s) => s.isActive)
         .map((s) => ({ name: s.sponsorName, websiteUrl: null, logoUrl: s.logoUrl || null })),
@@ -1145,7 +1155,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventDirectorEmail: defaults.directorEmail || null,
         eventDirectorPhone: defaults.directorPhone || null,
         eventRulesText: defaults.rulesText || null,
-        eventHeroImageUrl: defaults.heroImageUrl || null,
         eventYoutubeUrl: defaults.youtubeUrl || null,
         eventGalleryImages: defaults.galleryImages?.length ? defaults.galleryImages : null,
       });
@@ -1221,6 +1230,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eventRulesText: directorDefaults.rulesText || null,
           eventYoutubeUrl: directorDefaults.youtubeUrl || null,
           eventGalleryImages: directorDefaults.galleryImages?.length ? directorDefaults.galleryImages : null,
+          eventFormatText: null,
+          eventExpectedDurationMinutes: null,
+          eventVenueAddress: null,
+          eventPayoutStructureNote: null,
+          eventVenueDescription: null,
+          eventParkingInfo: null,
+          eventFoodAndDrinksInfo: null,
+          eventAccessibilityNotes: null,
           eventEntryFee: null,
           eventEntryFeeDetails: null,
         });
@@ -1429,7 +1446,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventStartAt,
         eventDetailsUrl,
         eventRegistrationUrl,
+        eventHeroImageUrl,
         eventMaxPlayers,
+        eventFormatText,
+        eventExpectedDurationMinutes,
+        eventVenueAddress,
+        eventPayoutStructureNote,
+        eventVenueDescription,
+        eventParkingInfo,
+        eventFoodAndDrinksInfo,
+        eventAccessibilityNotes,
         eventEntryFee,
         eventEntryFeeDetails,
       } = parsed.data;
@@ -1441,14 +1467,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const directorDefaults = await storage.getDirectorContentDefaults(tournament.directorPin);
 
-      // Public contact info, rules, and shared media are owned by the Settings tab.
-      // Ignore any duplicate event-detail payload for those fields and keep the Settings-managed values.
+      // Public contact info and rules remain Settings-owned.
+      // Hero image and section details are tournament-owned from this editor.
       const updated = await storage.updateTournamentEventDetails(tournament.id, {
         eventVenue: eventVenue?.trim() ? eventVenue.trim() : null,
         eventStartAt: eventStartAt ? new Date(eventStartAt) : null,
         eventDetailsUrl: eventDetailsUrl?.trim() ? eventDetailsUrl.trim() : null,
         eventRegistrationUrl: eventRegistrationUrl?.trim() ? eventRegistrationUrl.trim() : null,
-        eventHeroImageUrl: directorDefaults?.heroImageUrl || tournament.eventHeroImageUrl,
         eventMaxPlayers: eventMaxPlayers ?? tournament.eventMaxPlayers ?? 24,
         eventDirectorName: directorDefaults?.directorName || tournament.eventDirectorName,
         eventDirectorEmail: directorDefaults?.directorEmail || tournament.eventDirectorEmail,

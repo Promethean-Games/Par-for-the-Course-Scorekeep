@@ -58,6 +58,14 @@ export async function initializeDatabase() {
         event_rules_url TEXT,
         event_youtube_url TEXT,
         event_gallery_images JSONB,
+        event_format_text TEXT,
+        event_expected_duration_minutes INTEGER,
+        event_venue_address TEXT,
+        event_payout_structure_note TEXT,
+        event_venue_description TEXT,
+        event_parking_info TEXT,
+        event_food_and_drinks_info TEXT,
+        event_accessibility_notes TEXT,
         event_entry_fee REAL,
         event_entry_fee_details TEXT,
         is_active BOOLEAN NOT NULL DEFAULT true,
@@ -209,6 +217,30 @@ export async function initializeDatabase() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_gallery_images') THEN
           ALTER TABLE tournaments ADD COLUMN event_gallery_images JSONB;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_format_text') THEN
+          ALTER TABLE tournaments ADD COLUMN event_format_text TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_expected_duration_minutes') THEN
+          ALTER TABLE tournaments ADD COLUMN event_expected_duration_minutes INTEGER;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_venue_address') THEN
+          ALTER TABLE tournaments ADD COLUMN event_venue_address TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_payout_structure_note') THEN
+          ALTER TABLE tournaments ADD COLUMN event_payout_structure_note TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_venue_description') THEN
+          ALTER TABLE tournaments ADD COLUMN event_venue_description TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_parking_info') THEN
+          ALTER TABLE tournaments ADD COLUMN event_parking_info TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_food_and_drinks_info') THEN
+          ALTER TABLE tournaments ADD COLUMN event_food_and_drinks_info TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_accessibility_notes') THEN
+          ALTER TABLE tournaments ADD COLUMN event_accessibility_notes TEXT;
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_entry_fee') THEN
           ALTER TABLE tournaments ADD COLUMN event_entry_fee REAL;
