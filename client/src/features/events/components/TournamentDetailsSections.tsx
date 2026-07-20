@@ -323,14 +323,22 @@ export function FAQSection({ event }: SectionProps) {
 
   return (
     <SectionCard title="Frequently Asked Questions">
-      <div className="space-y-3">
-        {event.faq.map((item) => (
-          <div key={item.question} className="rounded border p-3">
-            <p className="font-medium text-sm">{item.question}</p>
-            <p className="text-sm text-muted-foreground mt-1">{item.answer}</p>
-          </div>
+      <Accordion type="single" collapsible className="space-y-1">
+        {event.faq.map((item, index) => (
+          <AccordionItem
+            key={item.question}
+            value={`faq-${index}`}
+            className="rounded border px-3"
+          >
+            <AccordionTrigger className="text-sm font-medium hover:no-underline py-3">
+              {item.question}
+            </AccordionTrigger>
+            <AccordionContent className="text-sm text-muted-foreground pb-3">
+              {item.answer}
+            </AccordionContent>
+          </AccordionItem>
         ))}
-      </div>
+      </Accordion>
     </SectionCard>
   );
 }
