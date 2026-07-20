@@ -914,14 +914,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const { successUrl, cancelUrl } = getCheckoutUrls(req, event.slug);
+      const result = await createCheckoutSession({
+        eventName: event.name,
+        entryFee: event.entryFee,
+        stripePriceId: (event as any).stripePriceId || null,
+        successUrl,
+        cancelUrl,
+        tournamentRoomCode: event.roomCode,
+        tournamentSlug: event.slug,
+        tournamentName: event.name,
       });
 
-      if (!session.url) {
-        console.error("Stripe session response missing URL:", session);
-        return res.status(500).json({ error: "Stripe did not return a checkout URL" });
-      }
-
-      res.json({ url: session.url });
+      res.json({ url: result.url });
     } catch (error) {
       console.error("Error creating checkout session:", error instanceof Error ? error.message : error);
       const errorMessage = error instanceof Error ? error.message : "Failed to start checkout";
@@ -936,7 +940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "session_id is required" });
       }
 
-      const session = await stripeApiRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
+      const session = await retrieveCheckoutSession(sessionId);
       const sessionSlug = session.metadata?.tournamentSlug;
       if (sessionSlug && sessionSlug !== req.params.slug.toLowerCase()) {
         return res.status(403).json({ error: "Checkout session does not match this event" });
@@ -979,7 +983,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid webhook body" });
       }
 
-      if (!verifyStripeWebhookSignature(rawBody, signatureHeader, webhookSecret)) {
+      if (!verifyWebhookSignature(rawBody, signatureHeader, webhookSecret)) {
         return res.status(400).json({ error: "Invalid Stripe webhook signature" });
       }
 
