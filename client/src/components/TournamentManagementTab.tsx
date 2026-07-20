@@ -51,14 +51,7 @@ interface TournamentSummary {
   eventStartAt?: string | null;
   eventDetailsUrl?: string | null;
   eventRegistrationUrl?: string | null;
-  eventHeroImageUrl?: string | null;
   eventMaxPlayers?: number;
-  eventDirectorName?: string | null;
-  eventDirectorEmail?: string | null;
-  eventDirectorPhone?: string | null;
-  eventRulesText?: string | null;
-  eventYoutubeUrl?: string | null;
-  eventGalleryImages?: string[] | null;
   eventEntryFee?: number | null;
   eventEntryFeeDetails?: string | null;
   isActive: boolean;

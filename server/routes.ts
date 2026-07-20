@@ -6,7 +6,7 @@ import webpush from "web-push";
 import { eq, sql } from "drizzle-orm";
 import { storage } from "./storage";
 import { db } from "./db";
-import { insertTournamentSchema, insertTournamentPlayerSchema, insertTournamentScoreSchema, batchUpdateGroupsSchema, insertUniversalPlayerSchema, universalPlayers, type TournamentScore } from "@shared/schema";
+import { insertTournamentPlayerSchema, insertTournamentScoreSchema, batchUpdateGroupsSchema, insertUniversalPlayerSchema, universalPlayers, type TournamentScore } from "@shared/schema";
 import { z } from "zod";
 
 const SALT_ROUNDS = 10;
@@ -335,14 +335,7 @@ const updateEventDetailsSchema = z.object({
   eventStartAt: z.string().datetime().nullable().optional(),
   eventDetailsUrl: z.string().url().nullable().optional(),
   eventRegistrationUrl: z.string().url().nullable().optional(),
-  eventHeroImageUrl: z.string().url().nullable().optional(),
   eventMaxPlayers: z.number().int().min(1).max(500).optional(),
-  eventDirectorName: z.string().trim().max(120).nullable().optional(),
-  eventDirectorEmail: z.string().trim().email().nullable().optional(),
-  eventDirectorPhone: z.string().trim().max(40).nullable().optional(),
-  eventRulesText: z.string().trim().max(12000).nullable().optional(),
-  eventYoutubeUrl: z.string().trim().url().nullable().optional(),
-  eventGalleryImages: z.array(z.string().trim().url()).max(20).nullable().optional(),
   eventEntryFee: z.number().min(0).max(10000).nullable().optional(),
   eventEntryFeeDetails: z.string().trim().max(500).nullable().optional(),
 });

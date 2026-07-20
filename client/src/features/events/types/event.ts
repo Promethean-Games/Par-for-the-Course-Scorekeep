@@ -43,10 +43,6 @@ export interface PublicTournamentEvent extends EventSummary {
   entryFee: number | null;
   entryFeeDetails?: string | null;
   youtubeVideoUrl?: string | null;
-  maxPlayers: number;
-  currentRegisteredPlayers: number;
-  remainingSpots: number | null;
-  waitlistCount: number;
   expectedDurationMinutes: number;
   checkInTimeIso: string;
   playerMeetingTimeIso: string;
