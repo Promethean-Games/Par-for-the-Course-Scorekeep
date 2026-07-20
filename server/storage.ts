@@ -132,6 +132,7 @@ export interface IStorage {
   upsertDirectorContentDefaults(directorPin: string, data: {
     rulesText: string | null;
     faqItems: Array<{ question: string; answer: string }>;
+    faqItemsCustomized: boolean;
     directorName: string | null;
     directorEmail: string | null;
     directorPhone: string | null;
@@ -851,6 +852,7 @@ export class DatabaseStorage implements IStorage {
   async upsertDirectorContentDefaults(directorPin: string, data: {
     rulesText: string | null;
     faqItems: Array<{ question: string; answer: string }>;
+    faqItemsCustomized: boolean;
     directorName: string | null;
     directorEmail: string | null;
     directorPhone: string | null;
@@ -864,6 +866,7 @@ export class DatabaseStorage implements IStorage {
         directorPin,
         rulesText: data.rulesText,
         faqItems: data.faqItems,
+        faqItemsCustomized: data.faqItemsCustomized,
         directorName: data.directorName,
         directorEmail: data.directorEmail,
         directorPhone: data.directorPhone,
@@ -877,6 +880,7 @@ export class DatabaseStorage implements IStorage {
         set: {
           rulesText: data.rulesText,
           faqItems: data.faqItems,
+          faqItemsCustomized: data.faqItemsCustomized,
           directorName: data.directorName,
           directorEmail: data.directorEmail,
           directorPhone: data.directorPhone,

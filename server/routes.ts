@@ -561,10 +561,7 @@ function sanitizeGalleryImages(value: unknown): string[] {
     .slice(0, 20);
 }
 
-function getEffectiveDirectorFaqItems(
-  faqItems: unknown,
-  hasSavedDefaults: boolean,
-): Array<{ question: string; answer: string }> {
+function sanitizeDirectorFaqItems(faqItems: unknown): Array<{ question: string; answer: string }> {
   const items = Array.isArray(faqItems)
     ? faqItems
         .map((item) => ({
@@ -575,8 +572,23 @@ function getEffectiveDirectorFaqItems(
         .slice(0, 25)
     : [];
 
+  return items;
+}
+
+function getEffectiveDirectorFaqItems(
+  faqItems: unknown,
+  faqItemsCustomized: boolean,
+): Array<{ question: string; answer: string }> {
+  const items = sanitizeDirectorFaqItems(faqItems);
+
   if (items.length) return items;
-  return hasSavedDefaults ? [] : DEFAULT_DIRECTOR_FAQ_ITEMS;
+  return faqItemsCustomized ? [] : DEFAULT_DIRECTOR_FAQ_ITEMS;
+}
+
+function getEditableDirectorFaqItems(defaults?: { faqItems?: unknown; faqItemsCustomized?: boolean | null }) {
+  const items = sanitizeDirectorFaqItems(defaults?.faqItems);
+  if (items.length) return items;
+  return defaults?.faqItemsCustomized ? [] : DEFAULT_DIRECTOR_FAQ_ITEMS;
 }
 
 async function upsertRegistrationFromCheckoutSession(tournamentId: number, session: any): Promise<void> {
@@ -787,7 +799,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ? Math.max(0, (payout.entryFee - payout.greenFee) * payout.numPlayers + payout.addedPrize)
       : null;
 
-      const effectiveFaqItems = getEffectiveDirectorFaqItems(directorDefaults?.faqItems, !!directorDefaults);
+      const effectiveFaqItems = getEffectiveDirectorFaqItems(
+        directorDefaults?.faqItems,
+        !!directorDefaults?.faqItemsCustomized,
+      );
       const effectiveGalleryImages = sanitizeGalleryImages(
         directorDefaults?.galleryImages?.length ? directorDefaults.galleryImages : tournament.eventGalleryImages,
       );
@@ -1080,7 +1095,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const defaults = await storage.getDirectorContentDefaults(directorPin);
       res.json({
         rulesText: defaults?.rulesText || "",
-        faqItems: getEffectiveDirectorFaqItems(defaults?.faqItems, !!defaults),
+        faqItems: getEditableDirectorFaqItems(defaults),
         directorName: defaults?.directorName || "",
         directorEmail: defaults?.directorEmail || "",
         directorPhone: defaults?.directorPhone || "",
@@ -1116,6 +1131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const defaults = await storage.upsertDirectorContentDefaults(parsed.data.directorPin, {
         rulesText: parsed.data.rulesText?.trim() ? parsed.data.rulesText.trim() : null,
         faqItems: sanitizedFaqItems,
+        faqItemsCustomized: true,
         directorName: parsed.data.directorName?.trim() ? parsed.data.directorName.trim() : null,
         directorEmail: parsed.data.directorEmail?.trim() ? parsed.data.directorEmail.trim() : null,
         directorPhone: parsed.data.directorPhone?.trim() ? parsed.data.directorPhone.trim() : null,
@@ -1136,7 +1152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         rulesText: defaults.rulesText || "",
-        faqItems: getEffectiveDirectorFaqItems(defaults.faqItems, true),
+        faqItems: getEditableDirectorFaqItems(defaults),
         directorName: defaults.directorName || "",
         directorEmail: defaults.directorEmail || "",
         directorPhone: defaults.directorPhone || "",

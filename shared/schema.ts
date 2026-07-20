@@ -133,6 +133,7 @@ export const directorContentDefaults = pgTable("director_content_defaults", {
   directorPin: text("director_pin").primaryKey(),
   rulesText: text("rules_text"),
   faqItems: jsonb("faq_items").$type<Array<{ question: string; answer: string }>>().notNull().default(sql`'[]'::jsonb`),
+  faqItemsCustomized: boolean("faq_items_customized").notNull().default(false),
   directorName: text("director_name"),
   directorEmail: text("director_email"),
   directorPhone: text("director_phone"),

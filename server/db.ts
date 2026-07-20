@@ -130,6 +130,13 @@ export async function initializeDatabase() {
         director_pin TEXT PRIMARY KEY,
         rules_text TEXT,
         faq_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+        faq_items_customized BOOLEAN NOT NULL DEFAULT false,
+        director_name TEXT,
+        director_email TEXT,
+        director_phone TEXT,
+        hero_image_url TEXT,
+        youtube_url TEXT,
+        gallery_images JSONB NOT NULL DEFAULT '[]'::jsonb,
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       );
 
@@ -217,6 +224,28 @@ export async function initializeDatabase() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'group_starting_holes') THEN
           ALTER TABLE tournaments ADD COLUMN group_starting_holes JSONB;
+        END IF;
+        -- director_content_defaults columns
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'faq_items_customized') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN faq_items_customized BOOLEAN NOT NULL DEFAULT false;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'director_name') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN director_name TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'director_email') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN director_email TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'director_phone') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN director_phone TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'hero_image_url') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN hero_image_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'youtube_url') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN youtube_url TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'director_content_defaults' AND column_name = 'gallery_images') THEN
+          ALTER TABLE director_content_defaults ADD COLUMN gallery_images JSONB NOT NULL DEFAULT '[]'::jsonb;
         END IF;
         -- tournament_players columns
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournament_players' AND column_name = 'is_dnf') THEN
