@@ -271,14 +271,22 @@ export function SponsorsSection({ event }: SectionProps) {
                   src={sponsor.logoUrl}
                   alt={`${sponsor.name} logo`}
                   className="h-full w-full object-contain"
+                  onError={(e) => {
+                    // Hide broken image and let the parent show the fallback letter
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+                    if (fallback) fallback.style.display = "flex";
+                  }}
                 />
-              ) : (
-                <span className="text-2xl font-bold text-muted-foreground/40">
-                  {sponsor.name.charAt(0).toUpperCase()}
-                </span>
-              )}
+              ) : null}
+              <span
+                className="text-2xl font-bold text-muted-foreground/40"
+                style={{ display: sponsor.logoUrl ? "none" : "flex" }}
+              >
+                {sponsor.name.charAt(0).toUpperCase()}
+              </span>
             </div>
-            {/* Donation type badge */}
+            {/* Donation type */}
             {sponsor.donationType && (
               <p className="text-xs text-muted-foreground">{sponsor.donationType}</p>
             )}

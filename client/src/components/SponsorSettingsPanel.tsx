@@ -15,8 +15,10 @@ import {
   ChevronDown,
   ImageIcon,
   X,
+  CheckCircle2,
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface Sponsor {
   id: number;
@@ -72,6 +74,8 @@ export function SponsorSettingsPanel({ roomCode, directorPin }: SponsorSettingsP
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<number, string>>({});
+  const { toast } = useToast();
 
   const fetchSponsors = async () => {
     try {
@@ -124,7 +128,9 @@ export function SponsorSettingsPanel({ roomCode, directorPin }: SponsorSettingsP
     try {
       const base64 = await resizeImageToBase64(file);
       setForm((f) => ({ ...f, logoUrl: base64 }));
+      toast({ title: "Logo ready", description: "Click Save to apply it to this sponsor." });
     } catch {
+      toast({ title: "Could not process image", description: "Try a different file format (PNG or JPG).", variant: "destructive" });
     } finally {
       setIsUploadingLogo(false);
       if (logoInputRef.current) logoInputRef.current.value = "";
@@ -153,7 +159,17 @@ export function SponsorSettingsPanel({ roomCode, directorPin }: SponsorSettingsP
         setSponsors((prev) => prev.map((s) => (s.id === editingId ? data.sponsor : s)));
       }
       setEditingId(null);
-    } catch {
+      toast({
+        title: "Sponsor saved",
+        description: form.logoUrl ? "Name, logo, and details saved successfully." : "Sponsor saved. You can add a logo by editing it.",
+      });
+    } catch (err) {
+      console.error("Failed to save sponsor:", err);
+      toast({
+        title: "Could not save sponsor",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsSaving(false);
     }
