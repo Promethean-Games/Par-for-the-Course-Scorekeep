@@ -119,6 +119,10 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [eventRegistrationUrlInput, setEventRegistrationUrlInput] = useState("");
   const [eventHeroImageUrlInput, setEventHeroImageUrlInput] = useState("");
   const [eventMaxPlayersInput, setEventMaxPlayersInput] = useState("24");
+  const [eventDirectorNameInput, setEventDirectorNameInput] = useState("");
+  const [eventDirectorEmailInput, setEventDirectorEmailInput] = useState("");
+  const [eventDirectorPhoneInput, setEventDirectorPhoneInput] = useState("");
+  const [eventRulesTextInput, setEventRulesTextInput] = useState("");
   const [eventYoutubeUrlInput, setEventYoutubeUrlInput] = useState("");
   const [eventGalleryImages, setEventGalleryImages] = useState<string[]>([]);
   const [newGalleryImageUrl, setNewGalleryImageUrl] = useState("");
@@ -317,6 +321,10 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     setEventRegistrationUrlInput(tournamentToEdit.eventRegistrationUrl || "");
     setEventHeroImageUrlInput(tournamentToEdit.eventHeroImageUrl || "");
     setEventMaxPlayersInput(String(tournamentToEdit.eventMaxPlayers || 24));
+    setEventDirectorNameInput(tournamentToEdit.eventDirectorName || "");
+    setEventDirectorEmailInput(tournamentToEdit.eventDirectorEmail || "");
+    setEventDirectorPhoneInput(tournamentToEdit.eventDirectorPhone || "");
+    setEventRulesTextInput(tournamentToEdit.eventRulesText || "");
     setEventYoutubeUrlInput(tournamentToEdit.eventYoutubeUrl || "");
     setEventGalleryImages(Array.isArray(tournamentToEdit.eventGalleryImages) ? tournamentToEdit.eventGalleryImages : []);
     setNewGalleryImageUrl("");
