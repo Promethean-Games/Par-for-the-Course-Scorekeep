@@ -807,7 +807,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         accessibilityNotes: tournament.eventAccessibilityNotes || "Accessibility accommodations available upon request.",
       sponsors: sponsors
         .filter((s) => s.isActive)
-        .map((s) => ({ name: s.sponsorName, websiteUrl: null, logoUrl: s.logoUrl || null })),
+        .map((s) => ({
+          name: s.sponsorName,
+          donationType: s.donationType || null,
+          blurb: s.blurb || null,
+          websiteUrl: null,
+          logoUrl: s.logoUrl || null,
+        })),
         galleryImages: effectiveGalleryImages,
       schedule: [
         { label: "Check-in", timeIso: addMinutes(dateIso, -45) },

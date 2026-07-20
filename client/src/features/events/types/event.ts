@@ -58,7 +58,13 @@ export interface PublicTournamentEvent extends EventSummary {
   parkingInfo: string;
   foodAndDrinksInfo: string;
   accessibilityNotes: string;
-  sponsors: Array<{ name: string; websiteUrl: string | null; logoUrl: string | null }>;
+  sponsors: Array<{
+    name: string;
+    donationType: string | null;
+    blurb: string | null;
+    websiteUrl: string | null;
+    logoUrl: string | null;
+  }>;
   galleryImages: string[];
   schedule: EventScheduleItem[];
   faq: EventFaqItem[];

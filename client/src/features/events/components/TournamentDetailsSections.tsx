@@ -263,11 +263,31 @@ export function SponsorsSection({ event }: SectionProps) {
     <SectionCard title="Sponsors" icon={<Users className="h-5 w-5" />}>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {event.sponsors.map((sponsor) => (
-          <Card key={sponsor.name} className="p-3 text-center text-sm">
-            <div className="h-12 rounded bg-muted mb-2 flex items-center justify-center overflow-hidden">
-              {sponsor.logoUrl ? <img src={sponsor.logoUrl} alt={`${sponsor.name} logo`} className="h-full w-full object-contain" /> : null}
+          <Card key={sponsor.name} className="p-3 text-center text-sm space-y-1.5">
+            {/* Logo or letter fallback */}
+            <div className="h-16 rounded bg-muted mb-1 flex items-center justify-center overflow-hidden">
+              {sponsor.logoUrl ? (
+                <img
+                  src={sponsor.logoUrl}
+                  alt={`${sponsor.name} logo`}
+                  className="h-full w-full object-contain"
+                />
+              ) : (
+                <span className="text-2xl font-bold text-muted-foreground/40">
+                  {sponsor.name.charAt(0).toUpperCase()}
+                </span>
+              )}
             </div>
-            <p className="font-medium">{sponsor.name}</p>
+            {/* Donation type badge */}
+            {sponsor.donationType && (
+              <p className="text-xs text-muted-foreground">{sponsor.donationType}</p>
+            )}
+            {/* Name */}
+            <p className="font-medium leading-tight">{sponsor.name}</p>
+            {/* Blurb / snippet */}
+            {sponsor.blurb && (
+              <p className="text-xs text-muted-foreground leading-snug">{sponsor.blurb}</p>
+            )}
           </Card>
         ))}
       </div>
