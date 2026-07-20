@@ -83,6 +83,7 @@ export const tournaments = pgTable("tournaments", {
   eventAccessibilityNotes: text("event_accessibility_notes"),
   eventEntryFee: real("event_entry_fee"),
   eventEntryFeeDetails: text("event_entry_fee_details"),
+  eventStripePriceId: text("event_stripe_price_id"),
   isActive: boolean("is_active").notNull().default(true),
   isStarted: boolean("is_started").notNull().default(false),
   isHandicapped: boolean("is_handicapped").notNull().default(false),

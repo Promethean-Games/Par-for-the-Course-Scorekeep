@@ -14,6 +14,7 @@ export function RegistrationSuccessPage({ slug }: RegistrationSuccessPageProps) 
   const [event, setEvent] = useState<PublicTournamentEvent | null>(null);
   const [checkoutStatus, setCheckoutStatus] = useState<CheckoutStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const sessionId = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -23,32 +24,25 @@ export function RegistrationSuccessPage({ slug }: RegistrationSuccessPageProps) 
   useEffect(() => {
     let mounted = true;
 
-    fetchPublicEvent(slug)
-      .then((data) => {
-        if (!mounted) return;
-        setEvent(data);
-      })
-      .catch((err: unknown) => {
+    Promise.all([
+      fetchPublicEvent(slug).catch((err: unknown) => {
         console.error("[RegistrationSuccessPage] Failed to load event", err);
-      });
-
-    if (!sessionId) {
-      setError("Missing Stripe session ID. Payment confirmation may be incomplete.");
-      return () => {
-        mounted = false;
-      };
-    }
-
-    fetchCheckoutStatus(slug, sessionId)
-      .then((status) => {
-        if (!mounted) return;
-        setCheckoutStatus(status);
-      })
-      .catch((err: unknown) => {
-        console.error("[RegistrationSuccessPage] Failed to verify checkout", err);
-        if (!mounted) return;
-        setError(err instanceof Error ? err.message : "Could not verify payment status");
-      });
+        return null;
+      }),
+      sessionId
+        ? fetchCheckoutStatus(slug, sessionId).catch((err: unknown) => {
+            console.error("[RegistrationSuccessPage] Failed to verify checkout", err);
+            if (mounted) setError(err instanceof Error ? err.message : "Could not verify payment status");
+            return null;
+          })
+        : Promise.resolve(null),
+    ]).then(([eventData, statusData]) => {
+      if (!mounted) return;
+      if (eventData) setEvent(eventData);
+      if (statusData) setCheckoutStatus(statusData as CheckoutStatusResponse);
+      if (!sessionId) setError("Missing Stripe session ID. Payment confirmation may be incomplete.");
+      setIsLoading(false);
+    });
 
     return () => {
       mounted = false;
@@ -57,42 +51,78 @@ export function RegistrationSuccessPage({ slug }: RegistrationSuccessPageProps) 
 
   const isPaid = checkoutStatus?.paymentStatus === "paid";
 
+  if (isLoading) {
+    return (
+      <main className="mx-auto max-w-2xl p-4">
+        <Card className="space-y-4 p-5">
+          <p className="text-sm text-muted-foreground">Confirming your registration…</p>
+        </Card>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-2xl p-4">
       <Card className="space-y-4 p-5">
-        <h1 className="text-2xl font-bold">Registration Successful</h1>
-        <p className="text-sm text-muted-foreground">
-          Thank you for registering. Your payment and registration details are confirmed below.
-        </p>
+        {/* Status header */}
+        <div className="flex items-start gap-3">
+          {isPaid ? (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 text-xl">
+              ✓
+            </div>
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-yellow-100 text-yellow-600 text-xl">
+              ⏳
+            </div>
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">
+              {isPaid ? "Registration Confirmed!" : "Registration Received"}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {isPaid
+                ? "Your payment has been processed. You are officially registered."
+                : "Your registration is being processed. Payment confirmation may take a moment."}
+            </p>
+          </div>
+        </div>
 
+        {/* Event + payment details */}
         <div className="space-y-2 rounded border p-3 text-sm">
-          <p><strong>Tournament:</strong> {event?.name || "Loading..."}</p>
-          <p><strong>Date:</strong> {event ? formatEventDateTime(event.dateIso) : "Loading..."}</p>
-          <p><strong>Venue:</strong> {event?.venue || "Loading..."}</p>
+          <p><strong>Tournament:</strong> {event?.name || "Loading…"}</p>
+          <p><strong>Date:</strong> {event ? formatEventDateTime(event.dateIso) : "Loading…"}</p>
+          <p><strong>Venue:</strong> {event?.venue || "Loading…"}</p>
           <p>
-            <strong>Payment confirmation:</strong>{" "}
+            <strong>Payment status:</strong>{" "}
             {checkoutStatus ? (
-              <Badge variant={isPaid ? "default" : "secondary"}>{isPaid ? "Paid" : checkoutStatus.paymentStatus || "Pending"}</Badge>
+              <Badge variant={isPaid ? "default" : "secondary"}>
+                {isPaid ? "Paid ✓" : checkoutStatus.paymentStatus || "Pending"}
+              </Badge>
             ) : (
-              "Verifying..."
+              "Verifying…"
             )}
           </p>
-          {checkoutStatus?.amountTotal !== null && (
-            <p><strong>Amount:</strong> {formatCurrency((checkoutStatus?.amountTotal || 0) / 100)}</p>
+          {checkoutStatus?.amountTotal != null && (
+            <p><strong>Amount charged:</strong> {formatCurrency((checkoutStatus.amountTotal) / 100)}</p>
           )}
-          {checkoutStatus?.customerEmail && <p><strong>Email:</strong> {checkoutStatus.customerEmail}</p>}
-          {checkoutStatus?.sessionId && <p><strong>Confirmation ID:</strong> {checkoutStatus.sessionId}</p>}
+          {checkoutStatus?.customerEmail && (
+            <p><strong>Confirmation sent to:</strong> {checkoutStatus.customerEmail}</p>
+          )}
+          {checkoutStatus?.sessionId && (
+            <p className="text-xs text-muted-foreground"><strong>Confirmation ID:</strong> {checkoutStatus.sessionId}</p>
+          )}
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
+        {/* What's next */}
         <Card className="p-4 space-y-2 bg-muted/40">
-          <p className="font-medium text-sm">Coming soon</p>
+          <p className="font-medium text-sm">What's next</p>
           <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-            <li>Confirmation email</li>
-            <li>QR code check-in pass</li>
-            <li>Calendar download</li>
-            <li>Player account linkage</li>
+            <li>Check-in opens 45 minutes before tee time</li>
+            <li>Player meeting begins 15 minutes before tee time</li>
+            {event?.venueAddress && <li>Venue: {event.venueAddress}</li>}
+            <li>Questions? Contact the Tournament Director</li>
           </ul>
         </Card>
 
@@ -106,4 +136,3 @@ export function RegistrationSuccessPage({ slug }: RegistrationSuccessPageProps) 
     </main>
   );
 }
-

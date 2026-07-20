@@ -64,6 +64,7 @@ interface TournamentSummary {
   eventAccessibilityNotes?: string | null;
   eventEntryFee?: number | null;
   eventEntryFeeDetails?: string | null;
+  eventStripePriceId?: string | null;
   isActive: boolean;
   isStarted?: boolean;
   isHandicapped?: boolean;
@@ -104,6 +105,7 @@ function normalizeTournamentSummary(input: any): TournamentSummary | null {
     eventAccessibilityNotes: input?.eventAccessibilityNotes ?? input?.event_accessibility_notes ?? null,
     eventEntryFee: input?.eventEntryFee ?? input?.event_entry_fee ?? null,
     eventEntryFeeDetails: input?.eventEntryFeeDetails ?? input?.event_entry_fee_details ?? null,
+    eventStripePriceId: input?.eventStripePriceId ?? input?.event_stripe_price_id ?? null,
     isActive: input?.isActive ?? input?.is_active ?? true,
     isStarted: input?.isStarted ?? input?.is_started ?? false,
     isHandicapped: input?.isHandicapped ?? input?.is_handicapped ?? false,
@@ -173,6 +175,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [eventAccessibilityNotesInput, setEventAccessibilityNotesInput] = useState("");
   const [eventEntryFeeInput, setEventEntryFeeInput] = useState("");
   const [eventEntryFeeDetailsInput, setEventEntryFeeDetailsInput] = useState("");
+  const [eventStripePriceIdInput, setEventStripePriceIdInput] = useState("");
   const [waitlistEntries, setWaitlistEntries] = useState<WaitlistEntry[]>([]);
   const [isWaitlistLoading, setIsWaitlistLoading] = useState(false);
   const [isSavingEventDetails, setIsSavingEventDetails] = useState(false);
@@ -384,6 +387,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
       typeof tournamentToEdit.eventEntryFee === "number" ? String(tournamentToEdit.eventEntryFee) : "",
     );
     setEventEntryFeeDetailsInput(tournamentToEdit.eventEntryFeeDetails || "");
+    setEventStripePriceIdInput(tournamentToEdit.eventStripePriceId || "");
     void fetchWaitlist(tournamentToEdit.roomCode);
   };
 
@@ -463,6 +467,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
           eventAccessibilityNotes: eventAccessibilityNotesInput.trim() || null,
           eventEntryFee: parsedEntryFee,
           eventEntryFeeDetails: eventEntryFeeDetailsInput.trim() || null,
+          eventStripePriceId: eventStripePriceIdInput.trim() || null,
         }),
       });
 
@@ -1221,7 +1226,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
               </AccordionItem>
 
               <AccordionItem value="entry-fee" className="rounded-lg border px-3">
-                <AccordionTrigger className="text-sm font-medium hover:no-underline">Entry Fee Details</AccordionTrigger>
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Entry Fee & Stripe</AccordionTrigger>
                 <AccordionContent>
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
@@ -1232,6 +1237,19 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                       <Label htmlFor="event-entry-fee-details">Fee Details</Label>
                       <Input id="event-entry-fee-details" value={eventEntryFeeDetailsInput} onChange={(e) => setEventEntryFeeDetailsInput(e.target.value)} placeholder="Includes green fee and prize pool contribution" data-testid="input-event-entry-fee-details" />
                     </div>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <Label htmlFor="event-stripe-price-id">Stripe Price ID <span className="text-muted-foreground font-normal">(optional)</span></Label>
+                    <Input
+                      id="event-stripe-price-id"
+                      value={eventStripePriceIdInput}
+                      onChange={(e) => setEventStripePriceIdInput(e.target.value)}
+                      placeholder="price_1AbCdEfGhIjKlMnO"
+                      data-testid="input-event-stripe-price-id"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Create a Price in your <a href="https://dashboard.stripe.com/products" target="_blank" rel="noreferrer" className="underline">Stripe Dashboard</a> and paste the Price ID here (starts with <code>price_</code>). When set, checkout uses this Price instead of the entry fee above. Leave blank to use dynamic pricing from the entry fee.
+                    </p>
                   </div>
                 </AccordionContent>
               </AccordionItem>

@@ -43,6 +43,8 @@ export interface PublicTournamentEvent extends EventSummary {
   formatDescription: string;
   entryFee: number | null;
   entryFeeDetails?: string | null;
+  /** Stripe Price ID. When set, the backend uses this for checkout instead of dynamic price_data. */
+  stripePriceId?: string | null;
   youtubeVideoUrl?: string | null;
   expectedDurationMinutes: number;
   checkInTimeIso: string;

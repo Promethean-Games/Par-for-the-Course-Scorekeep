@@ -8,6 +8,7 @@ import { storage } from "./storage";
 import { db } from "./db";
 import { insertTournamentPlayerSchema, insertTournamentScoreSchema, batchUpdateGroupsSchema, insertUniversalPlayerSchema, universalPlayers, type TournamentScore } from "@shared/schema";
 import { z } from "zod";
+import { createCheckoutSession, retrieveCheckoutSession, verifyWebhookSignature } from "./stripe";
 
 const SALT_ROUNDS = 10;
 
@@ -348,6 +349,7 @@ const updateEventDetailsSchema = z.object({
   eventAccessibilityNotes: z.string().trim().max(1000).nullable().optional(),
   eventEntryFee: z.number().min(0).max(10000).nullable().optional(),
   eventEntryFeeDetails: z.string().trim().max(500).nullable().optional(),
+  eventStripePriceId: z.string().trim().max(200).nullable().optional(),
 });
 
 const waitlistJoinSchema = z.object({
@@ -447,32 +449,6 @@ function getPortalBaseUrl(): string {
   return (process.env.TOURNAMENT_PORTAL_BASE_URL || "https://portal.parforthecourse.com").replace(/\/$/, "");
 }
 
-const STRIPE_PRODUCT_ID = "prod_UuWIcWhK26e0Z0";
-
-function getStripeSecretKey(): string {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    throw new Error("STRIPE_SECRET_KEY is not configured");
-  }
-  return secretKey;
-}
-
-async function stripeApiRequest(path: string, init?: RequestInit): Promise<any> {
-  const response = await fetch(`https://api.stripe.com/v1${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${getStripeSecretKey()}`,
-      ...(init?.headers || {}),
-    },
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(payload?.error?.message || `Stripe request failed with status ${response.status}`);
-  }
-
-  return payload;
-}
 
 function getRequestOrigin(req: Request): string {
   const forwardedProto = (req.headers["x-forwarded-proto"] as string | undefined)?.split(",")[0]?.trim();
@@ -517,26 +493,6 @@ function addMinutes(dateIso: string, minutes: number): string {
   return date.toISOString();
 }
 
-function verifyStripeWebhookSignature(rawBody: Buffer, signatureHeader: string, secret: string): boolean {
-  const parts = signatureHeader.split(",").map((p) => p.trim());
-  const timestampPart = parts.find((p) => p.startsWith("t="));
-  const signatures = parts.filter((p) => p.startsWith("v1=")).map((p) => p.slice(3));
-  if (!timestampPart || signatures.length === 0) return false;
-
-  const timestamp = timestampPart.slice(2);
-  const signedPayload = `${timestamp}.${rawBody.toString("utf8")}`;
-  const expected = crypto.createHmac("sha256", secret).update(signedPayload, "utf8").digest("hex");
-
-  return signatures.some((candidate) => {
-    try {
-      const left = Buffer.from(candidate, "hex");
-      const right = Buffer.from(expected, "hex");
-      return left.length === right.length && crypto.timingSafeEqual(left, right);
-    } catch {
-      return false;
-    }
-  });
-}
 
 async function getRegistrationCounts(tournamentId: number): Promise<{ paid: number; waitlist: number }> {
   try {
@@ -834,6 +790,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       registrationUrl: `/events/${tournament.roomCode.toLowerCase()}/register`,
       entryFee: displayEntryFee,
       entryFeeDetails: tournament.eventEntryFeeDetails || null,
+      stripePriceId: tournament.eventStripePriceId || null,
         youtubeVideoUrl: directorDefaults?.youtubeUrl || tournament.eventYoutubeUrl || null,
         expectedDurationMinutes: tournament.eventExpectedDurationMinutes || 150,
         formatDescription: tournament.eventFormatText || "18 Holes, Par for the Course Stroke Play",
@@ -949,30 +906,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(409).json({ error: "Tournament is full. Please join the waitlist.", code: "WAITLIST_ONLY" });
       }
 
-      if (event.entryFee === null || event.entryFee <= 0) {
-        return res.status(400).json({ error: "Entry fee is not configured for this event" });
+      const hasStripePriceId = !!(event as any).stripePriceId;
+      const hasDynamicFee = event.entryFee != null && event.entryFee > 0;
+
+      if (!hasStripePriceId && !hasDynamicFee) {
+        return res.status(400).json({ error: "Entry fee is not configured for this event. Please contact the Tournament Director." });
       }
 
       const { successUrl, cancelUrl } = getCheckoutUrls(req, event.slug);
-      const body = new URLSearchParams();
-      body.set("mode", "payment");
-      body.set("success_url", successUrl);
-      body.set("cancel_url", cancelUrl);
-      body.set("line_items[0][price_data][currency]", "usd");
-      body.set("line_items[0][price_data][product_data][name]", `${event.name} - Tournament Entry`);
-      body.set("line_items[0][price_data][product_data][type]", "service");
-      body.set("line_items[0][price_data][unit_amount]", String(Math.round(event.entryFee * 100)));
-      body.set("line_items[0][quantity]", "1");
-      body.set("metadata[tournamentRoomCode]", event.roomCode);
-      body.set("metadata[tournamentSlug]", event.slug);
-      body.set("metadata[tournamentName]", event.name);
-
-      const session = await stripeApiRequest("/checkout/sessions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body,
       });
 
       if (!session.url) {
@@ -1494,6 +1435,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventAccessibilityNotes: eventAccessibilityNotes?.trim() ? eventAccessibilityNotes.trim() : null,
         eventEntryFee: typeof eventEntryFee === "number" ? eventEntryFee : null,
         eventEntryFeeDetails: eventEntryFeeDetails?.trim() ? eventEntryFeeDetails.trim() : null,
+        eventStripePriceId: eventStripePriceId !== undefined
+          ? (eventStripePriceId?.trim() ? eventStripePriceId.trim() : null)
+          : undefined,
       });
 
       const { directorPin: _, ...safe } = updated;

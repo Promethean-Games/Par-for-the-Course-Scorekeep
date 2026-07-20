@@ -252,6 +252,9 @@ export async function initializeDatabase() {
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_entry_fee_details') THEN
           ALTER TABLE tournaments ADD COLUMN event_entry_fee_details TEXT;
         END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_stripe_price_id') THEN
+          ALTER TABLE tournaments ADD COLUMN event_stripe_price_id TEXT;
+        END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'started_at') THEN
           ALTER TABLE tournaments ADD COLUMN started_at TIMESTAMP;
         END IF;

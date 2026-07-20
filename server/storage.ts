@@ -477,6 +477,7 @@ export class DatabaseStorage implements IStorage {
     eventAccessibilityNotes: string | null;
     eventEntryFee: number | null;
     eventEntryFeeDetails: string | null;
+    eventStripePriceId?: string | null;
   }): Promise<Tournament> {
     try {
       const [updated] = await db
@@ -505,6 +506,7 @@ export class DatabaseStorage implements IStorage {
           eventAccessibilityNotes: data.eventAccessibilityNotes,
           eventEntryFee: data.eventEntryFee,
           eventEntryFeeDetails: data.eventEntryFeeDetails,
+          ...(data.eventStripePriceId !== undefined ? { eventStripePriceId: data.eventStripePriceId } : {}),
         })
         .where(eq(tournaments.id, id))
         .returning();
