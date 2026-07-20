@@ -34,7 +34,15 @@ export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardP
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setTournamentOptions(data.map((t: any) => ({ id: t.id, roomCode: t.roomCode, name: t.name })));
+          setTournamentOptions(
+            data
+              .map((t: any) => ({
+                id: typeof t?.id === "number" ? t.id : Number(t?.id),
+                roomCode: t?.roomCode ?? t?.room_code,
+                name: t?.name,
+              }))
+              .filter((t) => Number.isFinite(t.id) && !!t.roomCode && !!t.name),
+          );
         }
       })
       .catch(() => {});

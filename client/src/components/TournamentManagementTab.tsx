@@ -73,6 +73,47 @@ interface TournamentSummary {
   stats?: TournamentStats;
 }
 
+function normalizeTournamentSummary(input: any): TournamentSummary | null {
+  const roomCode = input?.roomCode ?? input?.room_code;
+  const name = input?.name;
+  const id = typeof input?.id === "number" ? input.id : Number(input?.id);
+
+  if (!roomCode || !name || !Number.isFinite(id)) {
+    return null;
+  }
+
+  return {
+    ...input,
+    id,
+    roomCode,
+    name,
+    eventVenue: input?.eventVenue ?? input?.event_venue ?? null,
+    eventStartAt: input?.eventStartAt ?? input?.event_start_at ?? null,
+    eventDetailsUrl: input?.eventDetailsUrl ?? input?.event_details_url ?? null,
+    eventRegistrationUrl: input?.eventRegistrationUrl ?? input?.event_registration_url ?? null,
+    eventHeroImageUrl: input?.eventHeroImageUrl ?? input?.event_hero_image_url ?? null,
+    eventMaxPlayers: input?.eventMaxPlayers ?? input?.event_max_players ?? 24,
+    eventFormatText: input?.eventFormatText ?? input?.event_format_text ?? null,
+    eventExpectedDurationMinutes: input?.eventExpectedDurationMinutes ?? input?.event_expected_duration_minutes ?? null,
+    eventVenueAddress: input?.eventVenueAddress ?? input?.event_venue_address ?? null,
+    eventMapUrl: input?.eventMapUrl ?? input?.event_map_url ?? null,
+    eventPayoutStructureNote: input?.eventPayoutStructureNote ?? input?.event_payout_structure_note ?? null,
+    eventVenueDescription: input?.eventVenueDescription ?? input?.event_venue_description ?? null,
+    eventParkingInfo: input?.eventParkingInfo ?? input?.event_parking_info ?? null,
+    eventFoodAndDrinksInfo: input?.eventFoodAndDrinksInfo ?? input?.event_food_and_drinks_info ?? null,
+    eventAccessibilityNotes: input?.eventAccessibilityNotes ?? input?.event_accessibility_notes ?? null,
+    eventEntryFee: input?.eventEntryFee ?? input?.event_entry_fee ?? null,
+    eventEntryFeeDetails: input?.eventEntryFeeDetails ?? input?.event_entry_fee_details ?? null,
+    isActive: input?.isActive ?? input?.is_active ?? true,
+    isStarted: input?.isStarted ?? input?.is_started ?? false,
+    isHandicapped: input?.isHandicapped ?? input?.is_handicapped ?? false,
+    createdAt: input?.createdAt ?? input?.created_at,
+    startedAt: input?.startedAt ?? input?.started_at ?? null,
+    completedAt: input?.completedAt ?? input?.completed_at ?? null,
+    stats: input?.stats,
+  };
+}
+
 type ImportConflictPolicy = "skip" | "replace" | "keep_both";
 
 type ImportSections = {
@@ -174,12 +215,18 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const fetchTournaments = async () => {
     try {
       const response = await fetch(`/api/tournaments?directorPin=${encodeURIComponent(directorPin)}`);
-      if (response.ok) {
-        const data = await response.json();
-        setTournaments(data);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tournaments (${response.status})`);
       }
+
+      const data = await response.json();
+      const normalized = Array.isArray(data)
+        ? data.map(normalizeTournamentSummary).filter((item): item is TournamentSummary => !!item)
+        : [];
+      setTournaments(normalized);
     } catch (err) {
       console.error("Failed to fetch tournaments:", err);
+      setTournaments([]);
     } finally {
       setIsLoading(false);
     }

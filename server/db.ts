@@ -61,6 +61,7 @@ export async function initializeDatabase() {
         event_format_text TEXT,
         event_expected_duration_minutes INTEGER,
         event_venue_address TEXT,
+        event_map_url TEXT,
         event_payout_structure_note TEXT,
         event_venue_description TEXT,
         event_parking_info TEXT,
@@ -226,6 +227,9 @@ export async function initializeDatabase() {
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_venue_address') THEN
           ALTER TABLE tournaments ADD COLUMN event_venue_address TEXT;
+        END IF;
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_map_url') THEN
+          ALTER TABLE tournaments ADD COLUMN event_map_url TEXT;
         END IF;
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tournaments' AND column_name = 'event_payout_structure_note') THEN
           ALTER TABLE tournaments ADD COLUMN event_payout_structure_note TEXT;

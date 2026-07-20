@@ -29,13 +29,47 @@ import {
 import { db } from "./db";
 import { eq, and, sql, desc, ilike, or } from "drizzle-orm";
 
-// Helper to safely ensure eventMapUrl exists on tournament objects
-function ensureEventMapUrl(tournament: any): Tournament {
+// Normalizes ORM rows and raw SQL rows to the app's Tournament shape.
+function normalizeTournamentRecord(tournament: any): Tournament | undefined {
   if (!tournament) return undefined;
+
   return {
     ...tournament,
-    eventMapUrl: tournament.eventMapUrl ?? null,
-  };
+    roomCode: tournament.roomCode ?? tournament.room_code,
+    eventVenue: tournament.eventVenue ?? tournament.event_venue ?? null,
+    eventStartAt: tournament.eventStartAt ?? tournament.event_start_at ?? null,
+    eventDetailsUrl: tournament.eventDetailsUrl ?? tournament.event_details_url ?? null,
+    eventRegistrationUrl: tournament.eventRegistrationUrl ?? tournament.event_registration_url ?? null,
+    eventHeroImageUrl: tournament.eventHeroImageUrl ?? tournament.event_hero_image_url ?? null,
+    eventMaxPlayers: tournament.eventMaxPlayers ?? tournament.event_max_players ?? 24,
+    eventDirectorName: tournament.eventDirectorName ?? tournament.event_director_name ?? null,
+    eventDirectorEmail: tournament.eventDirectorEmail ?? tournament.event_director_email ?? null,
+    eventDirectorPhone: tournament.eventDirectorPhone ?? tournament.event_director_phone ?? null,
+    eventRulesText: tournament.eventRulesText ?? tournament.event_rules_text ?? null,
+    eventRulesUrl: tournament.eventRulesUrl ?? tournament.event_rules_url ?? null,
+    eventYoutubeUrl: tournament.eventYoutubeUrl ?? tournament.event_youtube_url ?? null,
+    eventGalleryImages: tournament.eventGalleryImages ?? tournament.event_gallery_images ?? null,
+    eventFormatText: tournament.eventFormatText ?? tournament.event_format_text ?? null,
+    eventExpectedDurationMinutes: tournament.eventExpectedDurationMinutes ?? tournament.event_expected_duration_minutes ?? null,
+    eventVenueAddress: tournament.eventVenueAddress ?? tournament.event_venue_address ?? null,
+    eventMapUrl: tournament.eventMapUrl ?? tournament.event_map_url ?? null,
+    eventPayoutStructureNote: tournament.eventPayoutStructureNote ?? tournament.event_payout_structure_note ?? null,
+    eventVenueDescription: tournament.eventVenueDescription ?? tournament.event_venue_description ?? null,
+    eventParkingInfo: tournament.eventParkingInfo ?? tournament.event_parking_info ?? null,
+    eventFoodAndDrinksInfo: tournament.eventFoodAndDrinksInfo ?? tournament.event_food_and_drinks_info ?? null,
+    eventAccessibilityNotes: tournament.eventAccessibilityNotes ?? tournament.event_accessibility_notes ?? null,
+    eventEntryFee: tournament.eventEntryFee ?? tournament.event_entry_fee ?? null,
+    eventEntryFeeDetails: tournament.eventEntryFeeDetails ?? tournament.event_entry_fee_details ?? null,
+    isActive: tournament.isActive ?? tournament.is_active ?? true,
+    isStarted: tournament.isStarted ?? tournament.is_started ?? false,
+    isHandicapped: tournament.isHandicapped ?? tournament.is_handicapped ?? false,
+    directorPin: tournament.directorPin ?? tournament.director_pin,
+    createdAt: tournament.createdAt ?? tournament.created_at,
+    startedAt: tournament.startedAt ?? tournament.started_at ?? null,
+    completedAt: tournament.completedAt ?? tournament.completed_at ?? null,
+    groupStartingHoles: tournament.groupStartingHoles ?? tournament.group_starting_holes ?? null,
+    sponsorPagesEnabled: tournament.sponsorPagesEnabled ?? tournament.sponsor_pages_enabled ?? false,
+  } as Tournament;
 }
 
 export interface TournamentStats {
@@ -189,16 +223,54 @@ export class DatabaseStorage implements IStorage {
 
   async getAllTournaments(): Promise<Tournament[]> {
     try {
-      return db.select().from(tournaments).orderBy(desc(tournaments.createdAt));
+      const records = await db.select().from(tournaments).orderBy(desc(tournaments.createdAt));
+      return records.map((record) => normalizeTournamentRecord(record)!).filter(Boolean);
     } catch (error: any) {
-      if (error?.message?.includes("event_map_url") || error?.message?.includes("does not exist")) {
-        const result = await db.execute(`
-          SELECT * FROM tournaments ORDER BY created_at DESC
+      const msg = String(error?.message || "").toLowerCase();
+      if (msg.includes("event_map_url") || msg.includes("does not exist")) {
+        const result = await db.execute(sql`
+          SELECT
+            id,
+            room_code,
+            name,
+            event_venue,
+            event_start_at,
+            event_details_url,
+            event_registration_url,
+            event_hero_image_url,
+            event_max_players,
+            event_director_name,
+            event_director_email,
+            event_director_phone,
+            event_rules_text,
+            event_rules_url,
+            event_youtube_url,
+            event_gallery_images,
+            event_format_text,
+            event_expected_duration_minutes,
+            event_venue_address,
+            event_payout_structure_note,
+            event_venue_description,
+            event_parking_info,
+            event_food_and_drinks_info,
+            event_accessibility_notes,
+            event_entry_fee,
+            event_entry_fee_details,
+            is_active,
+            is_started,
+            is_handicapped,
+            director_pin,
+            created_at,
+            started_at,
+            completed_at,
+            group_starting_holes,
+            sponsor_pages_enabled
+          FROM tournaments
+          ORDER BY created_at DESC
         `);
-        return ((result.rows || result) as any[]).map(row => ({
-          ...row,
-          eventMapUrl: null,
-        })) as Tournament[];
+        return ((result.rows ?? result) as any[])
+          .map((row) => normalizeTournamentRecord(row)!)
+          .filter(Boolean);
       }
       throw error;
     }
@@ -296,7 +368,7 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(tournaments)
         .where(eq(tournaments.roomCode, roomCode.toUpperCase()));
-      return ensureEventMapUrl(tournament);
+      return normalizeTournamentRecord(tournament);
     } catch (error: any) {
       const msg = String(error?.message || "").toLowerCase();
       if (msg.includes("event_map_url") || msg.includes("does not exist")) {
@@ -315,7 +387,7 @@ export class DatabaseStorage implements IStorage {
             FROM tournaments WHERE room_code = ${roomCode.toUpperCase()}
           `);
           const row = (result.rows?.[0] || result[0]) as any;
-          return ensureEventMapUrl(row);
+          return normalizeTournamentRecord(row);
         } catch {
           return undefined;
         }
@@ -327,7 +399,7 @@ export class DatabaseStorage implements IStorage {
   async getTournament(id: number): Promise<Tournament | undefined> {
     try {
       const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
-      return ensureEventMapUrl(tournament);
+      return normalizeTournamentRecord(tournament);
     } catch (error: any) {
       const msg = String(error?.message || "").toLowerCase();
       if (msg.includes("event_map_url") || msg.includes("does not exist")) {
@@ -345,7 +417,7 @@ export class DatabaseStorage implements IStorage {
             FROM tournaments WHERE id = ${id}
           `);
           const row = (result.rows?.[0] || result[0]) as any;
-          return ensureEventMapUrl(row);
+          return normalizeTournamentRecord(row);
         } catch {
           return undefined;
         }
@@ -406,36 +478,77 @@ export class DatabaseStorage implements IStorage {
     eventEntryFee: number | null;
     eventEntryFeeDetails: string | null;
   }): Promise<Tournament> {
-    const [updated] = await db
-      .update(tournaments)
-      .set({
-        eventVenue: data.eventVenue,
-        eventStartAt: data.eventStartAt,
-        eventDetailsUrl: data.eventDetailsUrl,
-        eventRegistrationUrl: data.eventRegistrationUrl,
-        eventHeroImageUrl: data.eventHeroImageUrl,
-        eventMaxPlayers: data.eventMaxPlayers,
-        eventDirectorName: data.eventDirectorName,
-        eventDirectorEmail: data.eventDirectorEmail,
-        eventDirectorPhone: data.eventDirectorPhone,
-        eventRulesText: data.eventRulesText,
-        eventYoutubeUrl: data.eventYoutubeUrl,
-        eventGalleryImages: data.eventGalleryImages,
-        eventFormatText: data.eventFormatText,
-        eventExpectedDurationMinutes: data.eventExpectedDurationMinutes,
-        eventVenueAddress: data.eventVenueAddress,
-        eventMapUrl: data.eventMapUrl,
-        eventPayoutStructureNote: data.eventPayoutStructureNote,
-        eventVenueDescription: data.eventVenueDescription,
-        eventParkingInfo: data.eventParkingInfo,
-        eventFoodAndDrinksInfo: data.eventFoodAndDrinksInfo,
-        eventAccessibilityNotes: data.eventAccessibilityNotes,
-        eventEntryFee: data.eventEntryFee,
-        eventEntryFeeDetails: data.eventEntryFeeDetails,
-      })
-      .where(eq(tournaments.id, id))
-      .returning();
-    return updated;
+    try {
+      const [updated] = await db
+        .update(tournaments)
+        .set({
+          eventVenue: data.eventVenue,
+          eventStartAt: data.eventStartAt,
+          eventDetailsUrl: data.eventDetailsUrl,
+          eventRegistrationUrl: data.eventRegistrationUrl,
+          eventHeroImageUrl: data.eventHeroImageUrl,
+          eventMaxPlayers: data.eventMaxPlayers,
+          eventDirectorName: data.eventDirectorName,
+          eventDirectorEmail: data.eventDirectorEmail,
+          eventDirectorPhone: data.eventDirectorPhone,
+          eventRulesText: data.eventRulesText,
+          eventYoutubeUrl: data.eventYoutubeUrl,
+          eventGalleryImages: data.eventGalleryImages,
+          eventFormatText: data.eventFormatText,
+          eventExpectedDurationMinutes: data.eventExpectedDurationMinutes,
+          eventVenueAddress: data.eventVenueAddress,
+          eventMapUrl: data.eventMapUrl,
+          eventPayoutStructureNote: data.eventPayoutStructureNote,
+          eventVenueDescription: data.eventVenueDescription,
+          eventParkingInfo: data.eventParkingInfo,
+          eventFoodAndDrinksInfo: data.eventFoodAndDrinksInfo,
+          eventAccessibilityNotes: data.eventAccessibilityNotes,
+          eventEntryFee: data.eventEntryFee,
+          eventEntryFeeDetails: data.eventEntryFeeDetails,
+        })
+        .where(eq(tournaments.id, id))
+        .returning();
+      return normalizeTournamentRecord(updated)!;
+    } catch (error: any) {
+      const msg = String(error?.message || "").toLowerCase();
+      if (!msg.includes("event_map_url") && !msg.includes("does not exist")) {
+        throw error;
+      }
+
+      await db.execute(sql`
+        UPDATE tournaments
+        SET
+          event_venue = ${data.eventVenue},
+          event_start_at = ${data.eventStartAt},
+          event_details_url = ${data.eventDetailsUrl},
+          event_registration_url = ${data.eventRegistrationUrl},
+          event_hero_image_url = ${data.eventHeroImageUrl},
+          event_max_players = ${data.eventMaxPlayers},
+          event_director_name = ${data.eventDirectorName},
+          event_director_email = ${data.eventDirectorEmail},
+          event_director_phone = ${data.eventDirectorPhone},
+          event_rules_text = ${data.eventRulesText},
+          event_youtube_url = ${data.eventYoutubeUrl},
+          event_gallery_images = ${data.eventGalleryImages},
+          event_format_text = ${data.eventFormatText},
+          event_expected_duration_minutes = ${data.eventExpectedDurationMinutes},
+          event_venue_address = ${data.eventVenueAddress},
+          event_payout_structure_note = ${data.eventPayoutStructureNote},
+          event_venue_description = ${data.eventVenueDescription},
+          event_parking_info = ${data.eventParkingInfo},
+          event_food_and_drinks_info = ${data.eventFoodAndDrinksInfo},
+          event_accessibility_notes = ${data.eventAccessibilityNotes},
+          event_entry_fee = ${data.eventEntryFee},
+          event_entry_fee_details = ${data.eventEntryFeeDetails}
+        WHERE id = ${id}
+      `);
+
+      const updated = await this.getTournament(id);
+      if (!updated) {
+        throw new Error("Tournament not found after updating event details");
+      }
+      return updated;
+    }
   }
 
   async getTournamentBackup(tournamentId: number): Promise<{ tournament: Tournament; players: TournamentPlayer[]; scores: TournamentScore[] }> {
