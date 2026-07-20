@@ -1416,6 +1416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventAccessibilityNotes,
         eventEntryFee,
         eventEntryFeeDetails,
+        eventStripePriceId,
       } = parsed.data;
       const isMasterDirector = isValidDirectorPin(directorPin);
       const isTournamentDirector = await storage.verifyDirectorPin(req.params.roomCode, directorPin);
