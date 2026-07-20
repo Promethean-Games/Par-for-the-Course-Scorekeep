@@ -29,6 +29,15 @@ import {
 import { db } from "./db";
 import { eq, and, sql, desc, ilike, or } from "drizzle-orm";
 
+// Helper to safely ensure eventMapUrl exists on tournament objects
+function ensureEventMapUrl(tournament: any): Tournament {
+  if (!tournament) return undefined;
+  return {
+    ...tournament,
+    eventMapUrl: tournament.eventMapUrl ?? null,
+  };
+}
+
 export interface TournamentStats {
   playerCount: number;
   mostHolesCompleted: number;
@@ -179,7 +188,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllTournaments(): Promise<Tournament[]> {
-    return db.select().from(tournaments).orderBy(desc(tournaments.createdAt));
+    try {
+      return db.select().from(tournaments).orderBy(desc(tournaments.createdAt));
+    } catch (error: any) {
+      if (error?.message?.includes("event_map_url") || error?.message?.includes("does not exist")) {
+        const result = await db.execute(`
+          SELECT * FROM tournaments ORDER BY created_at DESC
+        `);
+        return ((result.rows || result) as any[]).map(row => ({
+          ...row,
+          eventMapUrl: null,
+        })) as Tournament[];
+      }
+      throw error;
+    }
   }
 
   async getTournamentStats(tournamentId: number): Promise<TournamentStats> {
@@ -269,17 +291,69 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTournamentByCode(roomCode: string): Promise<Tournament | undefined> {
-    const [tournament] = await db
-      .select()
-      .from(tournaments)
-      .where(eq(tournaments.roomCode, roomCode.toUpperCase()));
-    return tournament || undefined;
+    try {
+      const [tournament] = await db
+        .select()
+        .from(tournaments)
+        .where(eq(tournaments.roomCode, roomCode.toUpperCase()));
+      return ensureEventMapUrl(tournament);
+    } catch (error: any) {
+      const msg = String(error?.message || "").toLowerCase();
+      if (msg.includes("event_map_url") || msg.includes("does not exist")) {
+        // Fallback: query without the problematic field
+        try {
+          const result = await db.execute(sql`
+            SELECT id, room_code, name, event_venue, event_start_at, event_details_url,
+                   event_registration_url, event_hero_image_url, event_max_players,
+                   event_director_name, event_director_email, event_director_phone,
+                   event_rules_text, event_rules_url, event_youtube_url, event_gallery_images,
+                   event_format_text, event_expected_duration_minutes, event_venue_address,
+                   event_payout_structure_note, event_venue_description, event_parking_info,
+                   event_food_and_drinks_info, event_accessibility_notes, event_entry_fee,
+                   event_entry_fee_details, is_active, is_started, is_handicapped, director_pin,
+                   created_at, started_at, completed_at, group_starting_holes, sponsor_pages_enabled
+            FROM tournaments WHERE room_code = ${roomCode.toUpperCase()}
+          `);
+          const row = (result.rows?.[0] || result[0]) as any;
+          return ensureEventMapUrl(row);
+        } catch {
+          return undefined;
+        }
+      }
+      throw error;
+    }
   }
 
   async getTournament(id: number): Promise<Tournament | undefined> {
-    const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
-    return tournament || undefined;
+    try {
+      const [tournament] = await db.select().from(tournaments).where(eq(tournaments.id, id));
+      return ensureEventMapUrl(tournament);
+    } catch (error: any) {
+      const msg = String(error?.message || "").toLowerCase();
+      if (msg.includes("event_map_url") || msg.includes("does not exist")) {
+        try {
+          const result = await db.execute(sql`
+            SELECT id, room_code, name, event_venue, event_start_at, event_details_url,
+                   event_registration_url, event_hero_image_url, event_max_players,
+                   event_director_name, event_director_email, event_director_phone,
+                   event_rules_text, event_rules_url, event_youtube_url, event_gallery_images,
+                   event_format_text, event_expected_duration_minutes, event_venue_address,
+                   event_payout_structure_note, event_venue_description, event_parking_info,
+                   event_food_and_drinks_info, event_accessibility_notes, event_entry_fee,
+                   event_entry_fee_details, is_active, is_started, is_handicapped, director_pin,
+                   created_at, started_at, completed_at, group_starting_holes, sponsor_pages_enabled
+            FROM tournaments WHERE id = ${id}
+          `);
+          const row = (result.rows?.[0] || result[0]) as any;
+          return ensureEventMapUrl(row);
+        } catch {
+          return undefined;
+        }
+      }
+      throw error;
+    }
   }
+
 
   async closeTournament(id: number): Promise<void> {
     await db.update(tournaments).set({ isActive: false, completedAt: new Date() }).where(eq(tournaments.id, id));
