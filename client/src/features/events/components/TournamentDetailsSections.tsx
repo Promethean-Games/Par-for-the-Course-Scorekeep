@@ -1,3 +1,4 @@
+import React from "react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -257,47 +258,45 @@ export function VideoSection({ event }: SectionProps) {
 }
 
 export function SponsorsSection({ event }: SectionProps) {
+  const [imgErrors, setImgErrors] = React.useState<Record<string, boolean>>({});
+
   if (!event.sponsors.length) return null;
 
   return (
     <SectionCard title="Sponsors" icon={<Users className="h-5 w-5" />}>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {event.sponsors.map((sponsor) => (
-          <Card key={sponsor.name} className="p-3 text-center text-sm space-y-1.5">
-            {/* Logo or letter fallback */}
-            <div className="h-16 rounded bg-muted mb-1 flex items-center justify-center overflow-hidden">
-              {sponsor.logoUrl ? (
-                <img
-                  src={sponsor.logoUrl}
-                  alt={`${sponsor.name} logo`}
-                  className="h-full w-full object-contain"
-                  onError={(e) => {
-                    // Hide broken image and let the parent show the fallback letter
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
-                    if (fallback) fallback.style.display = "flex";
-                  }}
-                />
-              ) : null}
-              <span
-                className="text-2xl font-bold text-muted-foreground/40"
-                style={{ display: sponsor.logoUrl ? "none" : "flex" }}
-              >
-                {sponsor.name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-            {/* Donation type */}
-            {sponsor.donationType && (
-              <p className="text-xs text-muted-foreground">{sponsor.donationType}</p>
-            )}
-            {/* Name */}
-            <p className="font-medium leading-tight">{sponsor.name}</p>
-            {/* Blurb / snippet */}
-            {sponsor.blurb && (
-              <p className="text-xs text-muted-foreground leading-snug">{sponsor.blurb}</p>
-            )}
-          </Card>
-        ))}
+        {event.sponsors.map((sponsor) => {
+          const showLogo = !!sponsor.logoUrl && !imgErrors[sponsor.name];
+          return (
+            <Card key={sponsor.name} className="p-3 text-center text-sm space-y-1.5">
+              {/* Logo or letter fallback */}
+              <div className="h-16 rounded bg-muted mb-1 flex items-center justify-center overflow-hidden">
+                {showLogo ? (
+                  <img
+                    src={sponsor.logoUrl!}
+                    alt={`${sponsor.name} logo`}
+                    style={{ maxHeight: "64px", maxWidth: "100%", objectFit: "contain" }}
+                    onError={() => setImgErrors((prev) => ({ ...prev, [sponsor.name]: true }))}
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-muted-foreground/40">
+                    {sponsor.name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              {/* Donation type */}
+              {sponsor.donationType && (
+                <p className="text-xs text-muted-foreground">{sponsor.donationType}</p>
+              )}
+              {/* Name */}
+              <p className="font-medium leading-tight">{sponsor.name}</p>
+              {/* Blurb / snippet */}
+              {sponsor.blurb && (
+                <p className="text-xs text-muted-foreground leading-snug">{sponsor.blurb}</p>
+              )}
+            </Card>
+          );
+        })}
       </div>
     </SectionCard>
   );

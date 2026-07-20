@@ -841,6 +841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!event) {
         return res.status(404).json({ error: "Event not found" });
       }
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
       res.json(event);
     } catch (error) {
       console.error("Error loading public event details:", error);

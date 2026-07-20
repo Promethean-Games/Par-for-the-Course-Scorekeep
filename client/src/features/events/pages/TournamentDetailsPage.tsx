@@ -39,23 +39,35 @@ export function TournamentDetailsPage({ slug }: TournamentDetailsPageProps) {
   useEffect(() => {
     let isMounted = true;
 
-    fetchPublicEvent(slug)
-      .then((data) => {
-        if (!isMounted) return;
-        setEvent(data);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        console.error("[TournamentDetailsPage] Failed to load event", err);
-        if (!isMounted) return;
-        setError("Could not load tournament details.");
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
+    const load = () => {
+      fetchPublicEvent(slug)
+        .then((data) => {
+          if (!isMounted) return;
+          setEvent(data);
+          setError(null);
+        })
+        .catch((err: unknown) => {
+          console.error("[TournamentDetailsPage] Failed to load event", err);
+          if (!isMounted) return;
+          setError("Could not load tournament details.");
+        })
+        .finally(() => {
+          if (isMounted) setIsLoading(false);
+        });
+    };
+
+    load();
+
+    // Refetch when the user switches back to this tab so sponsor/event
+    // changes made in the TD portal are immediately visible.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [slug]);
 
