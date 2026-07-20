@@ -67,6 +67,7 @@ export interface IStorage {
     eventFormatText: string | null;
     eventExpectedDurationMinutes: number | null;
     eventVenueAddress: string | null;
+    eventMapUrl: string | null;
     eventPayoutStructureNote: string | null;
     eventVenueDescription: string | null;
     eventParkingInfo: string | null;
@@ -322,6 +323,7 @@ export class DatabaseStorage implements IStorage {
     eventFormatText: string | null;
     eventExpectedDurationMinutes: number | null;
     eventVenueAddress: string | null;
+    eventMapUrl: string | null;
     eventPayoutStructureNote: string | null;
     eventVenueDescription: string | null;
     eventParkingInfo: string | null;
@@ -348,6 +350,7 @@ export class DatabaseStorage implements IStorage {
         eventFormatText: data.eventFormatText,
         eventExpectedDurationMinutes: data.eventExpectedDurationMinutes,
         eventVenueAddress: data.eventVenueAddress,
+        eventMapUrl: data.eventMapUrl,
         eventPayoutStructureNote: data.eventPayoutStructureNote,
         eventVenueDescription: data.eventVenueDescription,
         eventParkingInfo: data.eventParkingInfo,

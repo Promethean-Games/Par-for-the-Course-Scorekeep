@@ -56,6 +56,7 @@ interface TournamentSummary {
   eventFormatText?: string | null;
   eventExpectedDurationMinutes?: number | null;
   eventVenueAddress?: string | null;
+  eventMapUrl?: string | null;
   eventPayoutStructureNote?: string | null;
   eventVenueDescription?: string | null;
   eventParkingInfo?: string | null;
@@ -123,6 +124,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [eventFormatTextInput, setEventFormatTextInput] = useState("");
   const [eventExpectedDurationMinutesInput, setEventExpectedDurationMinutesInput] = useState("150");
   const [eventVenueAddressInput, setEventVenueAddressInput] = useState("");
+  const [eventMapUrlInput, setEventMapUrlInput] = useState("");
   const [eventPayoutStructureNoteInput, setEventPayoutStructureNoteInput] = useState("");
   const [eventVenueDescriptionInput, setEventVenueDescriptionInput] = useState("");
   const [eventParkingInfoInput, setEventParkingInfoInput] = useState("");
@@ -325,6 +327,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     setEventFormatTextInput(tournamentToEdit.eventFormatText || "");
     setEventExpectedDurationMinutesInput(String(tournamentToEdit.eventExpectedDurationMinutes || 150));
     setEventVenueAddressInput(tournamentToEdit.eventVenueAddress || "");
+    setEventMapUrlInput(tournamentToEdit.eventMapUrl || "");
     setEventPayoutStructureNoteInput(tournamentToEdit.eventPayoutStructureNote || "");
     setEventVenueDescriptionInput(tournamentToEdit.eventVenueDescription || "");
     setEventParkingInfoInput(tournamentToEdit.eventParkingInfo || "");
@@ -405,6 +408,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
           eventFormatText: eventFormatTextInput.trim() || null,
           eventExpectedDurationMinutes: parsedExpectedDuration,
           eventVenueAddress: eventVenueAddressInput.trim() || null,
+          eventMapUrl: eventMapUrlInput.trim() || null,
           eventPayoutStructureNote: eventPayoutStructureNoteInput.trim() || null,
           eventVenueDescription: eventVenueDescriptionInput.trim() || null,
           eventParkingInfo: eventParkingInfoInput.trim() || null,
@@ -1095,6 +1099,19 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                         placeholder="123 Main Street, City, State"
                         data-testid="input-event-venue-address"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-map-url">Google Maps Link</Label>
+                      <Input
+                        id="event-map-url"
+                        value={eventMapUrlInput}
+                        onChange={(e) => setEventMapUrlInput(e.target.value)}
+                        placeholder="Paste a Google Maps URL"
+                        data-testid="input-event-map-url"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        In Google Maps, search your venue → Share → Copy link. Paste that URL here.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="event-venue-description">Venue Description</Label>

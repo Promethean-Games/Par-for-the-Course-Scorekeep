@@ -49,6 +49,7 @@ export interface PublicTournamentEvent extends EventSummary {
   playerMeetingTimeIso: string;
   tournamentStartTimeIso: string;
   venueAddress: string;
+  mapUrl: string | null;
   prizePool: number | null;
   payoutStructureNote: string;
   venueDescription: string;

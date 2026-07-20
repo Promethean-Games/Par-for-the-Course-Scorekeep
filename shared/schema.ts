@@ -75,6 +75,7 @@ export const tournaments = pgTable("tournaments", {
   eventFormatText: text("event_format_text"),
   eventExpectedDurationMinutes: integer("event_expected_duration_minutes"),
   eventVenueAddress: text("event_venue_address"),
+  eventMapUrl: text("event_map_url"),
   eventPayoutStructureNote: text("event_payout_structure_note"),
   eventVenueDescription: text("event_venue_description"),
   eventParkingInfo: text("event_parking_info"),

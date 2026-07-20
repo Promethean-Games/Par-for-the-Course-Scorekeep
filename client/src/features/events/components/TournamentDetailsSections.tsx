@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useEventCountdown } from "../hooks/useEventCountdown";
 import type { PublicTournamentEvent, RegistrationStatus } from "../types/event";
 import { formatCurrency, formatEventDateTime } from "../services/publicEventApi";
+import { GoogleMapsEmbed } from "@/components/GoogleMapsEmbed";
 
 interface SectionProps {
   event: PublicTournamentEvent;
@@ -163,9 +164,6 @@ export function EventInformationSection({ event }: SectionProps) {
         <p><strong>Venue:</strong> {event.venue}</p>
         <p><strong>Address:</strong> {event.venueAddress}</p>
       </div>
-      <Button variant="outline" className="w-full" disabled>
-        Google Maps (coming soon)
-      </Button>
     </SectionCard>
   );
 }
@@ -217,11 +215,21 @@ export function ScheduleSection({ event }: SectionProps) {
 export function VenueSection({ event }: SectionProps) {
   return (
     <SectionCard title="Venue" icon={<MapPin className="h-5 w-5" />}>
-      <div className="space-y-2 text-sm">
-        <p>{event.venueDescription}</p>
-        <p><strong>Parking:</strong> {event.parkingInfo}</p>
-        <p><strong>Food & drinks:</strong> {event.foodAndDrinksInfo}</p>
-        <p><strong>Accessibility:</strong> {event.accessibilityNotes}</p>
+      <div className="space-y-4">
+        <div className="space-y-2 text-sm">
+          <p>{event.venueDescription}</p>
+          <p><strong>Address:</strong> {event.venueAddress}</p>
+          <p><strong>Parking:</strong> {event.parkingInfo}</p>
+          <p><strong>Food & drinks:</strong> {event.foodAndDrinksInfo}</p>
+          <p><strong>Accessibility:</strong> {event.accessibilityNotes}</p>
+        </div>
+        {event.mapUrl && (
+          <GoogleMapsEmbed
+            mapUrl={event.mapUrl}
+            title={`${event.name} Venue Map`}
+            height="300px"
+          />
+        )}
       </div>
     </SectionCard>
   );

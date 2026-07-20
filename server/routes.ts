@@ -340,6 +340,7 @@ const updateEventDetailsSchema = z.object({
   eventFormatText: z.string().trim().max(240).nullable().optional(),
   eventExpectedDurationMinutes: z.number().int().min(30).max(1440).nullable().optional(),
   eventVenueAddress: z.string().trim().max(240).nullable().optional(),
+  eventMapUrl: z.string().trim().url().nullable().optional(),
   eventPayoutStructureNote: z.string().trim().max(1000).nullable().optional(),
   eventVenueDescription: z.string().trim().max(1000).nullable().optional(),
   eventParkingInfo: z.string().trim().max(1000).nullable().optional(),
@@ -840,6 +841,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       playerMeetingTimeIso: addMinutes(dateIso, -15),
       tournamentStartTimeIso: dateIso,
         venueAddress: tournament.eventVenueAddress || "Venue address to be announced",
+        mapUrl: tournament.eventMapUrl || null,
       prizePool,
         payoutStructureNote: tournament.eventPayoutStructureNote || "Payout structure will be published closer to event day.",
         venueDescription: tournament.eventVenueDescription || "Tournament venue details will be posted by the Tournament Director.",
@@ -1233,6 +1235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eventFormatText: null,
           eventExpectedDurationMinutes: null,
           eventVenueAddress: null,
+          eventMapUrl: null,
           eventPayoutStructureNote: null,
           eventVenueDescription: null,
           eventParkingInfo: null,
@@ -1451,6 +1454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventFormatText,
         eventExpectedDurationMinutes,
         eventVenueAddress,
+        eventMapUrl,
         eventPayoutStructureNote,
         eventVenueDescription,
         eventParkingInfo,
@@ -1479,17 +1483,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventFormatText: eventFormatText?.trim() ? eventFormatText.trim() : null,
         eventExpectedDurationMinutes: eventExpectedDurationMinutes ?? null,
         eventVenueAddress: eventVenueAddress?.trim() ? eventVenueAddress.trim() : null,
+        eventMapUrl: eventMapUrl?.trim() ? eventMapUrl.trim() : null,
         eventPayoutStructureNote: eventPayoutStructureNote?.trim() ? eventPayoutStructureNote.trim() : null,
         eventVenueDescription: eventVenueDescription?.trim() ? eventVenueDescription.trim() : null,
         eventParkingInfo: eventParkingInfo?.trim() ? eventParkingInfo.trim() : null,
         eventFoodAndDrinksInfo: eventFoodAndDrinksInfo?.trim() ? eventFoodAndDrinksInfo.trim() : null,
         eventAccessibilityNotes: eventAccessibilityNotes?.trim() ? eventAccessibilityNotes.trim() : null,
-        eventDirectorName: directorDefaults?.directorName || tournament.eventDirectorName,
-        eventDirectorEmail: directorDefaults?.directorEmail || tournament.eventDirectorEmail,
-        eventDirectorPhone: directorDefaults?.directorPhone || tournament.eventDirectorPhone,
-        eventRulesText: directorDefaults?.rulesText || tournament.eventRulesText,
-        eventYoutubeUrl: directorDefaults?.youtubeUrl || tournament.eventYoutubeUrl,
-        eventGalleryImages: directorDefaults?.galleryImages?.length ? sanitizeGalleryImages(directorDefaults.galleryImages) : tournament.eventGalleryImages,
         eventEntryFee: typeof eventEntryFee === "number" ? eventEntryFee : null,
         eventEntryFeeDetails: eventEntryFeeDetails?.trim() ? eventEntryFeeDetails.trim() : null,
       });
@@ -1843,6 +1842,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let historyImported = 0;
       let playersReplaced = 0;
       let playersDuplicated = 0;
+      let settingsImported = 0;
+      const errors: string[] = [];
 
       const resolveExistingPlayer = (incoming: any) => {
         const incomingCode = normalizeCode(incoming?.uniqueCode);
@@ -1984,8 +1985,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         historyImported,
         playersReplaced,
         playersDuplicated,
+        settingsImported,
         conflictPolicy,
         selectedSections,
+        errors: errors.length > 0 ? errors : undefined,
       });
     } catch (error) {
       console.error("Error importing player data:", error);
@@ -3808,6 +3811,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to reorder sponsors" });
     }
   });
+
 
   const httpServer = createServer(app);
 
