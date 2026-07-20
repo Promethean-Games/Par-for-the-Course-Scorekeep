@@ -35,25 +35,52 @@ interface SponsorSettingsPanelProps {
   directorPin: string;
 }
 
-async function resizeImageToBase64(file: File, maxSize = 400): Promise<string> {
+async function resizeImageToBase64(file: File, maxSize = 600): Promise<string> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(file);
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
-      canvas.width = Math.round(img.width * scale);
-      canvas.height = Math.round(img.height * scale);
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL("image/png", 0.9));
+    const reader = new FileReader();
+
+    reader.onerror = () => reject(new Error("Could not read file"));
+
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string | undefined;
+      if (!dataUrl) {
+        reject(new Error("File read produced no data"));
+        return;
+      }
+
+      const img = new Image();
+
+      img.onerror = () => reject(new Error("Image could not be decoded"));
+
+      img.onload = () => {
+        try {
+          const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            // Canvas 2D not available — return the original data URL as-is
+            resolve(dataUrl);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/png"));
+        } catch (err) {
+          // Fall back to the unresized original rather than failing entirely
+          resolve(dataUrl);
+        }
+      };
+
+      img.src = dataUrl;
     };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Failed to load image"));
-    };
-    img.src = url;
+
+    reader.readAsDataURL(file);
   });
 }
 
