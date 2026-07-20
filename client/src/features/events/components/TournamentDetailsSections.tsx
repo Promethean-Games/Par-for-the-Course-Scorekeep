@@ -193,7 +193,7 @@ export function PrizeInformationSection({ event }: SectionProps) {
         <p><strong>Prize pool:</strong> {formatCurrency(event.prizePool)}</p>
         <p><strong>Payout structure:</strong> {event.payoutStructureNote}</p>
         <p><strong>Recognition:</strong> 1st place, 2nd place, 3rd place</p>
-        <p><strong>Optional awards:</strong> Closest to Pin and special awards (coming soon)</p>
+         <p><strong>Optional awards:</strong> special awards (coming soon)</p>
       </div>
     </SectionCard>
   );
