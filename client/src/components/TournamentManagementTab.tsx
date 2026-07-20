@@ -3,10 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
@@ -119,10 +119,6 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
   const [eventRegistrationUrlInput, setEventRegistrationUrlInput] = useState("");
   const [eventHeroImageUrlInput, setEventHeroImageUrlInput] = useState("");
   const [eventMaxPlayersInput, setEventMaxPlayersInput] = useState("24");
-  const [eventDirectorNameInput, setEventDirectorNameInput] = useState("");
-  const [eventDirectorEmailInput, setEventDirectorEmailInput] = useState("");
-  const [eventDirectorPhoneInput, setEventDirectorPhoneInput] = useState("");
-  const [eventRulesTextInput, setEventRulesTextInput] = useState("");
   const [eventYoutubeUrlInput, setEventYoutubeUrlInput] = useState("");
   const [eventGalleryImages, setEventGalleryImages] = useState<string[]>([]);
   const [newGalleryImageUrl, setNewGalleryImageUrl] = useState("");
@@ -321,10 +317,6 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
     setEventRegistrationUrlInput(tournamentToEdit.eventRegistrationUrl || "");
     setEventHeroImageUrlInput(tournamentToEdit.eventHeroImageUrl || "");
     setEventMaxPlayersInput(String(tournamentToEdit.eventMaxPlayers || 24));
-    setEventDirectorNameInput(tournamentToEdit.eventDirectorName || "");
-    setEventDirectorEmailInput(tournamentToEdit.eventDirectorEmail || "");
-    setEventDirectorPhoneInput(tournamentToEdit.eventDirectorPhone || "");
-    setEventRulesTextInput(tournamentToEdit.eventRulesText || "");
     setEventYoutubeUrlInput(tournamentToEdit.eventYoutubeUrl || "");
     setEventGalleryImages(Array.isArray(tournamentToEdit.eventGalleryImages) ? tournamentToEdit.eventGalleryImages : []);
     setNewGalleryImageUrl("");
@@ -1064,194 +1056,117 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                 Online registration stops at this number. TDs can still add players manually beyond the cap.
               </p>
             </div>
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-sm font-medium">Public Contact Details</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="event-director-name">Director Name</Label>
-                  <Input
-                    id="event-director-name"
-                    value={eventDirectorNameInput}
-                    onChange={(e) => setEventDirectorNameInput(e.target.value)}
-                    placeholder="Tournament Director"
-                    data-testid="input-event-director-name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="event-director-email">Director Email</Label>
-                  <Input
-                    id="event-director-email"
-                    type="email"
-                    value={eventDirectorEmailInput}
-                    onChange={(e) => setEventDirectorEmailInput(e.target.value)}
-                    placeholder="director@example.com"
-                    data-testid="input-event-director-email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="event-director-phone">Director Phone</Label>
-                  <Input
-                    id="event-director-phone"
-                    value={eventDirectorPhoneInput}
-                    onChange={(e) => setEventDirectorPhoneInput(e.target.value)}
-                    placeholder="(000) 000-0000"
-                    data-testid="input-event-director-phone"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-sm font-medium">Entry Fee Details</p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="event-entry-fee">Public Entry Fee (USD)</Label>
-                  <Input
-                    id="event-entry-fee"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={eventEntryFeeInput}
-                    onChange={(e) => setEventEntryFeeInput(e.target.value)}
-                    placeholder="25"
-                    data-testid="input-event-entry-fee"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="event-entry-fee-details">Fee Details</Label>
-                  <Input
-                    id="event-entry-fee-details"
-                    value={eventEntryFeeDetailsInput}
-                    onChange={(e) => setEventEntryFeeDetailsInput(e.target.value)}
-                    placeholder="Includes green fee and prize pool contribution"
-                    data-testid="input-event-entry-fee-details"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-sm font-medium">Official Rules</p>
-              <div className="space-y-2">
-                <Label htmlFor="event-rules-text">Rules Summary / Notes</Label>
-                <Textarea
-                  id="event-rules-text"
-                  value={eventRulesTextInput}
-                  onChange={(e) => setEventRulesTextInput(e.target.value)}
-                  placeholder="Paste the official rules text or key highlights here"
-                  rows={5}
-                  data-testid="input-event-rules-text"
-                />
-              </div>
-            </div>
-            <div className="space-y-2 rounded-lg border p-3">
-              <p className="text-sm font-medium">Media</p>
-              <div className="space-y-2">
-                <Label htmlFor="event-youtube-url">YouTube Video URL (optional)</Label>
-                <Input
-                  id="event-youtube-url"
-                  type="url"
-                  value={eventYoutubeUrlInput}
-                  onChange={(e) => setEventYoutubeUrlInput(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  data-testid="input-event-youtube-url"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="event-gallery-image-url">Gallery Images</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="event-gallery-image-url"
-                    type="url"
-                    value={newGalleryImageUrl}
-                    onChange={(e) => setNewGalleryImageUrl(e.target.value)}
-                    placeholder="https://.../image.jpg"
-                    data-testid="input-event-gallery-image-url"
-                  />
-                  <Button type="button" variant="outline" onClick={handleAddGalleryImage}>
-                    Add
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground">Drag and drop to reorder gallery images.</p>
-                {eventGalleryImages.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No gallery images added yet.</p>
-                ) : (
-                  <div className="space-y-2 max-h-56 overflow-y-auto rounded-md border p-2">
-                    {eventGalleryImages.map((url, index) => (
-                      <div
-                        key={`${url}-${index}`}
-                        draggable
-                        onDragStart={() => setDraggedGalleryIndex(index)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => handleDropGalleryImage(index)}
-                        className="flex items-center gap-2 rounded border bg-background p-2"
-                        data-testid={`gallery-item-${index + 1}`}
-                      >
-                        <GripVertical className="h-4 w-4 text-muted-foreground" />
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                          <img src={url} alt={`Gallery ${index + 1}`} className="h-full w-full object-cover" />
-                        </div>
-                        <p className="min-w-0 flex-1 truncate text-xs">#{index + 1} {url}</p>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveGalleryImage(index)}>
-                          Remove
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-            {showEventDetailsFor && (
-              <div className="space-y-2 rounded-lg border p-3">
-                <p className="text-sm font-medium">Sponsors & Logos</p>
-                <SponsorSettingsPanel roomCode={showEventDetailsFor} directorPin={directorPin} />
-              </div>
-            )}
-            <div className="space-y-2 rounded-lg border p-3">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium">Waitlist</p>
-                  <p className="text-xs text-muted-foreground">
-                    Public waitlist capacity is 10. Remove entries after you add players manually.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">{waitlistEntries.length}/10</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportWaitlist}
-                    disabled={waitlistEntries.length === 0}
-                  >
-                    Export CSV
-                  </Button>
-                </div>
-              </div>
-              {isWaitlistLoading ? (
-                <p className="text-sm text-muted-foreground">Loading waitlist...</p>
-              ) : waitlistEntries.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No waitlist entries yet.</p>
-              ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {waitlistEntries.map((entry) => (
-                    <div key={entry.id} className="flex items-start justify-between gap-3 rounded border p-2">
-                      <div className="min-w-0 text-sm">
-                        <p className="font-medium truncate">{entry.name}</p>
-                        <p className="text-muted-foreground truncate">{entry.email}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => showEventDetailsFor && handleRemoveWaitlistEntry(showEventDetailsFor, entry.id)}
-                      >
-                        Remove
-                      </Button>
+            <Accordion type="multiple" className="w-full space-y-3">
+              <AccordionItem value="contact" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Public Contact Details</AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2 sm:col-span-2">
+                      <Label htmlFor="event-director-name">Director Name</Label>
+                      <Input id="event-director-name" value={eventDirectorNameInput} onChange={(e) => setEventDirectorNameInput(e.target.value)} placeholder="Tournament Director" data-testid="input-event-director-name" />
                     </div>
-                  ))}
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-director-email">Director Email</Label>
+                      <Input id="event-director-email" type="email" value={eventDirectorEmailInput} onChange={(e) => setEventDirectorEmailInput(e.target.value)} placeholder="director@example.com" data-testid="input-event-director-email" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-director-phone">Director Phone</Label>
+                      <Input id="event-director-phone" value={eventDirectorPhoneInput} onChange={(e) => setEventDirectorPhoneInput(e.target.value)} placeholder="(000) 000-0000" data-testid="input-event-director-phone" />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="entry-fee" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Entry Fee Details</AccordionTrigger>
+                <AccordionContent>
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="event-entry-fee">Public Entry Fee (USD)</Label>
+                      <Input id="event-entry-fee" type="number" min={0} step="0.01" value={eventEntryFeeInput} onChange={(e) => setEventEntryFeeInput(e.target.value)} placeholder="25" data-testid="input-event-entry-fee" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="event-entry-fee-details">Fee Details</Label>
+                      <Input id="event-entry-fee-details" value={eventEntryFeeDetailsInput} onChange={(e) => setEventEntryFeeDetailsInput(e.target.value)} placeholder="Includes green fee and prize pool contribution" data-testid="input-event-entry-fee-details" />
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              <AccordionItem value="media" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Media</AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="event-youtube-url">YouTube Video URL (optional)</Label>
+                    <Input id="event-youtube-url" type="url" value={eventYoutubeUrlInput} onChange={(e) => setEventYoutubeUrlInput(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." data-testid="input-event-youtube-url" />
+                  </div>
+                  <div className="space-y-2 mt-4">
+                    <Label htmlFor="event-gallery-image-url">Gallery Images</Label>
+                    <div className="flex gap-2">
+                      <Input id="event-gallery-image-url" type="url" value={newGalleryImageUrl} onChange={(e) => setNewGalleryImageUrl(e.target.value)} placeholder="https://.../image.jpg" data-testid="input-event-gallery-image-url" />
+                      <Button type="button" variant="outline" onClick={handleAddGalleryImage}>Add</Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">Drag and drop to reorder gallery images.</p>
+                    {eventGalleryImages.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No gallery images added yet.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-56 overflow-y-auto rounded-md border p-2">
+                        {eventGalleryImages.map((url, index) => (
+                          <div key={`${url}-${index}`} draggable onDragStart={() => setDraggedGalleryIndex(index)} onDragOver={(e) => e.preventDefault()} onDrop={() => handleDropGalleryImage(index)} className="flex items-center gap-2 rounded border bg-background p-2" data-testid={`gallery-item-${index + 1}`}>
+                            <GripVertical className="h-4 w-4 text-muted-foreground" />
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
+                              <img src={url} alt={`Gallery ${index + 1}`} className="h-full w-full object-cover" />
+                            </div>
+                            <p className="min-w-0 flex-1 truncate text-xs">#{index + 1} {url}</p>
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveGalleryImage(index)}>Remove</Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {showEventDetailsFor && (
+                <AccordionItem value="sponsors" className="rounded-lg border px-3">
+                  <AccordionTrigger className="text-sm font-medium hover:no-underline">Sponsors & Logos</AccordionTrigger>
+                  <AccordionContent>
+                    <SponsorSettingsPanel roomCode={showEventDetailsFor} directorPin={directorPin} />
+                  </AccordionContent>
+                </AccordionItem>
               )}
-            </div>
+
+              <AccordionItem value="waitlist" className="rounded-lg border px-3">
+                <AccordionTrigger className="text-sm font-medium hover:no-underline">Waitlist</AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="text-xs text-muted-foreground">Public waitlist capacity is 10. Remove entries after you add players manually.</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-sm text-muted-foreground">{waitlistEntries.length}/10</span>
+                      <Button type="button" size="sm" variant="outline" onClick={handleExportWaitlist} disabled={waitlistEntries.length === 0}>Export CSV</Button>
+                    </div>
+                  </div>
+                  {isWaitlistLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading waitlist...</p>
+                  ) : waitlistEntries.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No waitlist entries yet.</p>
+                  ) : (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {waitlistEntries.map((entry) => (
+                        <div key={entry.id} className="flex items-start justify-between gap-3 rounded border p-2">
+                          <div className="min-w-0 text-sm">
+                            <p className="font-medium truncate">{entry.name}</p>
+                            <p className="text-muted-foreground truncate">{entry.email}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(entry.createdAt).toLocaleString()}</p>
+                          </div>
+                          <Button type="button" size="sm" variant="outline" onClick={() => showEventDetailsFor && handleRemoveWaitlistEntry(showEventDetailsFor, entry.id)}>Remove</Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
             </div>
           </div>
           <div className="border-t bg-background px-4 py-3 sm:px-6">

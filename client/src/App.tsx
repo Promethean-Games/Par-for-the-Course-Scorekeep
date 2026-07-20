@@ -262,8 +262,6 @@ function GameApp() {
     return (
       <>
         <SplashScreen 
-          onNewGame={handleNewGame} 
-          onLoadGame={handleLoadGame}
           onStartTournamentGame={handleBeginPlaying}
           onViewOnly={handleViewOnly}
         />

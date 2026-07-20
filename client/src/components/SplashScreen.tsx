@@ -13,13 +13,11 @@ import { PlayerProfilePage } from "./PlayerProfilePage";
 import { UpcomingEventCard } from "@/features/events/components/UpcomingEventCard";
 
 interface SplashScreenProps {
-  onNewGame: () => void;
-  onLoadGame: () => void;
   onStartTournamentGame?: () => void;
   onViewOnly?: () => void;
 }
 
-export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onViewOnly }: SplashScreenProps) {
+export function SplashScreen({ onStartTournamentGame, onViewOnly }: SplashScreenProps) {
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [joinError, setJoinError] = useState<string | null>(null);
   const [showPlayerSelection, setShowPlayerSelection] = useState(false);
@@ -178,23 +176,6 @@ export function SplashScreen({ onNewGame, onLoadGame, onStartTournamentGame, onV
       </div>
       
       <div className="w-full max-w-md space-y-4">
-        <Button 
-          size="lg"
-          className="w-full text-lg h-14"
-          onClick={onNewGame}
-          data-testid="button-new-game"
-        >
-          New Game
-        </Button>
-        <Button 
-          size="lg"
-          variant="outline"
-          className="w-full text-lg h-14"
-          onClick={onLoadGame}
-          data-testid="button-load-game"
-        >
-          Load Game
-        </Button>
 
         {/* Tournament Join Section */}
         {tournament.isConnected ? (

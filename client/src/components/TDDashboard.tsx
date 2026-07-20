@@ -8,6 +8,7 @@ import { PayoutCalculator } from "./PayoutCalculator";
 import { DirectorPortal } from "./DirectorPortal";
 import { useTournament } from "@/contexts/TournamentContext";
 import { Card } from "@/components/ui/card";
+import { DirectorContentDefaultsPanel } from "./DirectorContentDefaultsPanel";
 
 interface TDDashboardProps {
   onClose: () => void;
@@ -122,6 +123,8 @@ export function TDDashboard({ onClose, directorPin, directorName }: TDDashboardP
 
         <TabsContent value="settings" className="flex-1 m-0 p-0 overflow-auto">
           <div className="p-4 space-y-4">
+            <DirectorContentDefaultsPanel directorPin={directorPin} />
+
             <PayoutCalculator
               directorPin={directorPin}
               tournaments={tournamentOptions}

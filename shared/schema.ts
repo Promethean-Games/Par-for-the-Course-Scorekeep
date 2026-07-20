@@ -129,6 +129,16 @@ export const tournamentRegistrations = pgTable("tournament_registrations", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const directorContentDefaults = pgTable("director_content_defaults", {
+  directorPin: text("director_pin").primaryKey(),
+  rulesText: text("rules_text"),
+  faqItems: jsonb("faq_items").$type<Array<{ question: string; answer: string }>>().notNull().default(sql`'[]'::jsonb`),
+  directorName: text("director_name"),
+  directorEmail: text("director_email"),
+  directorPhone: text("director_phone"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Tournament scores - synced scores for leaderboard
 export const tournamentScores = pgTable("tournament_scores", {
   id: serial("id").primaryKey(),
@@ -213,6 +223,7 @@ export const insertTournamentPayoutSchema = createInsertSchema(tournamentPayouts
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
 export const insertTournamentSponsorSchema = createInsertSchema(tournamentSponsors).omit({ id: true, createdAt: true });
 export const insertTournamentRegistrationSchema = createInsertSchema(tournamentRegistrations).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertDirectorContentDefaultsSchema = createInsertSchema(directorContentDefaults).omit({ updatedAt: true });
 
 // Types from database
 export type UniversalPlayer = typeof universalPlayers.$inferSelect;
@@ -229,6 +240,8 @@ export type TournamentPayout = typeof tournamentPayouts.$inferSelect;
 export type InsertTournamentPayout = z.infer<typeof insertTournamentPayoutSchema>;
 export type TournamentRegistration = typeof tournamentRegistrations.$inferSelect;
 export type InsertTournamentRegistration = z.infer<typeof insertTournamentRegistrationSchema>;
+export type DirectorContentDefaults = typeof directorContentDefaults.$inferSelect;
+export type InsertDirectorContentDefaults = z.infer<typeof insertDirectorContentDefaultsSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type TournamentSponsor = typeof tournamentSponsors.$inferSelect;

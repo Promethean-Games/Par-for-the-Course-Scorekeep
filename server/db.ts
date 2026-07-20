@@ -126,6 +126,13 @@ export async function initializeDatabase() {
         updated_at TIMESTAMP DEFAULT NOW() NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS director_content_defaults (
+        director_pin TEXT PRIMARY KEY,
+        rules_text TEXT,
+        faq_items JSONB NOT NULL DEFAULT '[]'::jsonb,
+        updated_at TIMESTAMP DEFAULT NOW() NOT NULL
+      );
+
       CREATE TABLE IF NOT EXISTS tournament_payouts (
         id SERIAL PRIMARY KEY,
         tournament_id INTEGER NOT NULL UNIQUE REFERENCES tournaments(id),

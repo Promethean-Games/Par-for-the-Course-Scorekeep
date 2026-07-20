@@ -7,6 +7,7 @@ import {
   pushSubscriptions,
   tournamentPayouts,
   tournamentSponsors,
+  directorContentDefaults,
   type Tournament,
   type InsertTournament,
   type TournamentPlayer,
@@ -23,6 +24,7 @@ import {
   type TournamentPayout,
   type TournamentSponsor,
   type InsertTournamentSponsor,
+  type DirectorContentDefaults,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql, desc, ilike, or } from "drizzle-orm";
@@ -124,6 +126,16 @@ export interface IStorage {
   deleteSponsor(id: number): Promise<void>;
   reorderSponsors(tournamentId: number, orderedIds: number[]): Promise<void>;
   setSponsorPagesEnabled(tournamentId: number, enabled: boolean): Promise<void>;
+
+  // Director-wide content defaults
+  getDirectorContentDefaults(directorPin: string): Promise<DirectorContentDefaults | undefined>;
+  upsertDirectorContentDefaults(directorPin: string, data: {
+    rulesText: string | null;
+    faqItems: Array<{ question: string; answer: string }>;
+    directorName: string | null;
+    directorEmail: string | null;
+    directorPhone: string | null;
+  }): Promise<DirectorContentDefaults>;
 }
 
 export interface LiveTournamentStat {
@@ -814,6 +826,47 @@ export class DatabaseStorage implements IStorage {
 
   async setSponsorPagesEnabled(tournamentId: number, enabled: boolean): Promise<void> {
     await db.update(tournaments).set({ sponsorPagesEnabled: enabled }).where(eq(tournaments.id, tournamentId));
+  }
+
+  async getDirectorContentDefaults(directorPin: string): Promise<DirectorContentDefaults | undefined> {
+    const [defaults] = await db
+      .select()
+      .from(directorContentDefaults)
+      .where(eq(directorContentDefaults.directorPin, directorPin));
+    return defaults;
+  }
+
+  async upsertDirectorContentDefaults(directorPin: string, data: {
+    rulesText: string | null;
+    faqItems: Array<{ question: string; answer: string }>;
+    directorName: string | null;
+    directorEmail: string | null;
+    directorPhone: string | null;
+  }): Promise<DirectorContentDefaults> {
+    const [result] = await db
+      .insert(directorContentDefaults)
+      .values({
+        directorPin,
+        rulesText: data.rulesText,
+        faqItems: data.faqItems,
+        directorName: data.directorName,
+        directorEmail: data.directorEmail,
+        directorPhone: data.directorPhone,
+        updatedAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: directorContentDefaults.directorPin,
+        set: {
+          rulesText: data.rulesText,
+          faqItems: data.faqItems,
+          directorName: data.directorName,
+          directorEmail: data.directorEmail,
+          directorPhone: data.directorPhone,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return result;
   }
 }
 

@@ -285,6 +285,17 @@ const directorActionSchema = z.object({
   directorPin: z.string().min(1, "Director PIN is required"),
 });
 
+const faqItemSchema = z.object({
+  question: z.string().trim().min(1, "Question is required").max(300),
+  answer: z.string().trim().min(1, "Answer is required").max(4000),
+});
+
+const directorContentDefaultsSchema = z.object({
+  directorPin: z.string().min(1, "Director PIN is required"),
+  rulesText: z.string().trim().max(12000).nullable().optional(),
+  faqItems: z.array(faqItemSchema).max(25).optional().default([]),
+});
+
 const updateEventDetailsSchema = z.object({
   directorPin: z.string().min(1, "Director PIN is required"),
   eventVenue: z.string().trim().max(200).nullable().optional(),
@@ -701,6 +712,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const players = await storage.getPlayersInTournament(tournament.id);
     const registrationCounts = await getRegistrationCounts(tournament.id);
     const sponsors = await storage.getSponsorsForTournament(tournament.id);
+      const directorDefaults = await storage.getDirectorContentDefaults(tournament.directorPin);
     let payout: Awaited<ReturnType<typeof storage.getTournamentPayout>> = undefined;
     try {
       payout = await storage.getTournamentPayout(tournament.id);
@@ -771,34 +783,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         { label: "Awards ceremony", timeIso: addMinutes(dateIso, 135) },
         { label: "Estimated finish", timeIso: addMinutes(dateIso, 150) },
       ],
-      faq: [
-        {
-          question: "Do I need to own Par for the Course?",
-          answer: "No. The tournament app supports quick participation and scoring without prior setup.",
-        },
-        {
-          question: "Can beginners play?",
-          answer: "Yes. Players of all skill levels are welcome.",
-        },
-        {
-          question: "What equipment should I bring?",
-          answer: "Bring weather-appropriate clothing and anything the venue recommends.",
-        },
-        {
-          question: "Can I register on tournament day?",
-          answer: "Day-of registration depends on remaining spots.",
-        },
-        {
-          question: "What happens if I'm late?",
-          answer: "Please contact the Tournament Director if you are delayed.",
-        },
-        {
-          question: "Are refunds available?",
-          answer: "Refund policies are set by the Tournament Director and shown in event updates.",
-        },
-      ],
+      faq: directorDefaults?.faqItems?.length
+        ? directorDefaults.faqItems
+        : [
+            {
+              question: "Do I need to own Par for the Course?",
+              answer: "No. The tournament app supports quick participation and scoring without prior setup.",
+            },
+            {
+              question: "Can beginners play?",
+              answer: "Yes. Players of all skill levels are welcome.",
+            },
+            {
+              question: "What equipment should I bring?",
+              answer: "Bring weather-appropriate clothing and anything the venue recommends.",
+            },
+            {
+              question: "Can I register on tournament day?",
+              answer: "Day-of registration depends on remaining spots.",
+            },
+            {
+              question: "What happens if I'm late?",
+              answer: "Please contact the Tournament Director if you are delayed.",
+            },
+            {
+              question: "Are refunds available?",
+              answer: "Refund policies are set by the Tournament Director and shown in event updates.",
+            },
+          ],
       rules:
-        tournament.eventRulesText ||
+        directorDefaults?.rulesText ||
+                tournament.eventRulesText ||
         "Official rules will be posted here by the Tournament Director.\n\nPlease check back before tournament day for complete details.",
       contact: {
         directorName: tournament.eventDirectorName || "Tournament Director",
@@ -1033,6 +1048,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/director/content-defaults", async (req, res) => {
+    try {
+      const directorPin = String(req.query.directorPin || "");
+      if (!isValidDirectorPin(directorPin)) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+
+      const defaults = await storage.getDirectorContentDefaults(directorPin);
+      res.json({
+        rulesText: defaults?.rulesText || "",
+        faqItems: Array.isArray(defaults?.faqItems) ? defaults!.faqItems : [],
+      });
+    } catch (error) {
+      console.error("Error getting director content defaults:", error);
+      res.status(500).json({ error: "Failed to load content defaults" });
+    }
+  });
+
+  app.patch("/api/director/content-defaults", async (req, res) => {
+    try {
+      const parsed = directorContentDefaultsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid request" });
+      }
+
+      if (!isValidDirectorPin(parsed.data.directorPin)) {
+        return res.status(403).json({ error: "Invalid director credentials" });
+      }
+
+      const sanitizedFaqItems = parsed.data.faqItems
+        .map((item) => ({
+          question: item.question.trim(),
+          answer: item.answer.trim(),
+        }))
+        .filter((item) => item.question && item.answer);
+
+      const defaults = await storage.upsertDirectorContentDefaults(parsed.data.directorPin, {
+        rulesText: parsed.data.rulesText?.trim() ? parsed.data.rulesText.trim() : null,
+        faqItems: sanitizedFaqItems,
+      });
+
+      res.json({
+        rulesText: defaults.rulesText || "",
+        faqItems: defaults.faqItems || [],
+      });
+    } catch (error) {
+      console.error("Error saving director content defaults:", error);
+      res.status(500).json({ error: "Failed to save content defaults" });
+    }
+  });
+
   // Create a new tournament room (requires master director PIN)
   app.post("/api/tournaments", async (req, res) => {
     try {
@@ -1063,6 +1129,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isActive: true,
         isHandicapped: parsed.data.isHandicapped,
       });
+
+      // Auto-populate event details from director's global defaults
+      const directorDefaults = await storage.getDirectorContentDefaults(parsed.data.directorPin);
+      if (directorDefaults && (directorDefaults.directorName || directorDefaults.directorEmail || directorDefaults.directorPhone || directorDefaults.rulesText)) {
+        await storage.updateTournamentEventDetails(tournament.id, {
+          eventVenue: null,
+          eventStartAt: null,
+          eventDetailsUrl: null,
+          eventRegistrationUrl: null,
+          eventHeroImageUrl: null,
+          eventMaxPlayers: 24,
+          eventDirectorName: directorDefaults.directorName || null,
+          eventDirectorEmail: directorDefaults.directorEmail || null,
+          eventDirectorPhone: directorDefaults.directorPhone || null,
+          eventRulesText: directorDefaults.rulesText || null,
+          eventYoutubeUrl: null,
+          eventGalleryImages: null,
+          eventEntryFee: null,
+          eventEntryFeeDetails: null,
+        });
+        const populated = await storage.getTournament(tournament.id);
+        return res.json(populated || tournament);
+      }
 
       res.json(tournament);
     } catch (error) {
@@ -1282,6 +1371,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ error: "Invalid director credentials" });
       }
 
+      // Preserve director contact info and rules from global defaults when not supplied in this request
+      // (these are owned by the Settings tab, not the Edit Live Event dialog)
       const updated = await storage.updateTournamentEventDetails(tournament.id, {
         eventVenue: eventVenue?.trim() ? eventVenue.trim() : null,
         eventStartAt: eventStartAt ? new Date(eventStartAt) : null,
@@ -1289,10 +1380,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         eventRegistrationUrl: eventRegistrationUrl?.trim() ? eventRegistrationUrl.trim() : null,
         eventHeroImageUrl: eventHeroImageUrl?.trim() ? eventHeroImageUrl.trim() : null,
         eventMaxPlayers: eventMaxPlayers ?? tournament.eventMaxPlayers ?? 24,
-        eventDirectorName: eventDirectorName?.trim() ? eventDirectorName.trim() : null,
-        eventDirectorEmail: eventDirectorEmail?.trim() ? eventDirectorEmail.trim() : null,
-        eventDirectorPhone: eventDirectorPhone?.trim() ? eventDirectorPhone.trim() : null,
-        eventRulesText: eventRulesText?.trim() ? eventRulesText.trim() : null,
+        // Preserve existing values for fields managed by the Settings tab
+        eventDirectorName: eventDirectorName !== undefined ? (eventDirectorName?.trim() || null) : tournament.eventDirectorName,
+        eventDirectorEmail: eventDirectorEmail !== undefined ? (eventDirectorEmail?.trim() || null) : tournament.eventDirectorEmail,
+        eventDirectorPhone: eventDirectorPhone !== undefined ? (eventDirectorPhone?.trim() || null) : tournament.eventDirectorPhone,
+        eventRulesText: eventRulesText !== undefined ? (eventRulesText?.trim() || null) : tournament.eventRulesText,
         eventYoutubeUrl: eventYoutubeUrl?.trim() ? eventYoutubeUrl.trim() : null,
         eventGalleryImages: Array.isArray(eventGalleryImages) ? sanitizeGalleryImages(eventGalleryImages) : null,
         eventEntryFee: typeof eventEntryFee === "number" ? eventEntryFee : null,
