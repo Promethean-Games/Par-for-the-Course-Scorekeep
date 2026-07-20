@@ -223,9 +223,10 @@ export function VenueSection({ event }: SectionProps) {
           <p><strong>Food & drinks:</strong> {event.foodAndDrinksInfo}</p>
           <p><strong>Accessibility:</strong> {event.accessibilityNotes}</p>
         </div>
-        {event.mapUrl && (
+        {(event.mapUrl || event.venueAddress) && (
           <GoogleMapsEmbed
             mapUrl={event.mapUrl}
+            fallbackQuery={event.venueAddress}
             title={`${event.name} Venue Map`}
             height="300px"
           />

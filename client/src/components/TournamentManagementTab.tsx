@@ -1157,7 +1157,7 @@ export function TournamentManagementTab({ directorPin, onTournamentSelected }: T
                         data-testid="input-event-map-url"
                       />
                       <p className="text-xs text-muted-foreground">
-                        In Google Maps, search your venue → Share → Copy link. Paste that URL here.
+                        Paste a full Google Maps browser URL when possible. Short links like maps.app.goo.gl may open correctly in a new tab but are not always embeddable.
                       </p>
                     </div>
                     <div className="space-y-2">
