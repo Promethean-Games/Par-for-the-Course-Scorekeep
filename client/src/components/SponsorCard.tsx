@@ -40,7 +40,7 @@ export function SponsorCard({
   const canProceed = countdown <= 0;
 
   return (
-    <div className="flex flex-col items-center justify-between h-full px-6 py-8 text-center">
+    <div className="flex flex-col items-center justify-between h-full px-6 py-8 text-center max-h-screen overflow-y-auto">
       {/* Progress */}
       <div className="w-full flex items-center justify-between mb-6">
         <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">
