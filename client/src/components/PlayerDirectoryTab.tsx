@@ -543,6 +543,40 @@ export function PlayerDirectoryTab({ directorPin, onNotifyPlayer }: PlayerDirect
     return { ppt, ppc, totalPenalties, totalScratches, totalHoles };
   };
 
+  const [duplicatePlayers, setDuplicatePlayers] = useState<PlayerWithHistory[]>([]);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+
+  useEffect(() => {
+    const duplicates = players.filter((player, index, self) =>
+      self.findIndex(p => p.name.toLowerCase() === player.name.toLowerCase()) !== index
+    );
+    if (duplicates.length > 0) {
+      setDuplicatePlayers(duplicates);
+      setShowDuplicateDialog(true);
+    }
+  }, [players]);
+
+  const handleDuplicateAction = async (action: "merge" | "replace" | "delete", targetPlayer?: PlayerWithHistory) => {
+    setIsSaving(true);
+    try {
+      if (action === "merge" && targetPlayer) {
+        await handleMergePlayers(targetPlayer.id);
+      } else if (action === "replace" && targetPlayer) {
+        // Replace logic here
+      } else if (action === "delete" && targetPlayer) {
+        await handleDeletePlayer(targetPlayer.id);
+      }
+      setDuplicatePlayers([]);
+      setShowDuplicateDialog(false);
+      await fetchPlayers();
+    } catch (err) {
+      console.error("Error handling duplicate action:", err);
+      toast({ title: "Failed to handle duplicate action", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col p-4 space-y-4">
       <input
@@ -1428,6 +1462,51 @@ export function PlayerDirectoryTab({ directorPin, onNotifyPlayer }: PlayerDirect
                 {isSaving ? "Merging..." : "Merge"}
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showDuplicateDialog} onOpenChange={setShowDuplicateDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Duplicate Players Detected</DialogTitle>
+            <DialogDescription>
+              The following players have the same name. Please choose an action.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {duplicatePlayers.map((player) => (
+              <div key={player.id} className="flex items-center justify-between gap-2 p-3 border rounded-lg">
+                <div>
+                  <p className="font-medium">{player.name}</p>
+                  <p className="text-sm text-muted-foreground">ID: {player.uniqueCode}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleDuplicateAction("merge", player)}
+                    data-testid={`button-merge-duplicate-${player.id}`}
+                  >
+                    Merge
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleDuplicateAction("replace", player)}
+                    data-testid={`button-replace-duplicate-${player.id}`}
+                  >
+                    Replace
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDuplicateAction("delete", player)}
+                    data-testid={`button-delete-duplicate-${player.id}`}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>
