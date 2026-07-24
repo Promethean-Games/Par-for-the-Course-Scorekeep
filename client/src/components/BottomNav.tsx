@@ -12,10 +12,10 @@ interface BottomNavProps {
 
 export function BottomNav({ activeTab, onTabChange, viewOnly, isTournament, onGoHome }: BottomNavProps) {
   const allTabs = [
-    { id: "game" as const, icon: Home, label: "Game" },
+    { id: "game" as const, icon: LayoutDashboard, label: "Dashboard" },
     { id: "summary" as const, icon: Trophy, label: "Leaderboard" },
-    { id: "save" as const, icon: Save, label: "Save" },
     { id: "settings" as const, icon: SettingsIcon, label: "Settings" },
+    { id: "save" as const, icon: LogOut, label: "Exit" },
   ];
 
   let tabs = allTabs;
