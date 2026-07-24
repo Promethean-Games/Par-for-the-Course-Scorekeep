@@ -213,6 +213,7 @@ function GameApp() {
   }, [tournament.roomCode, handleStartTournamentGame]);
 
   const handleViewOnly = () => {
+    console.log("handleViewOnly triggered");
     setViewOnly(true);
     setScreen("game");
     setActiveTab("summary");
