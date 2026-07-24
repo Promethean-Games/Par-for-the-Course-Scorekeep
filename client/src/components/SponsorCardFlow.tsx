@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SponsorCard } from "./SponsorCard";
 
 interface Sponsor {
@@ -18,6 +18,13 @@ export function SponsorCardFlow({ sponsors, onComplete }: SponsorCardFlowProps) 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
+  useEffect(() => {
+    const hasShownSponsors = localStorage.getItem("hasShownSponsors");
+    if (hasShownSponsors) {
+      onComplete();
+    }
+  }, [onComplete]);
+
   const handleNext = () => {
     if (currentIndex < sponsors.length - 1) {
       setVisible(false);
@@ -27,7 +34,10 @@ export function SponsorCardFlow({ sponsors, onComplete }: SponsorCardFlowProps) 
       }, 200);
     } else {
       setVisible(false);
-      setTimeout(onComplete, 200);
+      setTimeout(() => {
+        localStorage.setItem("hasShownSponsors", "true");
+        onComplete();
+      }, 200);
     }
   };
 

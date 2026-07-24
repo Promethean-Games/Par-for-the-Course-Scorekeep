@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Home, Trophy, Settings as SettingsIcon, Save, LogOut } from "lucide-react";
+import { Home, Trophy, Settings as SettingsIcon, Save, LogOut, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
@@ -60,6 +60,15 @@ export function BottomNav({ activeTab, onTabChange, viewOnly, isTournament, onGo
           </Button>
         );
       })}
+      <Button
+        variant="ghost"
+        className="h-full rounded-none flex flex-col gap-1 items-center justify-center px-4"
+        onClick={() => onTabChange("game")}
+        data-testid="nav-dashboard"
+      >
+        <LayoutDashboard className="w-5 h-5" />
+        <span className="text-xs">Dashboard</span>
+      </Button>
     </div>
   );
 }
