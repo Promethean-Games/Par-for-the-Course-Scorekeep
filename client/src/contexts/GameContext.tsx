@@ -281,9 +281,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         };
       }
 
+      // Skip cycling through players and directly advance the hole
+      const newHolesCompleted = prev.holesCompleted + 1;
+      const nextHole = (prev.currentHole % MAX_HOLES) + 1;
+      const sortedPlayers = sortPlayersByPreviousHole(prev.players, prev.scores, prev.currentHole);
       return {
         ...prev,
-        currentPlayerIndex: nextPlayerIndex,
+        players: sortedPlayers,
+        currentPlayerIndex: 0,
+        currentHole: nextHole,
+        holesCompleted: newHolesCompleted,
       };
     });
   };
